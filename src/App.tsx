@@ -48,9 +48,11 @@ export function App() {
             the parish and the liturgical books.
           </p>
           <p>
-            The church is a stylized model for teaching, and the icons are schematic drawings. As
-            you face the iconostas, the Theotokos is at the left of the Royal Doors and Christ is
-            at the right.
+            The church is a stylized model for teaching. The icons are original paintings in the
+            Byzantine manner, not the icons of a particular parish. As you face the iconostas, the
+            Theotokos is at the left of the Royal Doors and Christ is at the right. The Royal Doors
+            show the Annunciation, and the Mystical Supper is above them. The patron on the north
+            is St. Nicholas.
           </p>
         </details>
       </header>
@@ -111,7 +113,7 @@ export function App() {
               </ul>
               <SpaceNote space={spaceById(featured)} currentIndex={index} onJump={setIndex} />
               <p className="map-footnote">
-                Schematic icons for teaching, not the painted icons of a particular church.
+                Original teaching icons in the Byzantine manner, not the painted icons of a particular church.
               </p>
             </section>
             <StepDetail

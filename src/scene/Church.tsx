@@ -1,7 +1,10 @@
+import { useEffect, useMemo } from "react";
+import { CanvasTexture, SRGBColorSpace } from "three";
 import { Html } from "@react-three/drei";
 import { colors } from "./colors";
 import { ByzantineCross } from "./Figures";
 import { Iconostas } from "./Iconostas";
+import { paintAltarFrontal } from "./icons";
 import type { SpaceId } from "../liturgy/spaces";
 import { floorPatches, spaceLabels, world } from "./world";
 
@@ -74,6 +77,7 @@ function Shell() {
       <Wall position={[2.4, 2.2, world.narthexWest]} args={[4.2, 4.4, world.wall]} />
       <Wall position={[0, 4.05, world.narthexWest]} args={[2.2, 0.7, world.wall]} />
       <Skirt />
+      <InteriorFinish />
       <Windows />
       <Roof />
       <Dome />
@@ -107,6 +111,29 @@ function Skirt() {
       <mesh position={[outer, 0.35, centerZ]} receiveShadow>
         <boxGeometry args={[0.16, 0.7, span]} />
         <meshStandardMaterial color={colors.stone} roughness={0.95} />
+      </mesh>
+    </group>
+  );
+}
+
+function InteriorFinish() {
+  return (
+    <group>
+      <mesh position={[-5.28, 0.58, 2.3]}>
+        <boxGeometry args={[0.08, 1.16, 18.5]} />
+        <meshStandardMaterial color="#7a3a32" roughness={0.82} />
+      </mesh>
+      <mesh position={[5.28, 0.58, 2.3]}>
+        <boxGeometry args={[0.08, 1.16, 18.5]} />
+        <meshStandardMaterial color="#7a3a32" roughness={0.82} />
+      </mesh>
+      <mesh position={[-5.28, 1.2, 2.3]}>
+        <boxGeometry args={[0.1, 0.06, 18.5]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.6} roughness={0.35} />
+      </mesh>
+      <mesh position={[5.28, 1.2, 2.3]}>
+        <boxGeometry args={[0.1, 0.06, 18.5]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.6} roughness={0.35} />
       </mesh>
     </group>
   );
@@ -256,21 +283,41 @@ function Pew({ position }: { position: [number, number] }) {
 }
 
 function Furnishings() {
+  const frontal = useMemo(() => {
+    const map = new CanvasTexture(paintAltarFrontal());
+    map.colorSpace = SRGBColorSpace;
+    return map;
+  }, []);
+  useEffect(() => () => frontal.dispose(), [frontal]);
   return (
     <group>
       <group position={world.altar}>
-        <mesh position={[0, 0.52, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.35, 0.96, 0.78]} />
-          <meshStandardMaterial color={colors.cloth} roughness={0.75} />
+        <mesh position={[0, 0.48, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.28, 0.9, 0.72]} />
+          <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 0.5, 0.02]} castShadow>
+          <boxGeometry args={[1.4, 0.98, 0.7]} />
+          <meshStandardMaterial color={colors.altarRed} roughness={0.62} />
+        </mesh>
+        <mesh position={[0, 0.55, 0.38]}>
+          <planeGeometry args={[1.28, 0.86]} />
+          <meshStandardMaterial map={frontal} roughness={0.55} />
         </mesh>
         <mesh position={[0, 1.02, 0]}>
-          <boxGeometry args={[1.42, 0.06, 0.86]} />
-          <meshStandardMaterial color={colors.cloth} roughness={0.7} />
+          <boxGeometry args={[1.5, 0.06, 0.92]} />
+          <meshStandardMaterial color={colors.cloth} roughness={0.65} />
+        </mesh>
+        <mesh position={[0, 1.06, 0]}>
+          <boxGeometry args={[1.2, 0.02, 0.55]} />
+          <meshStandardMaterial color={colors.gold} metalness={0.45} roughness={0.4} />
         </mesh>
         <group position={[0, 1.55, 0]}>
           <ByzantineCross scale={0.42} />
         </group>
-        <mesh position={[0.28, 1.1, 0.18]} castShadow>
+        <Candlestick position={[-0.48, 1.08, 0.12]} />
+        <Candlestick position={[0.48, 1.08, -0.08]} />
+        <mesh position={[0.28, 1.12, 0.16]} castShadow>
           <boxGeometry args={[0.22, 0.06, 0.16]} />
           <meshStandardMaterial color="#3d2418" roughness={0.5} />
         </mesh>
@@ -313,34 +360,68 @@ function Furnishings() {
   );
 }
 
+function Candlestick({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh>
+        <cylinderGeometry args={[0.04, 0.06, 0.08, 8]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
+      </mesh>
+      <mesh position={[0, 0.28, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.42, 6]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
+      </mesh>
+      <mesh position={[0, 0.52, 0]}>
+        <sphereGeometry args={[0.035, 8, 8]} />
+        <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={1.8} />
+      </mesh>
+    </group>
+  );
+}
+
 function Lamps() {
   const spots: [number, number, number][] = [
-    [0, 3.7, 1.2],
-    [0, 3.7, 4.6],
-    [0, 3.7, 7.6],
-    [0, 3.5, -5.2],
+    [0, 4.15, 5.4],
+    [0, 4.05, 1.4],
+    [0, 3.7, -5.4],
   ];
   return (
     <group>
       {spots.map((position) => (
-        <Lamp key={position.join(",")} position={position} />
+        <Chandelier key={position.join(",")} position={position} />
       ))}
     </group>
   );
 }
 
-function Lamp({ position }: { position: [number, number, number] }) {
+function Chandelier({ position }: { position: [number, number, number] }) {
+  const candles = [0, 1, 2, 3, 4, 5, 6, 7];
   return (
     <group position={position}>
-      <mesh position={[0, 0.7, 0]}>
-        <cylinderGeometry args={[0.012, 0.012, 1.3, 6]} />
-        <meshStandardMaterial color="#5c5146" />
+      <mesh position={[0, 0.35, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.7, 6]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.3} />
       </mesh>
-      <mesh>
-        <sphereGeometry args={[0.09, 12, 12]} />
-        <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={1.6} />
+      <mesh position={[0, -0.05, 0]}>
+        <torusGeometry args={[0.42, 0.02, 8, 20]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.75} roughness={0.25} />
       </mesh>
-      <pointLight color="#ffc48a" intensity={1.4} distance={11} decay={2} />
+      {candles.map((index) => {
+        const angle = (index / candles.length) * Math.PI * 2;
+        return (
+          <group key={index} position={[Math.cos(angle) * 0.42, -0.05, Math.sin(angle) * 0.42]}>
+            <mesh position={[0, 0.08, 0]}>
+              <cylinderGeometry args={[0.012, 0.012, 0.14, 6]} />
+              <meshStandardMaterial color="#f6efe4" />
+            </mesh>
+            <mesh position={[0, 0.17, 0]}>
+              <sphereGeometry args={[0.028, 8, 8]} />
+              <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={2.2} />
+            </mesh>
+          </group>
+        );
+      })}
+      <pointLight position={[0, -0.1, 0]} color="#ffc48a" intensity={2.2} distance={8} decay={2} />
     </group>
   );
 }

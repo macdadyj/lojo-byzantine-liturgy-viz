@@ -62,7 +62,7 @@ export const spaceLabels: { id: SpaceId; label: string; position: Vec3 }[] = [
   { id: "nave", label: "Nave", position: [-3.6, 2.5, 6.4] },
   { id: "kliros", label: "Kliros", position: [4.15, 2.15, 5.5] },
   { id: "solea", label: "Solea", position: [-2.8, 1.7, -2.15] },
-  { id: "iconostas", label: "Iconostas", position: [0, 3.55, world.iconZ] },
+  { id: "iconostas", label: "Iconostas", position: [-4.2, 3.7, world.iconZ] },
   { id: "sanctuary", label: "Sanctuary", position: [2.6, 2.3, -4.6] },
   { id: "altar", label: "Altar", position: [0, 1.85, -5.95] },
   { id: "prothesis", label: "Prothesis", position: [-3.6, 1.7, -5.15] },
