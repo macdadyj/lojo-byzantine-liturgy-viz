@@ -12,7 +12,7 @@ type ChurchViewProps = {
 
 const cast = [
   { label: "Priest", color: "#722433" },
-  { label: "Deacon", color: "#1e3f38" },
+  { label: "Deacon", color: "#1f4a3c" },
   { label: "Reader", color: "#3c3848" },
   { label: "Choir", color: "#4a3a28" },
   { label: "Faithful", color: "#2c3c55" },

@@ -1,53 +1,89 @@
 import { useEffect, useMemo, useRef } from "react";
-import { CanvasTexture, SRGBColorSpace } from "three";
-import type { Group } from "three";
+import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three";
+import type { Group, Texture } from "three";
 import { useFrame } from "@react-three/fiber";
 import { colors } from "./colors";
+import { paintIcon, paintWood, type IconId } from "./icons";
 import { world } from "./world";
 
-type PlateKind = "christ" | "theotokos" | "forerunner" | "patron";
-
-const plates: { kind: PlateKind; x: number }[] = [
-  { kind: "patron", x: -2.35 },
-  { kind: "theotokos", x: -1.2 },
-  { kind: "christ", x: 1.2 },
-  { kind: "forerunner", x: 2.35 },
+const mainIcons: { id: IconId; x: number }[] = [
+  { id: "nicholas", x: -2.35 },
+  { id: "hodegetria", x: -1.22 },
+  { id: "pantocrator", x: 1.22 },
+  { id: "forerunner", x: 2.35 },
 ];
 
 export function Iconostas({ doorsOpen }: { doorsOpen: boolean }) {
+  const wood = useCanvasTexture(paintWood, true);
   return (
     <group position={[0, 0, world.iconZ]}>
-      <Screen />
-      {plates.map((plate) => (
-        <IconPlate key={plate.kind} kind={plate.kind} x={plate.x} />
+      <Screen wood={wood} />
+      {mainIcons.map((icon) => (
+        <FramedIcon key={icon.id} id={icon.id} x={icon.x} />
       ))}
-      <RoyalLeaf side={-1} open={doorsOpen} />
-      <RoyalLeaf side={1} open={doorsOpen} />
+      <SupperPanel />
+      <RoyalLeaf side={-1} open={doorsOpen} id="gabriel" />
+      <RoyalLeaf side={1} open={doorsOpen} id="annunciation-theotokos" />
       <DoorFrame x={-3.55} />
       <DoorFrame x={3.55} />
-      <mesh position={[0, 3.15, 0]} castShadow>
-        <boxGeometry args={[10.7, 0.16, 0.28]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
+      <mesh position={[0, 4.22, 0]} castShadow>
+        <boxGeometry args={[10.7, 0.14, 0.32]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.28} />
       </mesh>
     </group>
   );
 }
 
-function Screen() {
-  const spans: [number, number][] = [
-    [-4.7, 1.5],
-    [-1.78, 0.7],
-    [1.78, 0.7],
-    [4.7, 1.5],
+function Screen({ wood }: { wood: Texture }) {
+  const panels: [number, number, number, number][] = [
+    [-4.7, 2.05, 1.35, 4.1],
+    [-2.4, 1.45, 1.35, 2.9],
+    [-1.22, 1.45, 0.95, 2.9],
+    [1.22, 1.45, 0.95, 2.9],
+    [2.4, 1.45, 1.35, 2.9],
+    [4.7, 2.05, 1.35, 4.1],
+    [0, 3.55, 10.5, 1.25],
   ];
   return (
     <group>
-      {spans.map(([x, width]) => (
-        <mesh key={`${x}-${width}`} position={[x, 1.55, 0]} castShadow receiveShadow>
-          <boxGeometry args={[width, 3.1, 0.16]} />
-          <meshStandardMaterial color={colors.wood} roughness={0.72} />
+      {panels.map(([x, y, width, height]) => (
+        <mesh key={`${x}-${y}`} position={[x, y, -0.04]} castShadow receiveShadow>
+          <boxGeometry args={[width, height, 0.14]} />
+          <meshStandardMaterial map={wood} roughness={0.78} color="#8a6244" />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+function FramedIcon({ id, x }: { id: IconId; x: number }) {
+  const texture = useIconTexture(id);
+  return (
+    <group position={[x, 1.55, 0.08]}>
+      <mesh castShadow>
+        <boxGeometry args={[1.08, 1.72, 0.08]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.06, 0.045]}>
+        <planeGeometry args={[0.92, 1.48]} />
+        <meshStandardMaterial map={texture} roughness={0.72} />
+      </mesh>
+    </group>
+  );
+}
+
+function SupperPanel() {
+  const texture = useIconTexture("supper");
+  return (
+    <group position={[0, 3.45, 0.1]}>
+      <mesh>
+        <boxGeometry args={[2.15, 0.78, 0.06]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, 0.035]}>
+        <planeGeometry args={[1.98, 0.64]} />
+        <meshStandardMaterial map={texture} roughness={0.72} />
+      </mesh>
     </group>
   );
 }
@@ -55,178 +91,69 @@ function Screen() {
 function DoorFrame({ x }: { x: number }) {
   return (
     <group position={[x, 0, 0]}>
-      <mesh position={[-0.48, 1.35, 0]}>
-        <boxGeometry args={[0.1, 2.7, 0.2]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.68} />
+      <mesh position={[-0.5, 1.5, 0.02]}>
+        <boxGeometry args={[0.1, 3, 0.22]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.65} roughness={0.32} />
       </mesh>
-      <mesh position={[0.48, 1.35, 0]}>
-        <boxGeometry args={[0.1, 2.7, 0.2]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.68} />
+      <mesh position={[0.5, 1.5, 0.02]}>
+        <boxGeometry args={[0.1, 3, 0.22]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.65} roughness={0.32} />
       </mesh>
-      <mesh position={[0, 2.75, 0]}>
-        <boxGeometry args={[1.06, 0.12, 0.2]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.68} />
+      <mesh position={[0, 3.05, 0.02]}>
+        <boxGeometry args={[1.1, 0.12, 0.22]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.65} roughness={0.32} />
       </mesh>
     </group>
   );
 }
 
-function RoyalLeaf({ side, open }: { side: -1 | 1; open: boolean }) {
+function RoyalLeaf({ side, open, id }: { side: -1 | 1; open: boolean; id: IconId }) {
   const hinge = useRef<Group>(null);
+  const texture = useIconTexture(id);
   useFrame((_, delta) => {
     const leaf = hinge.current;
     if (!leaf) return;
     const goal = open ? side * 1.05 : 0;
     leaf.rotation.y += (goal - leaf.rotation.y) * (1 - Math.exp(-delta * 3.5));
   });
-  const panelX = side === -1 ? 0.3 : -0.3;
+  const panelX = side === -1 ? 0.36 : -0.36;
   return (
-    <group ref={hinge} position={[side * 0.72, 0, 0]}>
-      <mesh position={[panelX, 1.4, 0]} castShadow>
-        <boxGeometry args={[0.58, 2.55, 0.07]} />
-        <meshStandardMaterial color="#4a301c" roughness={0.62} />
+    <group ref={hinge} position={[side * 0.74, 0, 0]}>
+      <mesh position={[panelX, 1.5, 0]} castShadow>
+        <boxGeometry args={[0.7, 2.85, 0.06]} />
+        <meshStandardMaterial color={colors.woodDark} roughness={0.55} />
       </mesh>
-      <mesh position={[panelX, 1.85, 0.045]}>
-        <boxGeometry args={[0.07, 0.28, 0.015]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.6} roughness={0.32} />
-      </mesh>
-      <mesh position={[panelX, 1.85, 0.045]}>
-        <boxGeometry args={[0.2, 0.05, 0.015]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.6} roughness={0.32} />
+      <mesh position={[panelX, 1.55, 0.035]}>
+        <planeGeometry args={[0.6, 2.6]} />
+        <meshStandardMaterial map={texture} roughness={0.7} />
       </mesh>
     </group>
   );
 }
 
-function IconPlate({ kind, x }: { kind: PlateKind; x: number }) {
-  const texture = usePlateTexture(kind);
-  return (
-    <group position={[x, 1.7, 0.1]}>
-      <mesh>
-        <boxGeometry args={[0.92, 1.35, 0.06]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 0.08, 0.04]}>
-        <planeGeometry args={[0.78, 1.05]} />
-        <meshStandardMaterial map={texture} roughness={0.85} />
-      </mesh>
-    </group>
-  );
-}
-
-function usePlateTexture(kind: PlateKind) {
+function useIconTexture(id: IconId): Texture {
   const texture = useMemo(() => {
-    const canvas = paintPlate(kind);
-    const map = new CanvasTexture(canvas);
+    const map = new CanvasTexture(paintIcon(id));
     map.colorSpace = SRGBColorSpace;
-    map.anisotropy = 4;
+    map.anisotropy = 8;
     return map;
-  }, [kind]);
+  }, [id]);
   useEffect(() => () => texture.dispose(), [texture]);
   return texture;
 }
 
-function paintPlate(kind: PlateKind): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 340;
-  const context = canvas.getContext("2d");
-  if (!context) return canvas;
-  context.fillStyle = plateGround(kind);
-  context.fillRect(0, 0, 256, 340);
-  context.strokeStyle = "#f0e2b8";
-  context.fillStyle = "#f0e2b8";
-  context.lineWidth = 6;
-  const haloX = kind === "theotokos" ? 112 : 128;
-  context.beginPath();
-  context.arc(haloX, 108, 42, 0, Math.PI * 2);
-  context.stroke();
-  drawPlateMark(context, kind);
-  context.beginPath();
-  context.moveTo(78, 250);
-  context.lineTo(128, 156);
-  context.lineTo(178, 250);
-  context.closePath();
-  context.fill();
-  context.fillStyle = "#f6efe4";
-  context.font = "600 32px sans-serif";
-  context.textAlign = "center";
-  context.fillText(plateCaption(kind), 128, 312);
-  return canvas;
-}
-
-function plateGround(kind: PlateKind): string {
-  switch (kind) {
-    case "christ":
-      return "#7a3036";
-    case "theotokos":
-      return "#243e68";
-    case "forerunner":
-      return "#3e4a32";
-    case "patron":
-      return "#5c4032";
-    default: {
-      const exhaustive: never = kind;
-      return exhaustive;
+function useCanvasTexture(paint: () => HTMLCanvasElement, repeat: boolean): Texture {
+  const texture = useMemo(() => {
+    const map = new CanvasTexture(paint());
+    map.colorSpace = SRGBColorSpace;
+    map.anisotropy = 8;
+    if (repeat) {
+      map.wrapS = RepeatWrapping;
+      map.wrapT = RepeatWrapping;
+      map.repeat.set(2, 4);
     }
-  }
-}
-
-function plateCaption(kind: PlateKind): string {
-  switch (kind) {
-    case "christ":
-      return "Christ";
-    case "theotokos":
-      return "Theotokos";
-    case "forerunner":
-      return "Forerunner";
-    case "patron":
-      return "Patron";
-    default: {
-      const exhaustive: never = kind;
-      return exhaustive;
-    }
-  }
-}
-
-function drawPlateMark(context: CanvasRenderingContext2D, kind: PlateKind) {
-  switch (kind) {
-    case "christ":
-      context.beginPath();
-      context.moveTo(128, 58);
-      context.lineTo(128, 86);
-      context.moveTo(108, 70);
-      context.lineTo(148, 70);
-      context.stroke();
-      return;
-    case "theotokos":
-      context.beginPath();
-      context.arc(168, 86, 22, 0, Math.PI * 2);
-      context.stroke();
-      for (const [x, y] of [
-        [112, 58],
-        [70, 140],
-        [150, 140],
-      ] as const) {
-        context.beginPath();
-        context.arc(x, y, 5, 0, Math.PI * 2);
-        context.fill();
-      }
-      return;
-    case "forerunner":
-      context.strokeRect(170, 168, 48, 62);
-      return;
-    case "patron":
-      context.strokeRect(162, 188, 52, 50);
-      context.beginPath();
-      context.moveTo(154, 188);
-      context.lineTo(188, 158);
-      context.lineTo(222, 188);
-      context.stroke();
-      return;
-    default: {
-      const exhaustive: never = kind;
-      return exhaustive;
-    }
-  }
+    return map;
+  }, [paint, repeat]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return texture;
 }

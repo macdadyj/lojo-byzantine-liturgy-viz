@@ -35,4 +35,10 @@ A suggested first path is in [DEMO.md](DEMO.md).
 
 Gathering and the proskomedia, the opening blessing, the Litany of Peace, the antiphons, the Little Entrance, the Trisagion, the Epistle, the Gospel, the homily, the litanies before the gifts, the Cherubic Hymn, the Great Entrance, the Symbol of Faith, the anaphora, the epiklesis, the commemoration of the Theotokos and the saints, the Our Father, “Holy Things for the holy,” Holy Communion, the thanksgiving, and the dismissal with antidoron.
 
-Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The figures are simple robes so the places and the movement stay clear.
+Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The priest wears a phelonion and the deacon a sticharion with an orarion, drawn simply so the movement stays clear.
+
+## Icons
+
+The iconostas paintings are original drawings made for this app, in the traditional Byzantine manner: gold ground, halo, and a short English title. They are not copies of a parish’s icons and they are not scraped from printed or photographed icons. No third-party image files are used.
+
+As you face the iconostas, St. Nicholas and the Theotokos stand north of the Royal Doors, and Christ Pantocrator and St. John the Forerunner stand south of them. The Royal Doors show the Annunciation: Gabriel on the north leaf and the Theotokos on the south leaf. The Mystical Supper is above the doors.
