@@ -1,0 +1,83 @@
+# Build the static image and deploy Cloud Run service lojo-byzantine-liturgy-viz.
+# Run this in project montano-349204 (the Cloud Build service account there
+# needs Artifact Registry writer and Cloud Run admin):
+#
+#   gcloud builds submit --config cloudbuild.yaml --project montano-349204
+#
+# The image contains only the built site. No secrets.
+
+substitutions:
+  _REGION: us-central1
+  _SERVICE: lojo-byzantine-liturgy-viz
+  _REPO: cloud-run
+
+steps:
+  - id: ensure-repo
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if ! gcloud artifacts repositories describe "${_REPO}" \
+          --location="${_REGION}" --project="montano-349204" >/dev/null 2>&1; then
+          gcloud artifacts repositories create "${_REPO}" \
+            --repository-format=docker \
+            --location="${_REGION}" \
+            --project="montano-349204" \
+            --description="Images for Cloud Run"
+        fi
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/montano-349204/${_REPO}/${_SERVICE}:$BUILD_ID
+      - -t
+      - ${_REGION}-docker.pkg.dev/montano-349204/${_REPO}/${_SERVICE}:latest
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        image="${_REGION}-docker.pkg.dev/montano-349204/${_REPO}/${_SERVICE}"
+        docker push "$${image}:$BUILD_ID"
+        docker push "$${image}:latest"
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image
+      - ${_REGION}-docker.pkg.dev/montano-349204/${_REPO}/${_SERVICE}:$BUILD_ID
+      - --project
+      - montano-349204
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --min-instances
+      - "0"
+      - --max-instances
+      - "3"
+      - --cpu
+      - "1"
+      - --memory
+      - 512Mi
+      - --port
+      - "8080"
+      - --concurrency
+      - "80"
+
+images:
+  - us-central1-docker.pkg.dev/montano-349204/cloud-run/lojo-byzantine-liturgy-viz:$BUILD_ID
+
+options:
+  logging: CLOUD_LOGGING_ONLY

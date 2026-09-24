@@ -19,7 +19,25 @@ npm run build
 npm run preview
 ```
 
-`npm run build` writes a relative-path bundle (`base: "./"`) into `dist/`.
+`npm run build` writes a relative-path bundle (`base: "./"`) into `dist/`. Those relative paths work at the Cloud Run root URL: the page loads `./assets/…`, which the browser requests as `/assets/…`.
+
+## Cloud Run
+
+The container is a static site: Node 20 builds `dist/`, then nginx serves it on port 8080. Cloud Run can scale the service to zero. The image has no API keys and no other secrets.
+
+From a machine logged into project `montano-349204`:
+
+```bash
+gcloud run deploy lojo-byzantine-liturgy-viz --source . --project montano-349204 --region us-central1 --allow-unauthenticated --min-instances 0 --cpu 1 --memory 512Mi --port 8080
+```
+
+The same rollout is in `cloudbuild.yaml` (Artifact Registry repo `cloud-run`, then Cloud Run):
+
+```bash
+gcloud builds submit --config cloudbuild.yaml --project montano-349204
+```
+
+Service name `lojo-byzantine-liturgy-viz`, region `us-central1`, minimum instances 0, 1 vCPU, 512Mi. After merge, the Google Cloud Engineer runs the deploy. This repo does not hold credentials.
 
 ## Using the walkthrough
 
