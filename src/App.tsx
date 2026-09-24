@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChurchMap } from "./components/ChurchMap";
+import { ChurchView } from "./components/ChurchView";
 import { Pager } from "./components/Pager";
 import { SpaceNote } from "./components/SpaceNote";
 import { StepDetail } from "./components/StepDetail";
@@ -48,8 +48,9 @@ export function App() {
             the parish and the liturgical books.
           </p>
           <p>
-            The icons are schematic drawings for teaching. As you face the iconostas, the Theotokos
-            is at the left of the Royal Doors and Christ is at the right.
+            The church is a stylized model for teaching, and the icons are schematic drawings. As
+            you face the iconostas, the Theotokos is at the left of the Royal Doors and Christ is
+            at the right.
           </p>
         </details>
       </header>
@@ -70,16 +71,18 @@ export function App() {
           <div className="stage-body">
             <section className="map-panel" aria-labelledby="map-heading">
               <div className="map-heading">
-                <h2 id="map-heading">Church plan</h2>
+                <h2 id="map-heading">Church</h2>
                 <p id="map-caption">
-                  East and the altar are at the top. North is to the left. Highlighted rooms are
-                  the places of this step. Click a room to read it.
+                  East is the altar. Follow liturgy moves the view with each step. Free look orbits,
+                  pans, and zooms while the service stays on the current step. Arrow keys still
+                  change the step. Gold light marks the places of this step. Click a floor to read
+                  that place.
                 </p>
               </div>
-              <ChurchMap
+              <ChurchView
+                step={step}
                 activeSpaces={step.spaces}
                 selectedSpace={featured}
-                route={step.route}
                 onSelectSpace={setPinnedSpace}
               />
               <ul className="legend" aria-label="Places in the church">
