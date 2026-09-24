@@ -1,0 +1,5 @@
+#!include:.gitignore
+.git
+.env
+.env.*
+npm-debug.log*
