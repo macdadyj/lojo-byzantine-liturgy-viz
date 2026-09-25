@@ -1,5 +1,74 @@
 # QA punch list — Divine Liturgy walkthrough
 
+## Verified pass 6
+
+Independent retest of `cursor/liturgy-pass-5-339c` at `d2cdaab` (“Plant the congregation on the floor and typecheck the Vite config”). No app code was changed. The “Fixed in pass 6” section below is the developer’s claim. This section is the walk.
+
+**Verdict: NOT READY.**
+
+The build, the Medium anaphora, the Communion chalice, and the dismissal hand cross are in good shape. The congregation is not. Shoes still hang above the floor in the gathering, on the kliros, in the entrances, at Communion, and at the dismissal, and bodies still cut through the north door and the iconostas. I would not put this in front of a parish yet.
+
+### Still P0
+
+1. **People still float and still clip.** Pass 6 plants soles in code, and the pictures do not show soles on the floor. In the gathering there is a gap under the shoes and a shadow on the marble beneath it (`pass6-high-step-01.png`). The same gap is on the kliros (`pass6-high-step-05.png`), in both entrances, in the Communion line, and in the dismissal queue. The priest’s feet miss the sanctuary floor too (`pass6-high-step-03.png`, `pass6-high-step-15.png`). The deacon’s body still intersects the north door (`pass6-high-step-06-later.png`, `pass6-high-step-13-later.png`). On the epiklesis at least one kneeling figure intersects the iconostas (`pass6-high-step-16.png`).
+
+### Build, tests, and Docker
+
+- `npm test`: 18 passed (2 files).
+- A first `npm run build` on the stale `node_modules` failed with `TS2688: Cannot find type definition file for 'node'`, because `@types/node` was not installed yet. `npm ci` installed it. The next `npm run build` (`tsc` for the app, `tsc` for `vite.config.ts`, then Vite) succeeded. Output JS: `dist/assets/index-ByWrA-2T.js`.
+- Docker was not on the machine. After installing it, `docker build .` completed and tagged `liturgy-pass6`. The image runs the Dockerfile’s `npm run build`, so the clean container build typechecks.
+
+### How this retest was run
+
+- Preview of that production build at `http://127.0.0.1:4173/`.
+- Playwright, headed Chromium, WebGL 2 via ANGLE SwiftShader. Canvas about 1160×815.
+- A full Next walk of all 22 steps at High, then again at Medium, then again at Low. Titles matched on all three. Previous from step 22 back to step 1, with Previous disabled on 1 and Next disabled on 22. Home lands on Gathering. End lands on Dismissal.
+- Free look, E on an icon (St. Nicholas), the four-stop icon tour, Head bob off at the start. Phone at 390×844.
+- Holy Things was timed again on Low at about 0.8s, 2.5s, 5s, and 8s (`pass6-holy-t800.png`, `pass6-holy-t5000.png`).
+- SwiftShader frame rate: High about 0.45–1.4 fps (mean about 0.8), Medium about 0.7–1.3 (mean about 1.0), Low about 0.9–4.3 (mean about 2.2).
+- Console warnings: none. Page errors: none. Failed requests: none.
+
+New shots are `qa/screenshots/pass6-*.png`.
+
+### Verified pass 6 — pass 6 claims
+
+| Item | Verified pass 6 | What this walk showed |
+| --- | --- | --- |
+| Build (`npm run build` / Docker tsc) | fixed | Clean `npm ci` then `npm run build` passes both `tsc` projects and Vite. `docker build .` succeeds. |
+| People float and clip | not fixed | Still P0. Clothes and faces still vary. Feet do not meet the floor, and bodies still intersect the door and the screen. `pass6-high-step-01.png`, `pass6-people-nave-close.png`, `pass6-high-step-16.png`. |
+| Entrances and the north door | partly fixed | The north door is open. Two candles lead the Little Entrance, and the Gospel is in the deacon’s hands. His body still occupies the door frame, and his feet are above the solea. `pass6-high-step-06-later.png`. |
+| Great Entrance camera | partly fixed | The camera is at the open north door. Candles, the chalice, and the diskos are in the doorway. The line does not read as carried across the nave and set on the altar. The deacon clips the frame. `pass6-high-step-13-later.png`. Medium shows the same doorway (`pass6-medium-step-13-later.png`). |
+| Communion chalice and dismissal cross | fixed | Communion has a large gold chalice and a spoon between the priest and the line (`pass6-high-step-20.png`). Dismissal has a gold hand cross in front of the priest (`pass6-high-step-22.png`). The queues still float. |
+| Medium anaphora | fixed | Medium, from a fresh walk and from switching High → Medium → Low while already on the anaphora, stays inside at the holy table with the gifts and the royal doors open. `pass6-medium-step-15.png`, `pass6-switch-anaphora-medium.png`, `pass6-low-step-15.png`, `pass6-high-step-15.png`. |
+
+### Verified pass 6 — earlier punch list
+
+| Item | Verified pass 6 | What this walk showed |
+| --- | --- | --- |
+| 1 Sanctuary visibility (P0-1) | fixed | Proskomedia, Cherubic Hymn, Creed, anaphora, epiklesis, and the Holy Things elevation still show the table or the gifts, not a shut screen. `pass6-high-step-02.png`, `pass6-high-step-12.png`, `pass6-high-step-14.png`, `pass6-high-step-15.png`. |
+| 2 Deacon doors (P0-2) | partly fixed | Real opening, north leaf open for both entrances, candles in front. Bodies still intersect the leaf. |
+| 3 People (P0-3) | not fixed | Same as the pass 6 people row. Variety remains. The floor contact does not. |
+| 4 Wrong subject (P1-1) | partly fixed | Gathering is the narthex. Antiphons are the kliros, and some singers face the nave with a cross gesture (`pass6-high-step-05.png`, `pass6-high-step-07.png`). They still float, and several singers face away. |
+| 5 Holy Things two beats | regressed | The elevation with the doors open is on screen (`pass6-holy-t800.png`). Frames at 2.5s, 5s, and 8s are the same picture, still the open elevation (`pass6-holy-t5000.png`). The pass 5 retest had a later frame with the doors and curtain shut. This walk did not. |
+| 6 Epiklesis kneel (P1-2) | fixed | The nave is kneeling and the gifts are visible through open doors (`pass6-high-step-16.png`). One figure clips the iconostas. |
+| 7 Entrances (top 7) | partly fixed | Same as the entrance rows above. Candles are new. The path still ends in the doorway. |
+| 8 Phone (P1-6) | fixed | At 390×844 the church is first (y=15, title at y=1723). Controls do not cover each other. The hint says joystick, not WASD. `pass6-mobile-freelook.png`. |
+| 9 Low quality (P1-7) | fixed | Low anaphora is the same sanctuary subject as High and Medium (`pass6-low-step-15.png`). Low is the fastest of the three here and still a slideshow on SwiftShader. |
+| 10 First-run UI (P2-1) | fixed | Step 1 opens with the see-line and the disclosure open. Follow liturgy says arrow keys. Free look says WASD on the desktop and the joystick on the phone. |
+| P1-3 Communion and dismissal | partly fixed | Chalice, spoon, child, and hand cross are readable. The people in those lines are still above the floor. |
+| P1-4 Readings and homily | fixed | All 22 titles, including Epistle, Gospel, and homily, advanced correctly at all three qualities. No shut-door regression on the sanctuary steps checked beside them. |
+| P1-5 Free look and the dome tour | fixed | E opened St. Nicholas (`pass6-free-press-e.png`). The tour reached Exaltation of the Cross, the Deesis, the Dormition, and Christ Pantocrator (`pass6-tour-4.png`). Head bob starts off. |
+| P2-2 Pointer lock and head bob | fixed | `aria-pressed` false. No page errors. |
+| P2-3 Legend and step 3 | partly fixed | Step 3 is the open doors, the priest, and a candle (`pass6-high-step-03.png`). The priest’s feet still miss the floor. |
+| P2-4 THREE.Clock | fixed | Quiet console on the desktop walks and the phone walk. |
+
+### Regressions
+
+- **Holy Things close beat.** The open elevation is intact. The shut doors and curtain, which the pass 5 retest recorded, did not appear in an 8 second Low watch.
+- No regression on the build once dependencies are installed, on the Medium anaphora, on the phone, or on the console.
+
+---
+
 ## Verified pass 5
 
 Independent retest of draft pass 5, branch `cursor/liturgy-pass-5-339c` at `390a88e` (“Open the sanctuary doors and replace the repeated bald cast”). No app code was changed. The “Fixed in pass 5” column later in this file is the developer’s claim. The tables in this section are what a second walk actually showed.
