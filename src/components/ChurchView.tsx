@@ -20,6 +20,7 @@ const cast = [
 
 export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }: ChurchViewProps) {
   const [mode, setMode] = useState<LookMode>("follow");
+  const [showLabels, setShowLabels] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
         activeSpaces={activeSpaces}
         selectedSpace={selectedSpace}
         onSelectSpace={onSelectSpace}
+        showLabels={showLabels}
         reducedMotion={reducedMotion}
       />
       <div className="view-bar">
@@ -46,6 +48,9 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
         </button>
         <button type="button" aria-pressed={mode === "free"} onClick={() => setMode("free")}>
           Free look
+        </button>
+        <button type="button" aria-pressed={showLabels} onClick={() => setShowLabels((current) => !current)}>
+          Labels
         </button>
       </div>
       <ul className="cast-key" aria-label="Who is in the church">

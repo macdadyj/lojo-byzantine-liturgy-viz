@@ -36,6 +36,22 @@ describe("3D liturgy staging", () => {
     expect(greatEnd?.[2]).toBeLessThan(-5);
   });
 
+  it("frames clergy-action steps toward the people who are acting", () => {
+    for (const id of ["gospel", "communion", "homily", "dismissal"] as const) {
+      const camera = cameraFor(id);
+      expect(camera.position[2]).toBeGreaterThan(camera.target[2]);
+      expect(camera.target[2]).toBeLessThan(-4);
+    }
+    for (const id of ["little-entrance", "great-entrance"] as const) {
+      const camera = cameraFor(id);
+      expect(camera.target[0]).toBeLessThan(-2);
+      expect(camera.position[0]).toBeLessThan(-2);
+    }
+    const epiklesis = cameraFor("epiklesis");
+    expect(epiklesis.position[2]).toBeLessThan(-9);
+    expect(epiklesis.target[2]).toBeLessThan(epiklesis.position[2]);
+  });
+
   it("samples the middle of a path between its waypoints", () => {
     const mid = pointOnPath(
       [

@@ -1,6 +1,7 @@
-import { useEffect, useMemo } from "react";
-import { CanvasTexture, SRGBColorSpace } from "three";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CanvasTexture, SRGBColorSpace, Vector3 } from "three";
 import { Html } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
 import { colors } from "./colors";
 import { ByzantineCross } from "./Figures";
 import { SacredArt } from "./Iconostas";
@@ -10,6 +11,7 @@ import { floorPatches, spaceLabels, world } from "./world";
 
 type ChurchProps = {
   doorsOpen: boolean;
+  showLabels: boolean;
   activeSpaces: readonly SpaceId[];
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
@@ -18,7 +20,7 @@ type ChurchProps = {
 const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
 const domeZ = -1.15;
 
-export function Church({ doorsOpen, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
+export function Church({ doorsOpen, showLabels, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
   return (
     <group>
       <Ground />
@@ -33,7 +35,7 @@ export function Church({ doorsOpen, activeSpaces, selectedSpace, onSelectSpace }
       <Furnishings />
       <SacredArt doorsOpen={doorsOpen} />
       <Lamps />
-      <Labels activeSpaces={activeSpaces} />
+      <Labels activeSpaces={activeSpaces} showLabels={showLabels} />
       {floorPatches.map((patch) => (
         <mesh
           key={`${patch.id}-${patch.position.join(",")}`}
@@ -259,6 +261,10 @@ function Gallery() {
         <boxGeometry args={[0.08, 0.9, 9.2]} />
         <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
       </mesh>
+      <mesh position={[-0.35, 0.5, -0.3]}>
+        <boxGeometry args={[0.5, 0.08, 5.6]} />
+        <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
+      </mesh>
     </group>
   );
 }
@@ -314,7 +320,7 @@ function Pew({ position, wide }: { position: [number, number]; wide: boolean }) 
         <boxGeometry args={[width, 0.08, 0.48]} />
         <meshStandardMaterial color={colors.wood} roughness={0.68} />
       </mesh>
-      <mesh position={[0, 0.78, -0.2]}>
+      <mesh position={[0, 0.78, 0.22]}>
         <boxGeometry args={[width, 0.62, 0.08]} />
         <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
       </mesh>
@@ -428,26 +434,65 @@ function Chandelier({ position }: { position: [number, number, number] }) {
   );
 }
 
-function Labels({ activeSpaces }: { activeSpaces: readonly SpaceId[] }) {
+const placeLabels: { key: string; label: string; position: [number, number, number]; space?: SpaceId }[] = [
+  ...spaceLabels.map((label) => ({
+    key: label.id,
+    label: label.label,
+    position: label.position,
+    space: label.id,
+  })),
+  { key: "ambon", label: "Ambon", position: [0, 2.35, -5.6] },
+];
+
+function Labels({ activeSpaces, showLabels }: { activeSpaces: readonly SpaceId[]; showLabels: boolean }) {
+  if (!showLabels) return null;
   return (
     <group>
-      {spaceLabels.map((label) => (
-        <Html
-          key={label.id}
+      {placeLabels.map((label) => (
+        <PlaceTag
+          key={label.key}
           position={label.position}
-          center
-          distanceFactor={18}
-          zIndexRange={[4, 0]}
-          style={{ pointerEvents: "none" }}
-        >
-          <span className={activeSpaces.includes(label.id) ? "space-tag is-active" : "space-tag"}>
-            {label.label}
-          </span>
-        </Html>
+          active={label.space !== undefined && activeSpaces.includes(label.space)}
+          label={label.label}
+        />
       ))}
-      <Html position={[0, 1.5, -5.6]} center distanceFactor={18} zIndexRange={[4, 0]} style={{ pointerEvents: "none" }}>
-        <span className="space-tag">Ambon</span>
-      </Html>
     </group>
+  );
+}
+
+const labelForward = new Vector3();
+
+function PlaceTag({
+  position,
+  active,
+  label,
+}: {
+  position: [number, number, number];
+  active: boolean;
+  label: string;
+}) {
+  const visible = useRef(false);
+  const [shown, setShown] = useState(false);
+  const { camera } = useThree();
+
+  useFrame(() => {
+    const dx = position[0] - camera.position.x;
+    const dy = position[1] - camera.position.y;
+    const dz = position[2] - camera.position.z;
+    const dist = Math.hypot(dx, dy, dz);
+    camera.getWorldDirection(labelForward);
+    const dot = dist > 0.001 ? (dx * labelForward.x + dy * labelForward.y + dz * labelForward.z) / dist : -1;
+    const next = dist > 3.4 && dist < 38 && dot > 0.2;
+    if (next !== visible.current) {
+      visible.current = next;
+      setShown(next);
+    }
+  });
+
+  if (!shown) return null;
+  return (
+    <Html position={position} center zIndexRange={[4, 0]} style={{ pointerEvents: "none" }}>
+      <span className={active ? "space-tag is-active" : "space-tag"}>{label}</span>
+    </Html>
   );
 }

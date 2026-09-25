@@ -48,8 +48,9 @@ export function App() {
               the parish and the liturgical books.
             </p>
             <p>
-              The church is a teaching model of a large nave. The icons are public-domain historical
-              works listed in ATTRIBUTION.md. As you face the iconostas, the Theotokos is at the left
+              The church is a teaching model of a large nave. The people are CC0 humanoid meshes and
+              the icons are public-domain historical works, both listed in ATTRIBUTION.md. As you face
+              the iconostas, the Theotokos is at the left
               of the Royal Doors and Christ is at the right. The Royal Doors show the Ustyug
               Annunciation, the Mystical Supper is above them, and the patron on the north is St.
               Nicholas.
