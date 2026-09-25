@@ -41,6 +41,7 @@ export function Church({ doorsOpen, showLabels, quality, activeSpaces, selectedS
       <Frescoes />
       <Lamps flicker={quality !== "low"} quality={quality} />
       <CandleStands quality={quality} />
+      <DevotionalProps quality={quality} />
       <Shafts quality={quality} />
       <Labels activeSpaces={activeSpaces} showLabels={showLabels} />
       {floorPatches.map((patch) => (
@@ -117,7 +118,7 @@ function Columns() {
             </mesh>
             <mesh position={[0, 3.9, 0]}>
               <cylinderGeometry args={[0.28, 0.32, 7.1, 12]} />
-              <meshStandardMaterial color="#efe6d6" roughness={0.78} />
+              <meshStandardMaterial map={marbleTexture()} color="#cfc4b2" roughness={0.72} metalness={0.02} />
             </mesh>
             <mesh position={[0, 7.35, 0]}>
               <torusGeometry args={[0.34, 0.07, 8, 14]} />
@@ -152,11 +153,11 @@ function Vault() {
       <mesh position={[0, 9.15, 9.4]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[5.15, 5.15, 14.5, 28, 1, true, Math.PI / 2, Math.PI]} />
         <meshStandardMaterial
-          color={colors.plasterDeep}
-          roughness={0.9}
+          color="#8d6844"
+          roughness={0.92}
           side={2}
-          emissive={colors.plaster}
-          emissiveIntensity={0.38}
+          emissive="#5c3e28"
+          emissiveIntensity={0.04}
         />
       </mesh>
       <mesh position={[0, 8.4, -6.4]} rotation={[Math.PI / 2, 0, 0]}>
@@ -165,17 +166,17 @@ function Vault() {
           color={colors.plasterDeep}
           roughness={0.9}
           side={2}
-          emissive={colors.plaster}
-          emissiveIntensity={0.16}
+          emissive="#5c3e28"
+          emissiveIntensity={0.04}
         />
       </mesh>
       <mesh position={[-8.2, 8.05, 4]}>
         <boxGeometry args={[6.4, 0.22, 30]} />
-        <meshStandardMaterial color={colors.plasterDeep} roughness={0.92} emissive={colors.plaster} emissiveIntensity={0.12} />
+        <meshStandardMaterial color={colors.plasterDeep} roughness={0.92} emissive="#5c3e28" emissiveIntensity={0.03} />
       </mesh>
       <mesh position={[8.2, 8.05, 4]}>
         <boxGeometry args={[6.4, 0.22, 30]} />
-        <meshStandardMaterial color={colors.plasterDeep} roughness={0.92} emissive={colors.plaster} emissiveIntensity={0.12} />
+        <meshStandardMaterial color={colors.plasterDeep} roughness={0.92} emissive="#5c3e28" emissiveIntensity={0.03} />
       </mesh>
       <mesh position={[0, 16.9, 11]}>
         <boxGeometry args={[26, 0.35, 18]} />
@@ -194,7 +195,7 @@ function Dome() {
     <group position={[0, 0, domeZ]}>
       <mesh position={[0, 10.4, 0]}>
         <cylinderGeometry args={[3.5, 4.7, 2.4, 24, 1, true]} />
-        <meshStandardMaterial color={colors.plaster} roughness={0.86} side={2} emissive={colors.plaster} emissiveIntensity={0.16} />
+        <meshStandardMaterial color={colors.plaster} roughness={0.86} side={2} emissive="#5c3e28" emissiveIntensity={0.04} />
       </mesh>
       <mesh position={[0, 12.3, 0]}>
         <cylinderGeometry args={[3.35, 3.5, 1.7, 24, 1, true]} />
@@ -285,7 +286,7 @@ function Floors() {
     <group>
       <mesh position={[0, -0.04, 6.2]}>
         <boxGeometry args={[world.halfWidth * 2, 0.12, 33]} />
-        <meshStandardMaterial map={marbleTexture()} color="#f4efe6" roughness={0.28} metalness={0.08} />
+        <meshStandardMaterial map={marbleTexture()} color="#c4b49c" roughness={0.62} metalness={0.02} />
       </mesh>
       <mesh position={[0, 0.08, 19.6]}>
         <boxGeometry args={[world.halfWidth * 2, 0.1, 6.2]} />
@@ -297,7 +298,7 @@ function Floors() {
       </mesh>
       <mesh position={[0, 0.21, -13.9]}>
         <boxGeometry args={[world.halfWidth * 2, 0.42, 9.4]} />
-        <meshStandardMaterial map={marbleTexture()} color="#efe6da" roughness={0.32} metalness={0.06} />
+        <meshStandardMaterial map={marbleTexture()} color="#b7a58c" roughness={0.58} metalness={0.02} />
       </mesh>
       <mesh position={[0, 0.16, -5.6]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1.7, 28, 0, Math.PI]} />
@@ -449,7 +450,7 @@ function Chandelier({
     const bulb = lamp.current;
     if (!bulb || !flicker) return;
     const time = state.clock.elapsedTime + position[2];
-    bulb.intensity = 5.2 + Math.sin(time * 8.2) * 0.65 + Math.sin(time * 14.5) * 0.22;
+    bulb.intensity = 1.7 + Math.sin(time * 8.2) * 0.18 + Math.sin(time * 14.5) * 0.08;
   });
   return (
     <group position={position}>
@@ -474,7 +475,7 @@ function Chandelier({
           </mesh>
         );
       })}
-      {light ? <pointLight ref={lamp} color="#ffc48a" intensity={5.4} distance={18} decay={2} /> : null}
+      {light ? <pointLight ref={lamp} color="#ffc48a" intensity={2.1} distance={14} decay={2} /> : null}
     </group>
   );
 }
@@ -501,10 +502,104 @@ function CandleStands({ quality }: { quality: Quality }) {
             </mesh>
           ))}
           {quality === "low" ? null : (
-            <pointLight color="#ffc48a" intensity={1.4} distance={4} decay={2} position={[0, 1.1, 0]} />
+            <pointLight color="#ffc48a" intensity={0.55} distance={3.2} decay={2} position={[0, 1.1, 0]} />
           )}
         </group>
       ))}
+    </group>
+  );
+}
+
+const taperLayout: [number, number, number][] = Array.from({ length: 24 }, (_, index) => {
+  const column = index % 8;
+  const row = Math.floor(index / 8);
+  const height = 0.16 + ((index * 5) % 7) * 0.035;
+  return [(column - 3.5) * 0.055, height / 2, (row - 1) * 0.07];
+});
+
+function DevotionalProps({ quality }: { quality: Quality }) {
+  const trays: [number, number, number][] = [
+    [0.85, 0, 1.15],
+    [-0.85, 0, 1.15],
+    [1.15, 0, -6.15],
+    [-1.15, 0, -6.15],
+    [-2.3, 0, 20.2],
+  ];
+  const lamps: [number, number, number][] = [
+    [-2.35, 3.55, world.iconZ + 0.72],
+    [2.35, 3.55, world.iconZ + 0.72],
+    [-4.7, 3.4, world.iconZ + 0.72],
+    [4.7, 3.4, world.iconZ + 0.72],
+  ];
+  return (
+    <group>
+      {trays.map((position) => (
+        <SandTray key={position.join(",")} position={position} />
+      ))}
+      {lamps.map((position, index) => (
+        <Lampada key={position.join(",")} position={position} light={quality !== "low" && index < 2} />
+      ))}
+      <group position={[7.85, 3.22, 6.1]}>
+        <mesh position={[0, 0.55, 0]}>
+          <boxGeometry args={[0.7, 1.05, 0.42]} />
+          <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 1.12, 0.02]} rotation={[-0.7, 0, 0]}>
+          <boxGeometry args={[0.62, 0.08, 0.46]} />
+          <meshStandardMaterial color={colors.wood} roughness={0.65} />
+        </mesh>
+        <mesh position={[-0.12, 1.16, 0.08]} rotation={[-0.7, 0.15, 0]}>
+          <boxGeometry args={[0.22, 0.01, 0.3]} />
+          <meshStandardMaterial color="#f3efe4" roughness={0.7} />
+        </mesh>
+        <mesh position={[0.12, 1.16, 0.08]} rotation={[-0.7, -0.15, 0]}>
+          <boxGeometry args={[0.22, 0.01, 0.3]} />
+          <meshStandardMaterial color="#f7f1e4" roughness={0.7} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+function SandTray({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.06, 0]}>
+        <boxGeometry args={[0.52, 0.08, 0.28]} />
+        <meshStandardMaterial color="#c2b48a" roughness={0.95} />
+      </mesh>
+      {taperLayout.map((spot, index) => (
+        <group key={index} position={spot}>
+          <mesh>
+            <cylinderGeometry args={[0.006, 0.007, spot[1] * 2, 5]} />
+            <meshStandardMaterial color="#f6f0e4" roughness={0.55} />
+          </mesh>
+          <mesh position={[0, spot[1], 0]}>
+            <sphereGeometry args={[0.012, 5, 5]} />
+            <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={1.5} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function Lampada({ position, light }: { position: [number, number, number]; light: boolean }) {
+  return (
+    <group position={position}>
+      <mesh>
+        <cylinderGeometry args={[0.006, 0.006, 0.85, 5]} />
+        <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.28} />
+      </mesh>
+      <mesh position={[0, -0.48, 0]}>
+        <sphereGeometry args={[0.07, 8, 6]} />
+        <meshStandardMaterial color="#7a1e28" roughness={0.35} metalness={0.25} emissive="#3a1014" emissiveIntensity={0.2} />
+      </mesh>
+      <mesh position={[0, -0.4, 0]}>
+        <sphereGeometry args={[0.022, 6, 6]} />
+        <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={1.8} />
+      </mesh>
+      {light ? <pointLight position={[0, -0.4, 0]} color="#ffc48a" intensity={0.4} distance={2.6} decay={2} /> : null}
     </group>
   );
 }

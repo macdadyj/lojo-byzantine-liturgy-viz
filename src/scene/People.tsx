@@ -238,6 +238,8 @@ export function Crowd({
   quality?: Quality;
 }) {
   if (spots.length === 0) return null;
+  // The sit clip folds the body into the aisle in front of the pew. Stand in the row instead.
+  const shown = stance === "sit" ? "stand" : stance;
   return (
     <group>
       {spots.map((spot) => (
@@ -249,7 +251,7 @@ export function Crowd({
         >
           <Person
             gender={spot.woman ? "woman" : "man"}
-            stance={stance}
+            stance={shown}
             scarf={spot.scarf ?? spot.woman}
             coat={spot.color}
             age={spot.age}

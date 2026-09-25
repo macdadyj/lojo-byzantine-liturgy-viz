@@ -59,9 +59,16 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
   }, []);
 
   useEffect(() => {
+    setIcon(null);
+  }, [step.id]);
+
+  useEffect(() => {
     if (!import.meta.env.DEV) return;
     const bridge = window.__liturgy ?? {};
-    bridge.setMode = setMode;
+    bridge.setMode = (next) => {
+      setMode(next);
+      setIcon(null);
+    };
     bridge.setQuality = (next) => {
       setPinned(false);
       setQuality(next);
@@ -82,6 +89,11 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
     const average = samples.current.reduce((sum, value) => sum + value, 0) / samples.current.length;
     samples.current = [];
     setQuality((current) => nextQuality(current, average));
+  }
+
+  function chooseMode(next: LookMode) {
+    setMode(next);
+    setIcon(null);
   }
 
   function startTour() {
@@ -110,10 +122,10 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
       />
       <LoadGate />
       <div className="view-bar">
-        <button type="button" aria-pressed={mode === "follow"} onClick={() => setMode("follow")}>
+        <button type="button" aria-pressed={mode === "follow"} onClick={() => chooseMode("follow")}>
           Follow liturgy
         </button>
-        <button type="button" aria-pressed={mode === "free"} onClick={() => setMode("free")}>
+        <button type="button" aria-pressed={mode === "free"} onClick={() => chooseMode("free")}>
           Free look
         </button>
         <button type="button" aria-pressed={showLabels} onClick={() => setShowLabels((current) => !current)}>
@@ -225,16 +237,16 @@ function Joystick() {
 }
 
 function LoadGate() {
-  const { active, progress } = useProgress();
+  const { progress } = useProgress();
   const [hold, setHold] = useState(true);
   useEffect(() => {
-    if (active || progress < 100) {
+    if (progress < 100) {
       setHold(true);
       return;
     }
-    const timer = window.setTimeout(() => setHold(false), 280);
+    const timer = window.setTimeout(() => setHold(false), 350);
     return () => window.clearTimeout(timer);
-  }, [active, progress]);
+  }, [progress]);
   if (!hold) return null;
   const width = Math.max(6, Math.min(100, progress));
   return (
