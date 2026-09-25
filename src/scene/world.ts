@@ -16,7 +16,7 @@ export const world = {
   columnX: 4.85,
   deaconDoorX: 7.55,
   /** Half-width of each deacon-door opening. The leaf swings clear of this gap. */
-  deaconOpeningHalf: 0.95,
+  deaconOpeningHalf: 1.2,
   altar: [0, 0.42, -15.4] as Vec3,
   prothesis: [-6.8, 0.42, -14.6] as Vec3,
   ambon: [0, 0.2, -5.6] as Vec3,

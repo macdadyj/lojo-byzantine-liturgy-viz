@@ -2,9 +2,9 @@
 
 ## Figures
 
-The people in the church are CC0 modular characters by Quaternius. Eleven faithful share one humanoid skeleton and wear the pack’s own hair and fitted clothes. Skin and hair are tinted in the app so neighbors are not copies. Children use a shorter scale and a larger head on two of those outfits. The priest and deacon start from the same rig; the phelonion, sticharion, epitrachelion, orarion, beard, and kamilavka are modeled in this project and skinned to that skeleton.
+The people in the church are CC0 modular characters by Quaternius. The faithful use the suit, casual, and hoodie bodies, recolored to muted Sunday clothes with matte cloth and skin. Women also wear a headscarf and a skirt modeled in this project. Work helmets, hi-vis vests, crowns, and costume outfits from the pack are not shown. Children and teenagers are shorter; a child has a slightly larger head. The priest and deacon start from the same rig; the phelonion, sticharion, epitrachelion, orarion, beard, and kamilavka are modeled in this project and skinned to that skeleton.
 
-- Files: `public/models/cast/` (`m-hoodie`, `m-casual`, `m-farmer`, `m-worker`, `m-suit`, `m-elder`, `w-casual`, `w-formal`, `w-suit`, `w-worker`, `w-dress`, `priest`, `deacon`, and `anims`)
+- Files in use: `public/models/cast/` (`m-suit`, `m-casual`, `m-hoodie`, `w-suit`, `w-formal`, `w-casual`, `priest`, `deacon`, and `anims`). The pack’s worker, farmer, king, and medieval files are still in the folder and are not placed in the nave.
 - Men: Ultimate Modular Men, CC0 — https://quaternius.com/packs/ultimatemodularcharacters.html
 - Women: Ultimate Modular Women, CC0 — https://quaternius.com/packs/ultimatemodularwomen.html
 - License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/

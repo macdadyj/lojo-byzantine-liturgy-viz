@@ -5,6 +5,7 @@ import { resolveWalk } from "./collide";
 import { censingFor, gestureFor } from "./gestures";
 import { pointBehind, pointOnPath } from "./path";
 import { closestPair, communionLine, dismissalLine, faithfulPlace } from "./crowdLayout";
+import { floorTopAt } from "./floors";
 import { nextQuality } from "./quality";
 import { cameraFor, doorsFor, isStagedId, stagedStepIds, stagingFor } from "./staging";
 import { floorPatches, greatEntrancePath, littleEntrancePath, world } from "./world";
@@ -90,6 +91,12 @@ describe("3D liturgy staging", () => {
     expect(standing[2]).toBeLessThan(4.6 - 0.9);
     const sitting = faithfulPlace(2.2, 7, "sit");
     expect(sitting[2]).toBeCloseTo(7);
+    const kneeling = faithfulPlace(-2.2, 2.2, "kneel");
+    expect(kneeling[2]).toBeGreaterThan(1.4);
+    expect(floorTopAt(0, 8)).toBeCloseTo(0.06);
+    expect(floorTopAt(0, -14)).toBeCloseTo(0.42);
+    expect(floorTopAt(0, -7)).toBeCloseTo(0.2);
+    expect(floorTopAt(8.8, 6)).toBeCloseTo(3.23);
     expect(world.deaconOpeningHalf).toBeGreaterThanOrEqual(0.9);
   });
 

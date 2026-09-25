@@ -18,9 +18,13 @@ export function faithfulPlace(x: number, z: number, stance: Stance): Vec3 {
   switch (stance) {
     case "sit":
       return [x, naveFloor, z];
+    case "kneel": {
+      // In the row, shifted off the center aisle so a kneeler does not cover the royal doors.
+      const outward = Math.sign(x) * 0.7;
+      return [x + outward, naveFloor, z - 0.2];
+    }
     case "stand":
     case "bow":
-    case "kneel":
       return [x, naveFloor, z - aisleEast];
     default: {
       const exhaustive: never = stance;

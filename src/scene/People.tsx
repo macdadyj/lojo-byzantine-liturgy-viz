@@ -14,7 +14,6 @@ import {
   Quaternion,
   SkinnedMesh,
   SphereGeometry,
-  type BufferGeometry,
   Color,
   Group,
   Vector3,
@@ -25,6 +24,7 @@ import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.j
 import { nextBlockerId, releaseBlocker, trackBlocker } from "./collide";
 import type { Gesture } from "./gestures";
 import { faithfulPlace } from "./crowdLayout";
+import { raycastFloor } from "./floors";
 import type { Vec3 } from "./path";
 import type { Quality } from "./quality";
 import type { Stance } from "./staging";
@@ -34,19 +34,10 @@ export type Carry = "none" | "gospel" | "gifts" | "candle" | "cross";
 export type Age = "child" | "teen" | "adult" | "elder";
 type ClipName = "idle" | "walk" | "sit" | "kneel";
 
-const castNames = [
-  "m-hoodie",
-  "m-casual",
-  "m-farmer",
-  "m-worker",
-  "m-suit",
-  "m-elder",
-  "w-casual",
-  "w-formal",
-  "w-suit",
-  "w-worker",
-  "w-dress",
-] as const;
+/** Sunday clothes only: jackets, sweaters, dresses. No work gear, crowns, or costume pieces. */
+const castNames = ["m-suit", "m-casual", "m-hoodie", "w-suit", "w-formal", "w-casual"] as const;
+
+const clothPalette = ["#3c465c", "#4a4038", "#2f3d36", "#5a4550", "#3a4048", "#5c4a3c", "#243044", "#4e493f"];
 
 export type CastName = (typeof castNames)[number];
 
@@ -174,8 +165,10 @@ export function Crowd({
   return (
     <group>
       {shown.map((spot) => {
-        const file = castNames[spot.cast % castNames.length] ?? "m-hoodie";
-        const placed = spot.position[1] === 0 ? faithfulPlace(spot.position[0], spot.position[2], stance) : spot.position;
+        const file = castNames[spot.cast % castNames.length] ?? "m-suit";
+        const short = spot.age === "child" || spot.age === "teen";
+        const personStance = stance === "sit" && short ? "stand" : stance;
+        const placed = spot.position[1] === 0 ? faithfulPlace(spot.position[0], spot.position[2], personStance) : spot.position;
         return (
           <group
             key={`${spot.position.join(",")}-${spot.cast}`}
@@ -185,7 +178,7 @@ export function Crowd({
           >
             <Person
               file={file}
-              stance={stance}
+              stance={personStance}
               age={spot.age}
               phase={spot.phase}
               gesture={gesture}
@@ -238,12 +231,19 @@ function Person({
   const blocker = useRef(0);
 
   useLayoutEffect(() => {
-    const created = tintFigure(clone, tint, age);
+    const created = tintFigure(clone, tint, age, file !== "priest" && file !== "deacon");
+    const dressed = file.startsWith("w-") ? sundayLayers(clone, tint) : [];
     const added = attachProps(clone, { carry, censing: censing && quality !== "low", elevated });
     const head = clone.getObjectByName("Head");
-    if (head && age === "child") head.scale.setScalar(1.22);
+    if (head && age === "child") head.scale.setScalar(1.08);
     return () => {
       for (const material of created) material.dispose();
+      const dressMaterial = dressed[0] instanceof Mesh ? dressed[0].material : null;
+      for (const object of dressed) {
+        object.removeFromParent();
+        if (object instanceof Mesh) object.geometry.dispose();
+      }
+      if (dressMaterial instanceof MeshStandardMaterial) dressMaterial.dispose();
       for (const object of added) {
         object.traverse((child) => {
           if (child instanceof Mesh) {
@@ -257,7 +257,7 @@ function Person({
         object.removeFromParent();
       }
     };
-  }, [age, carry, censing, clone, elevated, quality, tint]);
+  }, [age, carry, censing, clone, elevated, file, quality, tint]);
 
   useLayoutEffect(() => {
     if (!clip) return;
@@ -291,7 +291,7 @@ function Person({
       mixer.update(walking ? delta : delta * 0.55);
     }
     if (!walking) poseLegs(clone, group, stance);
-    plantFeet(group, clone);
+    plantFeet(group, clone, state.scene);
     if (far) return;
     const time = state.clock.elapsedTime + phase * 6;
     if (stance === "bow") {
@@ -339,10 +339,11 @@ function prepareClips(animations: AnimationClip[]): Map<ClipName, AnimationClip>
   return map;
 }
 
-function tintFigure(root: Object3D, tint: number, age: Age): Material[] {
+function tintFigure(root: Object3D, tint: number, age: Age, sunday: boolean): Material[] {
   const created: Material[] = [];
   const skin = new Color(skinTints[Math.abs(tint) % skinTints.length] ?? "#c68642");
   const hair = new Color(hairTints[Math.abs(tint + 3) % hairTints.length] ?? "#2a2118");
+  const cloth = new Color(clothPalette[Math.abs(tint) % clothPalette.length] ?? "#3c465c");
   if (age === "elder") hair.lerp(new Color("#d9d3c7"), 0.72);
   root.traverse((child) => {
     if (!(child instanceof Mesh)) return;
@@ -353,11 +354,25 @@ function tintFigure(root: Object3D, tint: number, age: Age): Material[] {
       if (!(material instanceof MeshStandardMaterial)) return material;
       const label = material.name.toLowerCase();
       const touchesSkin = label.includes("skin");
-      const touchesHair = label.includes("hair") || label.includes("eyebrow");
-      if (!touchesSkin && !touchesHair) return material;
+      const touchesHair = label.includes("hair") || label.includes("eyebrow") || label.includes("brow");
+      const keep = touchesSkin || touchesHair || label.includes("eye");
+      if (!sunday && !keep) return material;
       const copy = material.clone();
+      copy.metalness = 0;
+      copy.roughness = touchesSkin ? 0.58 : 0.82;
+      copy.emissive.set(0x000000);
+      copy.emissiveIntensity = 0;
       if (touchesSkin) copy.color.multiply(skin);
-      if (touchesHair) copy.color.multiply(hair);
+      else if (touchesHair) copy.color.multiply(hair);
+      else if (sunday) {
+        copy.color.copy(cloth);
+        copy.map = null;
+        copy.normalMap = null;
+        copy.roughnessMap = null;
+        copy.metalnessMap = null;
+        copy.emissiveMap = null;
+        copy.vertexColors = false;
+      }
       created.push(copy);
       changed = true;
       return copy;
@@ -365,6 +380,30 @@ function tintFigure(root: Object3D, tint: number, age: Age): Material[] {
     if (changed) child.material = Array.isArray(source) ? next : (next[0] ?? source);
   });
   return created;
+}
+
+function sundayLayers(clone: Object3D, tint: number): Object3D[] {
+  const added: Object3D[] = [];
+  const color = clothPalette[Math.abs(tint + 2) % clothPalette.length] ?? "#3a4048";
+  const cloth = new MeshStandardMaterial({ color, roughness: 0.86, metalness: 0 });
+  const head = clone.getObjectByName("Head");
+  if (head) {
+    const scarf = new Mesh(new SphereGeometry(0.13, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), cloth);
+    scarf.scale.set(1.15, 0.72, 1.2);
+    scarf.position.set(0, 0.06, 0.01);
+    const tail = new Mesh(new BoxGeometry(0.16, 0.28, 0.04), cloth);
+    tail.position.set(0, -0.08, -0.1);
+    head.add(scarf, tail);
+    added.push(scarf, tail);
+  }
+  const hips = clone.getObjectByName("Hips");
+  if (hips) {
+    const skirt = new Mesh(new CylinderGeometry(0.2, 0.34, 0.52, 14, 1, true), cloth);
+    skirt.position.set(0, -0.22, 0.02);
+    hips.add(skirt);
+    added.push(skirt);
+  }
+  return added;
 }
 
 function attachProps(
@@ -525,14 +564,21 @@ function poseLegs(clone: Object3D, facingRoot: Object3D, stance: Stance): void {
     case "stand":
     case "bow":
       return;
-    case "sit":
+    case "sit": {
+      facingRoot.updateWorldMatrix(true, false);
+      facingRoot.getWorldQuaternion(quatA);
+      forwardDir.set(0, 0, 1).applyQuaternion(quatA).normalize();
+      thighDir.set(forwardDir.x, -0.05, forwardDir.z).normalize();
       clone.updateMatrixWorld(true);
       for (const side of ["L", "R"] as const) {
+        const upper = clone.getObjectByName(`UpperLeg${side}`);
         const lower = clone.getObjectByName(`LowerLeg${side}`);
+        if (upper) aimLocalY(upper, thighDir);
         if (lower) aimLocalY(lower, worldDown);
-        placeFoot(clone, side, 0.42);
+        placeFoot(clone, side, 0.46);
       }
       return;
+    }
     case "kneel": {
       const body = clone.getObjectByName("Body");
       if (body) body.position.y = 0.36;
@@ -586,42 +632,77 @@ function placeFoot(clone: Object3D, side: "L" | "R", length: number): void {
   foot.position.copy(footPoint);
 }
 
-/** Lowest bind-pose vertices are the shoes. Sampling them keeps the sole on the floor when a clip leaves the foot bone above the mesh. */
-function soleIndices(geometry: BufferGeometry): number[] {
-  const existing = geometry.userData.soleIndices as number[] | undefined;
-  if (existing) return existing;
-  const position = geometry.getAttribute("position");
-  const order = Array.from({ length: position.count }, (_, index) => index);
-  order.sort((left, right) => position.getY(left) - position.getY(right));
-  const indices = order.slice(0, 32);
-  geometry.userData.soleIndices = indices;
-  return indices;
+function footVertexIndices(mesh: SkinnedMesh): number[] {
+  const cached = mesh.userData.footVerts as number[] | undefined;
+  if (cached) return cached;
+  const bones = mesh.skeleton.bones;
+  const ids = new Set<number>();
+  bones.forEach((bone, index) => {
+    const name = bone.name.replaceAll(".", "");
+    if (name === "FootL" || name === "FootR") ids.add(index);
+  });
+  const indexAttr = mesh.geometry.getAttribute("skinIndex");
+  const weightAttr = mesh.geometry.getAttribute("skinWeight");
+  const found: number[] = [];
+  if (indexAttr && weightAttr && ids.size > 0) {
+    for (let vertex = 0; vertex < indexAttr.count; vertex += 1) {
+      for (let slot = 0; slot < indexAttr.itemSize; slot += 1) {
+        const bone = indexAttr.getComponent(vertex, slot);
+        const weight = weightAttr.getComponent(vertex, slot);
+        if (ids.has(bone) && weight > 0.2) {
+          found.push(vertex);
+          break;
+        }
+      }
+    }
+  }
+  mesh.userData.footVerts = found;
+  return found;
 }
 
-function plantFeet(root: Group, clone: Object3D): void {
-  const parent = root.parent;
-  if (!parent) return;
-  root.updateMatrixWorld(true);
-  parent.getWorldPosition(parentPoint);
+/** Lowest skinned shoe vertex, after the pose. Bind-pose bounds are not the sole. */
+function soleWorldY(clone: Object3D): number {
   let minY = Infinity;
+  clone.updateWorldMatrix(true, true);
   clone.traverse((child) => {
     if (!(child instanceof SkinnedMesh)) return;
-    for (const index of soleIndices(child.geometry)) {
-      child.getVertexPosition(index, footPoint);
+    const verts = footVertexIndices(child);
+    const stride = verts.length > 32 ? Math.ceil(verts.length / 32) : 1;
+    for (let index = 0; index < verts.length; index += stride) {
+      const vertex = verts[index];
+      if (vertex === undefined) continue;
+      child.getVertexPosition(vertex, footPoint);
       footPoint.applyMatrix4(child.matrixWorld);
       if (footPoint.y < minY) minY = footPoint.y;
     }
   });
-  if (!Number.isFinite(minY)) {
-    for (const name of ["FootL", "FootR"]) {
-      const foot = clone.getObjectByName(name);
-      if (!foot) continue;
-      foot.getWorldPosition(footPoint);
-      if (footPoint.y < minY) minY = footPoint.y;
-    }
+  if (Number.isFinite(minY)) return minY;
+  for (const name of ["FootL", "FootR", "Foot.L", "Foot.R"]) {
+    const foot = clone.getObjectByName(name);
+    if (!foot) continue;
+    foot.getWorldPosition(footPoint);
+    if (footPoint.y < minY) minY = footPoint.y;
   }
+  return minY;
+}
+
+function plantFeet(root: Group, clone: Object3D, scene: Object3D): void {
+  root.updateMatrixWorld(true);
+  const foot = clone.getObjectByName("FootL") ?? clone.getObjectByName("Foot.L") ?? clone.getObjectByName("FootR");
+  if (foot) foot.getWorldPosition(parentPoint);
+  else root.getWorldPosition(parentPoint);
+  const minY = soleWorldY(clone);
   if (!Number.isFinite(minY)) return;
+  const floorY = raycastFloor(scene, parentPoint.x, parentPoint.z, minY + 0.5);
   root.getWorldScale(scalePoint);
   const scaleY = Math.abs(scalePoint.y) > 0.001 ? scalePoint.y : 1;
-  root.position.y += (parentPoint.y - minY) / scaleY;
+  const body = clone.getObjectByName("Body");
+  if (body) body.getWorldPosition(scratch);
+  const lift = floorY - minY;
+  root.position.y += lift / scaleY;
+  root.userData.soleY = minY;
+  root.userData.floorY = floorY;
+  root.userData.soleX = parentPoint.x;
+  root.userData.soleZ = parentPoint.z;
+  root.userData.hipY = body ? scratch.y + lift : Number.NaN;
 }

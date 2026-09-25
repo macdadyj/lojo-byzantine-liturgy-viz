@@ -270,7 +270,7 @@ function HighWindow({ x, z }: { x: number; z: number }) {
 function Gallery() {
   return (
     <group position={[8.7, 3.15, 6.4]}>
-      <mesh>
+      <mesh userData={{ floor: true }}>
         <boxGeometry args={[4.6, 0.16, 9.2]} />
         <meshStandardMaterial color={colors.wood} roughness={0.75} />
       </mesh>
@@ -289,19 +289,19 @@ function Gallery() {
 function Floors() {
   return (
     <group>
-      <mesh position={[0, -0.04, 6.2]}>
+      <mesh position={[0, -0.04, 6.2]} userData={{ floor: true }}>
         <boxGeometry args={[world.halfWidth * 2, 0.12, 33]} />
         <meshStandardMaterial map={marbleTexture()} color="#c4b49c" roughness={0.62} metalness={0.02} />
       </mesh>
-      <mesh position={[0, 0.08, 19.6]}>
+      <mesh position={[0, 0.08, 19.6]} userData={{ floor: true }}>
         <boxGeometry args={[world.halfWidth * 2, 0.1, 6.2]} />
         <meshStandardMaterial color={colors.floorDark} roughness={0.92} />
       </mesh>
-      <mesh position={[0, 0.1, -7.2]}>
+      <mesh position={[0, 0.1, -7.2]} userData={{ floor: true }}>
         <boxGeometry args={[16, 0.2, 3.4]} />
         <meshStandardMaterial color="#a88b68" roughness={0.84} />
       </mesh>
-      <mesh position={[0, 0.21, -13.9]}>
+      <mesh position={[0, 0.21, -13.9]} userData={{ floor: true }}>
         <boxGeometry args={[world.halfWidth * 2, 0.42, 9.4]} />
         <meshStandardMaterial map={marbleTexture()} color="#b7a58c" roughness={0.58} metalness={0.02} />
       </mesh>
@@ -309,7 +309,7 @@ function Floors() {
         <circleGeometry args={[1.7, 28, 0, Math.PI]} />
         <meshStandardMaterial color="#b29772" roughness={0.84} />
       </mesh>
-      <mesh position={[0, 0.05, 4.2]}>
+      <mesh position={[0, 0.05, 4.2]} userData={{ floor: true }}>
         <boxGeometry args={[1.7, 0.02, 24]} />
         <meshStandardMaterial color={colors.runner} roughness={0.8} />
       </mesh>

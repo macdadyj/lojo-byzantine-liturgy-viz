@@ -158,12 +158,17 @@ function Curtain({ open }: { open: boolean }) {
   useLayoutEffect(() => {
     const cloth = veil.current;
     if (!cloth) return;
+    cloth.userData.doorKind = "curtain";
     cloth.scale.x = open ? 0.06 : 1;
   }, [open]);
   useFrame((_, delta) => {
     const cloth = veil.current;
     if (!cloth) return;
     const goal = open ? 0.06 : 1;
+    if (!open) {
+      cloth.scale.x = 1;
+      return;
+    }
     cloth.scale.x += (goal - cloth.scale.x) * (1 - Math.exp(-delta * 3));
   });
   return (
@@ -201,7 +206,7 @@ function DeaconLeaf({
   const hinge = useRef<Group>(null);
   const width = world.deaconOpeningHalf * 2;
   const panelX = side === -1 ? world.deaconOpeningHalf : -world.deaconOpeningHalf;
-  const openAngle = side * 1.65;
+  const openAngle = side * 2.15;
   useLayoutEffect(() => {
     const leaf = hinge.current;
     if (!leaf) return;
@@ -214,6 +219,10 @@ function DeaconLeaf({
     const leaf = hinge.current;
     if (!leaf) return;
     const goal = open ? openAngle : 0;
+    if (!open) {
+      leaf.rotation.y = 0;
+      return;
+    }
     leaf.rotation.y += (goal - leaf.rotation.y) * (1 - Math.exp(-delta * 3.2));
   });
   return (
@@ -253,6 +262,7 @@ function RoyalLeaf({
     const leaf = hinge.current;
     if (!leaf) return;
     leaf.rotation.y = open ? openAngle : 0;
+    leaf.userData.doorKind = "royal";
     leaf.traverse((object) => {
       object.userData.icon = card;
     });
@@ -261,6 +271,10 @@ function RoyalLeaf({
     const leaf = hinge.current;
     if (!leaf) return;
     const goal = open ? openAngle : 0;
+    if (!open) {
+      leaf.rotation.y = 0;
+      return;
+    }
     leaf.rotation.y += (goal - leaf.rotation.y) * (1 - Math.exp(-delta * 3.5));
   });
   const panelX = side === -1 ? 0.42 : -0.42;

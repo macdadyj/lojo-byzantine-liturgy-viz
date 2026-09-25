@@ -173,6 +173,24 @@ The anaphora camera and the door state do not read the quality setting. Medium, 
 
 Medium frames from this pass: gathering, Great Entrance, anaphora, Communion, and dismissal.
 
+## Fixed in pass 7
+
+This section is the pass 7 response. The **Verified pass 6** findings above are unchanged.
+
+The faithful are the suit, casual, and hoodie bodies only, recolored to muted Sunday cloth. Work helmets, hi-vis vests, crowns, and costume pieces are not placed. Women wear a headscarf and a skirt. Children and teenagers stand in the pew row, because their legs do not reach the floor from the seat. Adults and elders sit: the thigh sits at seat height and the shoe sole is on the floor. The choir stands on the kliros except when the congregation bows or kneels.
+
+Soles are the skinned shoe vertices, measured after the pose. Each foot raycasts the floor mesh under it, starting just above the shoe, so the kliros slab over the south pews is not treated as the nave floor. The sanctuary step reads as 0.42, the solea as 0.2, the nave marble as 0.02, the runner as 0.06, and the kliros as 3.23. A measured gathering put every sole within 3 cm of that surface.
+
+The north deacon opening is 2.4 m. The leaf swings clear of the path. The Great Entrance camera stays on the solea, west of the iconostas, instead of sitting in the doorway. Kneelers stay in the pew row and shift off the center aisle so they do not cover the royal doors. Holy Things holds the elevation with the royal doors and curtain open, then shuts both after 1.8 s of wall-clock time. A closed door snaps shut on the next frame.
+
+| Item | Fixed in pass 7 |
+| --- | --- |
+| Church clothes | Fixed. No hard hats, vests, helmets, or costume pieces. Men in suits, shirts, and sweaters; women in dresses or skirts with headscarves; elders and children included. Muted colors. |
+| Floating feet | Fixed. Soles raycast the rendered floor after the pose. Seated adults rest on the pew with shoes on the marble. Shorter people stand in the row. The priest stands on the sanctuary step. The choir stands on the kliros. |
+| Deacon door and Great Entrance camera | Fixed. Wider north opening, and the follow camera stays on the solea. |
+| Epiklesis kneeler | Fixed. Kneelers stay in the pew row, shifted off the center aisle, clear of the iconostas. |
+| Holy Things close | Fixed. Doors and curtain stay open for the elevation, then shut at 1.8 s and stay shut. |
+
 ---
 
 Tested as a first-time user on current `main` (`61757d1`, “MakeHuman people, candlelit nave, and clergy framing”). No app code was changed. The sections below are that first walk. They are unchanged on purpose.
