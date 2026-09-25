@@ -28,7 +28,14 @@ export const stagedStepIds = [
 
 export type StagedId = (typeof stagedStepIds)[number];
 
-export type Stance = "stand" | "sit" | "bow";
+export type Stance = "stand" | "sit" | "bow" | "kneel";
+
+export type DoorState = {
+  royal: boolean;
+  north: boolean;
+  south: boolean;
+  curtain: boolean;
+};
 
 export type Actor = {
   position: Vec3;
@@ -65,7 +72,7 @@ const deaconByAltar: Actor = {
   stance: "stand",
 };
 const readerAside: Actor = {
-  position: [2.3, 0, 4.4],
+  position: [3.55, 0.02, 3.35],
   facing: 0,
   stance: "stand",
 };
@@ -100,28 +107,28 @@ function stage(staging: Staging): Staging {
 }
 
 const cameraPoses: Record<StagedId, CameraPose> = {
-  gathering: { position: [2.6, 1.82, -10.6], target: [0.55, 1.45, -11.7] },
-  proskomedia: { position: [-3.2, 1.9, -11.8], target: [-5.8, 1.45, -14.5] },
-  opening: { position: [1.35, 1.85, -6.8], target: [0.35, 1.55, -13.5] },
-  "litany-of-peace": { position: [-3.1, 1.72, -4.4], target: [-0.7, 1.45, -6.85] },
-  antiphons: { position: [2.35, 1.8, -12.2], target: [0.1, 1.45, -13.85] },
-  "little-entrance": { position: [-4.05, 1.7, 0.4], target: [-4.05, 1.35, 3.2] },
-  trisagion: { position: [-2.8, 1.75, -4.5], target: [-0.7, 1.45, -6.9] },
-  epistle: { position: [2.4, 1.75, -7.5], target: [0.35, 1.45, -5.45] },
-  gospel: { position: [1.55, 1.7, -3.15], target: [0.42, 1.28, -5.25] },
-  homily: { position: [1.4, 1.68, -3.05], target: [0.05, 1.3, -5.4] },
-  "before-the-gifts": { position: [-2.7, 1.75, -4.1], target: [-0.7, 1.45, -6.85] },
-  cherubic: { position: [-2.2, 2.05, -10.4], target: [-4.8, 1.5, -13.6] },
-  "great-entrance": { position: [-4.05, 1.7, 2.2], target: [-4.05, 1.35, 5.2] },
-  creed: { position: [2.3, 1.82, -11.5], target: [0.1, 1.42, -13.75] },
-  anaphora: { position: [2.35, 2.0, -11.0], target: [0.15, 1.5, -13.9] },
-  epiklesis: { position: [2.45, 1.95, -11.1], target: [0.1, 1.4, -13.85] },
-  theotokos: { position: [2.2, 2.0, -10.8], target: [0.2, 1.55, -13.8] },
-  "our-father": { position: [-2.6, 1.8, -4.6], target: [-0.6, 1.45, -6.9] },
-  "holy-things": { position: [1.35, 1.78, -6.2], target: [0.05, 1.48, -13.2] },
-  communion: { position: [1.7, 1.68, -3.4], target: [0.45, 1.28, -6.15] },
-  thanksgiving: { position: [1.85, 1.78, -6.35], target: [0.05, 1.45, -10.55] },
-  dismissal: { position: [1.45, 1.68, -2.85], target: [0.1, 1.3, -5.45] },
+  gathering: { position: [1.1, 1.72, 18.4], target: [0.15, 1.4, 8.2] },
+  proskomedia: { position: [-4.15, 1.7, -13.05], target: [-6.45, 1.2, -14.55] },
+  opening: { position: [0.15, 1.66, -7.05], target: [0.05, 1.4, -13.9] },
+  "litany-of-peace": { position: [-2.15, 1.7, -4.35], target: [-0.55, 1.42, -9.4] },
+  antiphons: { position: [4.6, 6.15, 3.15], target: [8.7, 3.85, 6.2] },
+  "little-entrance": { position: [-3.5, 1.72, -2.4], target: [-4.4, 1.32, -6.4] },
+  trisagion: { position: [1.35, 1.7, 5.6], target: [-1.8, 1.32, 3.5] },
+  epistle: { position: [1.05, 1.6, -3.35], target: [0.28, 1.32, -5.48] },
+  gospel: { position: [0.85, 1.58, -2.55], target: [0.4, 1.3, -5.18] },
+  homily: { position: [1.45, 1.66, 2.15], target: [0.02, 1.38, -5.42] },
+  "before-the-gifts": { position: [2.8, 1.95, 0.6], target: [-0.55, 1.4, -7.1] },
+  cherubic: { position: [-3.55, 1.74, -12.55], target: [-6.35, 1.22, -14.55] },
+  "great-entrance": { position: [-3.6, 1.74, -1.6], target: [-2.2, 1.28, -6.2] },
+  creed: { position: [0.35, 1.74, 6.6], target: [0.05, 1.4, -8.8] },
+  anaphora: { position: [1.45, 1.74, -13.05], target: [0.02, 1.32, -15.2] },
+  epiklesis: { position: [0.25, 1.68, 3.4], target: [0.02, 1.22, -14.9] },
+  theotokos: { position: [1.7, 1.88, -12.35], target: [0.1, 1.65, -17.7] },
+  "our-father": { position: [-0.35, 1.7, 8.2], target: [0.2, 1.38, 3.1] },
+  "holy-things": { position: [0.12, 1.64, -6.45], target: [0, 1.5, -13.75] },
+  communion: { position: [1.15, 1.6, -2.15], target: [0.15, 1.25, -6.15] },
+  thanksgiving: { position: [0.7, 1.68, -6.15], target: [0, 1.48, -10.15] },
+  dismissal: { position: [1.05, 1.62, -1.85], target: [0.02, 1.28, -5.4] },
 };
 
 const stagingByStep: Record<StagedId, Staging> = {
@@ -203,8 +210,8 @@ const stagingByStep: Record<StagedId, Staging> = {
     communicants: 0,
   }),
   cherubic: stage({
-    priest: priestAtAltar,
-    deacon: { position: [-4.2, world.sanctuaryFloor, -13.2], facing: Math.PI / 2, stance: "stand" },
+    priest: priestAtProthesis,
+    deacon: deaconAtProthesis,
     reader: readerAside,
     faithful: "stand",
     communicants: 0,
@@ -232,9 +239,9 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   epiklesis: stage({
     priest: priestAtAltar,
-    deacon: { position: [1.5, world.sanctuaryFloor, -13.4], facing: 0, stance: "bow" },
-    reader: { ...readerAside, stance: "bow" },
-    faithful: "bow",
+    deacon: { position: [1.15, world.sanctuaryFloor, -14.15], facing: Math.PI / 2, stance: "bow" },
+    reader: { ...readerAside, stance: "kneel" },
+    faithful: "kneel",
     communicants: 0,
   }),
   theotokos: stage({
@@ -263,7 +270,7 @@ const stagingByStep: Record<StagedId, Staging> = {
     deacon: { position: [1.2, world.soleaFloor, -6.5], facing: Math.PI, stance: "stand" },
     reader: { ...readerAside, stance: "stand" },
     faithful: "stand",
-    communicants: 4,
+    communicants: 6,
   }),
   thanksgiving: stage({
     priest: { position: [0, world.sanctuaryFloor, -10.4], facing: Math.PI, stance: "stand" },
@@ -277,9 +284,50 @@ const stagingByStep: Record<StagedId, Staging> = {
     deacon: { position: [1.35, world.soleaFloor, -6.4], facing: Math.PI, stance: "stand" },
     reader: { ...readerAside, stance: "stand" },
     faithful: "stand",
-    communicants: 0,
+    communicants: 5,
   }),
 };
+
+const royalOpen: DoorState = { royal: true, north: false, south: false, curtain: true };
+const doorsShut: DoorState = { royal: false, north: false, south: false, curtain: false };
+const entranceOpen: DoorState = { royal: true, north: true, south: false, curtain: true };
+
+export function doorsFor(id: string, clergyReceiving = false): DoorState {
+  if (!isStagedId(id)) return doorsShut;
+  switch (id) {
+    case "gathering":
+    case "proskomedia":
+      return doorsShut;
+    case "little-entrance":
+    case "great-entrance":
+      return entranceOpen;
+    case "holy-things":
+      return clergyReceiving ? doorsShut : royalOpen;
+    case "thanksgiving":
+      return { royal: true, north: true, south: false, curtain: true };
+    case "opening":
+    case "litany-of-peace":
+    case "antiphons":
+    case "trisagion":
+    case "epistle":
+    case "gospel":
+    case "homily":
+    case "before-the-gifts":
+    case "cherubic":
+    case "creed":
+    case "anaphora":
+    case "epiklesis":
+    case "theotokos":
+    case "our-father":
+    case "communion":
+    case "dismissal":
+      return royalOpen;
+    default: {
+      const exhaustive: never = id;
+      return exhaustive;
+    }
+  }
+}
 
 export function isStagedId(id: string): id is StagedId {
   return (stagedStepIds as readonly string[]).includes(id);

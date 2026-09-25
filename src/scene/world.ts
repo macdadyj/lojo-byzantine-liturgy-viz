@@ -15,29 +15,39 @@ export const world = {
   soleaFloor: 0.2,
   columnX: 4.85,
   deaconDoorX: 7.55,
+  /** Half-width of each deacon-door opening. The leaf swings clear of this gap. */
+  deaconOpeningHalf: 1.2,
   altar: [0, 0.42, -15.4] as Vec3,
   prothesis: [-6.8, 0.42, -14.6] as Vec3,
   ambon: [0, 0.2, -5.6] as Vec3,
 };
 
+const doorX = -world.deaconDoorX;
+
 export const littleEntrancePath: Vec3[] = [
-  [-1.1, world.sanctuaryFloor, -12.4],
-  [-world.deaconDoorX, world.sanctuaryFloor, world.iconZ],
-  [-6.4, 0.02, -4.2],
-  [-4.05, 0.02, 3.2],
-  [0.15, world.soleaFloor, -5.4],
-  [0, world.soleaFloor, -7.8],
-  [0.25, world.sanctuaryFloor, -12.8],
+  [-1.6, world.sanctuaryFloor, -12.8],
+  [-5.8, world.sanctuaryFloor, -11.2],
+  [doorX, world.sanctuaryFloor, -9.7],
+  [doorX, world.soleaFloor, -8.2],
+  [-4.8, world.soleaFloor, -6.6],
+  [-3.9, 0.02, -0.6],
+  [-3.9, 0.02, 2.8],
+  [0.15, 0.02, 0.8],
+  [0.1, world.soleaFloor, -6.6],
+  [0.15, world.sanctuaryFloor, -12.8],
 ];
 
 export const greatEntrancePath: Vec3[] = [
-  [-6.4, world.sanctuaryFloor, -14.4],
-  [-world.deaconDoorX, world.sanctuaryFloor, world.iconZ],
-  [-5.6, 0.02, 0.4],
-  [-4.05, 0.02, 5.2],
-  [0.2, 0.02, 0.2],
-  [0, world.soleaFloor, -7.8],
-  [0.2, world.sanctuaryFloor, -15.1],
+  [-6.2, world.sanctuaryFloor, -14.2],
+  [doorX, world.sanctuaryFloor, -11.0],
+  [doorX, world.sanctuaryFloor, -9.7],
+  [doorX, world.soleaFloor, -8.2],
+  [-5.4, world.soleaFloor, -6.8],
+  [-3.9, 0.02, -1.0],
+  [-3.9, 0.02, 3.2],
+  [0.2, 0.02, 1.6],
+  [0.15, world.soleaFloor, -6.5],
+  [0.15, world.sanctuaryFloor, -14.8],
 ];
 
 export type FloorPatch = {

@@ -60,13 +60,10 @@ export function StepDetail({
           })}
         </ul>
       </div>
-      <details className="detail-more">
+      <p className="see-caption">{step.see}</p>
+      <details className="detail-more" open={index === 0}>
         <summary>What you see, hear, and why</summary>
         <div className="info-columns">
-          <section>
-            <h3>What the faithful see</h3>
-            <p>{step.see}</p>
-          </section>
           <section>
             <h3>What the faithful hear</h3>
             <HearList lines={step.hear} />

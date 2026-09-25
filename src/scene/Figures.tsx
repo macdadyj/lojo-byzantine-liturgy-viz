@@ -20,8 +20,8 @@ export function Figure({
   carry = "none",
   orarion = false,
 }: FigureProps) {
-  const bow = stance === "bow" ? 0.5 : 0;
-  const seated = stance === "sit";
+  const bow = stance === "bow" ? 0.5 : stance === "kneel" ? 0.85 : 0;
+  const seated = stance === "sit" || stance === "kneel";
   const priest = Boolean(accent);
   const robeHeight = seated ? 0.78 : priest ? 1.28 : 1.22;
   const robeY = seated ? 0.78 : 0.7;

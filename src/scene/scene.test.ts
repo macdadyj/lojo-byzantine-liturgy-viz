@@ -3,9 +3,11 @@ import { steps } from "../liturgy/steps";
 import { spaceList } from "../liturgy/spaces";
 import { resolveWalk } from "./collide";
 import { censingFor, gestureFor } from "./gestures";
-import { pointOnPath } from "./path";
+import { pointBehind, pointOnPath } from "./path";
+import { closestPair, communionLine, dismissalLine, faithfulPlace } from "./crowdLayout";
+import { floorTopAt } from "./floors";
 import { nextQuality } from "./quality";
-import { cameraFor, isStagedId, stagedStepIds, stagingFor } from "./staging";
+import { cameraFor, doorsFor, isStagedId, stagedStepIds, stagingFor } from "./staging";
 import { floorPatches, greatEntrancePath, littleEntrancePath, world } from "./world";
 
 describe("3D liturgy staging", () => {
@@ -51,8 +53,17 @@ describe("3D liturgy staging", () => {
       expect(camera.position[0]).toBeLessThan(-2);
     }
     const epiklesis = cameraFor("epiklesis");
-    expect(epiklesis.position[2]).toBeLessThan(-9);
-    expect(epiklesis.target[2]).toBeLessThan(epiklesis.position[2]);
+    expect(epiklesis.target[2]).toBeLessThan(-12);
+    expect(epiklesis.position[2]).toBeGreaterThan(0);
+    expect(stagingFor("epiklesis").faithful).toBe("kneel");
+    expect(doorsFor("proskomedia").royal).toBe(false);
+    expect(doorsFor("proskomedia").curtain).toBe(false);
+    expect(doorsFor("opening").royal).toBe(true);
+    expect(doorsFor("opening").curtain).toBe(true);
+    expect(doorsFor("little-entrance").north).toBe(true);
+    expect(doorsFor("little-entrance").south).toBe(false);
+    expect(doorsFor("holy-things", true).curtain).toBe(false);
+    expect(doorsFor("anaphora").royal).toBe(true);
   });
 
   it("samples the middle of a path between its waypoints", () => {
@@ -65,19 +76,52 @@ describe("3D liturgy staging", () => {
     );
     expect(mid[2]).toBeCloseTo(5);
     expect(pointOnPath([], 0.4)).toEqual([0, 0, 0]);
+    expect(pointBehind([[0, 0, 0], [0, 0, 10]], 1, 4)[2]).toBeCloseTo(6, 0);
+  });
+
+  it("stands the faithful on the floor, off the pews, and apart", () => {
+    expect(closestPair(communionLine)).toBeGreaterThan(0.85);
+    expect(closestPair(dismissalLine)).toBeGreaterThan(0.85);
+    for (const spot of [...communionLine, ...dismissalLine]) {
+      expect(spot[1]).toBeGreaterThan(0);
+      expect(spot[1]).toBeLessThanOrEqual(world.soleaFloor);
+    }
+    const standing = faithfulPlace(-2.2, 4.6, "stand");
+    expect(standing[1]).toBeCloseTo(0.02);
+    expect(standing[2]).toBeLessThan(4.6 - 0.9);
+    const sitting = faithfulPlace(2.2, 7, "sit");
+    expect(sitting[2]).toBeCloseTo(7);
+    const kneeling = faithfulPlace(-2.2, 2.2, "kneel");
+    expect(kneeling[2]).toBeGreaterThan(1.4);
+    expect(floorTopAt(0, 8)).toBeCloseTo(0.06);
+    expect(floorTopAt(0, -14)).toBeCloseTo(0.42);
+    expect(floorTopAt(0, -7)).toBeCloseTo(0.2);
+    expect(floorTopAt(8.8, 6)).toBeCloseTo(3.23);
+    expect(world.deaconOpeningHalf).toBeGreaterThanOrEqual(0.9);
   });
 
   it("keeps a walking person out of walls, pews, and a closed iconostas", () => {
-    const outside = resolveWalk(40, 40, false);
+    const shut = { royal: false, north: false, south: false };
+    const outside = resolveWalk(40, 40, shut);
     expect(outside.x).toBeLessThan(world.halfWidth);
     expect(outside.z).toBeLessThan(world.narthexWest);
-    const pew = resolveWalk(-2.2, 4.6, false);
+    const pew = resolveWalk(-2.2, 4.6, shut);
     expect(Math.hypot(pew.x + 2.2, pew.z - 4.6)).toBeGreaterThan(0.6);
-    const blocked = resolveWalk(0, world.iconZ, false);
+    const blocked = resolveWalk(0, world.iconZ, shut);
     expect(Math.abs(blocked.z - world.iconZ)).toBeGreaterThan(0.4);
-    const through = resolveWalk(0, world.iconZ, true);
+    const through = resolveWalk(0, world.iconZ, { royal: true, north: false, south: false });
     expect(Math.abs(through.z - world.iconZ)).toBeLessThan(0.5);
-    const column = resolveWalk(world.columnX, 4.2, false);
+    const paintedDoor = resolveWalk(-world.deaconDoorX, world.iconZ, shut);
+    expect(Math.abs(paintedDoor.z - world.iconZ)).toBeGreaterThan(0.4);
+    const northDoor = resolveWalk(-world.deaconDoorX, world.iconZ, { royal: false, north: true, south: false });
+    expect(Math.abs(northDoor.z - world.iconZ)).toBeLessThan(0.5);
+    const wideNorth = resolveWalk(-world.deaconDoorX + world.deaconOpeningHalf - 0.15, world.iconZ, {
+      royal: false,
+      north: true,
+      south: false,
+    });
+    expect(Math.abs(wideNorth.z - world.iconZ)).toBeLessThan(0.5);
+    const column = resolveWalk(world.columnX, 4.2, shut);
     expect(Math.hypot(column.x - world.columnX, column.z - 4.2)).toBeGreaterThan(0.7);
   });
 
