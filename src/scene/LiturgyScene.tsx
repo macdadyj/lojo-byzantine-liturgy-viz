@@ -7,9 +7,14 @@ import type { SpaceId } from "../liturgy/spaces";
 import type { LiturgyStep, RouteId } from "../liturgy/types";
 import { Church } from "./Church";
 import { colors } from "./colors";
+import { FpsProbe, IconPicker, QualityEffects, StageLook } from "./Effects";
+import { censingFor, gestureFor } from "./gestures";
+import type { IconCard } from "./iconCards";
 import { Clergy, Crowd, type CrowdSpot } from "./People";
 import { pointOnPath, type Vec3 } from "./path";
+import { dprFor, type Quality } from "./quality";
 import { cameraFor, stagingFor, type Actor, type Stance } from "./staging";
+import { Walker } from "./Walker";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
 
 export type LookMode = "follow" | "free";
@@ -18,9 +23,13 @@ type LiturgySceneProps = {
   step: LiturgyStep;
   mode: LookMode;
   showLabels: boolean;
+  quality: Quality;
+  headBob: boolean;
   activeSpaces: readonly SpaceId[];
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
+  onInspect: (card: IconCard) => void;
+  onFps: (fps: number) => void;
   reducedMotion: boolean;
 };
 
@@ -36,19 +45,39 @@ const processionFocus = {
 
 const pewRows = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
 
-const pewPeople: CrowdSpot[] = pewRows.flatMap((z, row) => [
-  { position: [-2.2, 0, z], rotationY: 0, color: colors.faithful[row % colors.faithful.length] ?? colors.faithful[0], woman: row % 2 === 0 },
-  { position: [2.2, 0, z], rotationY: 0, color: colors.faithful[(row + 2) % colors.faithful.length] ?? colors.faithful[1], woman: row % 2 === 1 },
-  { position: [-7.15, 0, z], rotationY: 0, color: colors.faithful[(row + 1) % colors.faithful.length] ?? colors.faithful[2], woman: row % 3 === 0 },
-  { position: [7.15, 0, z], rotationY: 0, color: colors.faithful[(row + 4) % colors.faithful.length] ?? colors.faithful[3], woman: row % 3 === 1 },
-]);
+const roster = [
+  { age: "adult", woman: false, scarf: false },
+  { age: "elder", woman: true, scarf: true },
+  { age: "child", woman: true, scarf: false },
+  { age: "teen", woman: false, scarf: false },
+  { age: "adult", woman: true, scarf: false },
+  { age: "teen", woman: true, scarf: false },
+  { age: "child", woman: false, scarf: false },
+  { age: "elder", woman: false, scarf: false },
+] as const;
 
-const choirPeople: CrowdSpot[] = [4.0, 5.4, 6.8, 8.2].map((z, index) => ({
-  position: [8.35, 3.22, z] as Vec3,
-  rotationY: Math.PI / 2,
-  color: colors.choir,
-  woman: index % 2 === 0,
-}));
+function faithfulSpot(position: Vec3, rotationY: number, index: number): CrowdSpot {
+  const person = roster[index % roster.length] ?? roster[0];
+  return {
+    position,
+    rotationY,
+    color: colors.faithful[index % colors.faithful.length] ?? colors.faithful[0],
+    woman: person.woman,
+    age: person.age,
+    scarf: person.scarf,
+    phase: (index % 9) / 9,
+  };
+}
+
+const pewPeople: CrowdSpot[] = pewRows.flatMap((z, row) =>
+  [-2.2, 2.2, -7.15, 7.15].map((x, column) => faithfulSpot([x, 0, z], 0, row * 4 + column)),
+);
+
+const choirPeople: CrowdSpot[] = [4.0, 5.4, 6.8, 8.2].map((z, index) =>
+  faithfulSpot([8.35, 3.22, z], Math.PI / 2, index + 3),
+);
+
+const cantor: CrowdSpot = faithfulSpot([8.35, 3.22, 3.15], Math.PI / 2, 4);
 
 const communionQueue: Vec3[] = [
   [-0.55, world.soleaFloor, -4.15],
@@ -61,46 +90,59 @@ export function LiturgyScene({
   step,
   mode,
   showLabels,
+  quality,
+  headBob,
   activeSpaces,
   selectedSpace,
   onSelectSpace,
+  onInspect,
+  onFps,
   reducedMotion,
 }: LiturgySceneProps) {
   const pose = cameraFor(step.id);
   const doorsOpen = step.route !== undefined || step.spaces.includes("royal-doors");
   return (
     <Canvas
-      dpr={[1, 1.5]}
+      dpr={dprFor(quality)}
       camera={{ fov: 42, position: pose.position, near: 0.15, far: 140 }}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={{ antialias: quality !== "low", powerPreference: "high-performance" }}
     >
       <color attach="background" args={["#d5cbb8"]} />
       <fog attach="fog" args={["#d5cbb8", 28, 78]} />
-      <hemisphereLight args={["#fff8ee", "#e7d7c0", 1.45]} />
-      <ambientLight intensity={0.72} />
-      <directionalLight position={[-4, 18, 26]} intensity={1.55} />
-      <directionalLight position={[6, 12, -6]} intensity={0.45} />
+      <hemisphereLight args={["#fff8ee", "#e7d7c0", 1.25]} />
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[-4, 18, 26]} intensity={1.35} />
+      <directionalLight position={[6, 12, -6]} intensity={0.38} />
+      <StageLook quality={quality} />
       <FollowCamera pose={pose} enabled={mode === "follow"} reducedMotion={reducedMotion} />
-      <OrbitControls
-        makeDefault
-        enabled={mode === "free"}
-        enableDamping
-        dampingFactor={0.08}
-        maxPolarAngle={Math.PI / 2 - 0.05}
-        minDistance={1.4}
-        maxDistance={48}
-        enablePan
-      />
+      {mode === "free" ? <Walker enabled doorsOpen={doorsOpen} headBob={headBob} /> : null}
+      {mode === "follow" ? (
+        <OrbitControls
+          makeDefault
+          enabled={false}
+          enableDamping
+          dampingFactor={0.08}
+          maxPolarAngle={Math.PI / 2 - 0.05}
+          minDistance={1.4}
+          maxDistance={48}
+          enablePan
+          keyEvents={false}
+        />
+      ) : null}
       <Suspense fallback={null}>
         <Church
           doorsOpen={doorsOpen}
           showLabels={showLabels}
+          quality={quality}
           activeSpaces={activeSpaces}
           selectedSpace={selectedSpace}
           onSelectSpace={onSelectSpace}
         />
-        <Cast step={step} reducedMotion={reducedMotion} />
+        <Cast step={step} reducedMotion={reducedMotion} quality={quality} />
       </Suspense>
+      <QualityEffects quality={quality} />
+      <FpsProbe onFps={onFps} />
+      <IconPicker enabled={mode === "free"} onPick={onInspect} />
     </Canvas>
   );
 }
@@ -180,40 +222,48 @@ function clearOfPews(x: number, z: number, preferX: number): [number, number] {
   return [x, z];
 }
 
-function Cast({ step, reducedMotion }: { step: LiturgyStep; reducedMotion: boolean }) {
+function Cast({ step, reducedMotion, quality }: { step: LiturgyStep; reducedMotion: boolean; quality: Quality }) {
   const staging = stagingFor(step.id);
   const route = step.route;
   const choirStance: Stance = staging.faithful === "bow" ? "bow" : step.roles.includes("choir") ? "stand" : "sit";
+  const gesture = gestureFor(step.id);
+  const censing = censingFor(step.id);
 
   return (
     <group>
       {route ? <RouteRibbon route={route} /> : null}
       {route ? (
-        <Procession route={route} reducedMotion={reducedMotion} />
+        <Procession route={route} reducedMotion={reducedMotion} quality={quality} censing={censing} />
       ) : (
         <>
           <Placed actor={staging.priest}>
-            <Clergy role="priest" stance={staging.priest.stance} />
+            <Clergy role="priest" stance={staging.priest.stance} gesture={gesture} quality={quality} />
           </Placed>
           <Placed actor={staging.deacon}>
-            <Clergy role="deacon" stance={staging.deacon.stance} />
+            <Clergy role="deacon" stance={staging.deacon.stance} gesture={gesture} censing={censing} quality={quality} />
           </Placed>
         </>
       )}
       <Placed actor={staging.reader}>
-        <Clergy role="reader" stance={staging.reader.stance} />
+        <Clergy role="reader" stance={staging.reader.stance} gesture={gesture} quality={quality} />
       </Placed>
-      <Crowd spots={pewPeople.slice(staging.communicants)} stance={staging.faithful} />
+      <Placed actor={{ position: [-1.7, world.sanctuaryFloor, -14.7], facing: 0, stance: "stand" }}>
+        <Clergy role="reader" stance="stand" quality={quality} />
+      </Placed>
+      <Placed actor={{ position: [1.85, world.sanctuaryFloor, -14.5], facing: 0, stance: "stand" }}>
+        <Clergy role="reader" stance="stand" quality={quality} />
+      </Placed>
+      <Crowd spots={pewPeople.slice(staging.communicants)} stance={staging.faithful} gesture={gesture} quality={quality} />
       <Crowd
-        spots={communionQueue.slice(0, staging.communicants).map((position, index) => ({
-          position,
-          rotationY: 0,
-          color: pewPeople[index]?.color ?? colors.faithful[0],
-          woman: index % 2 === 0,
-        }))}
+        spots={communionQueue.slice(0, staging.communicants).map((position, index) =>
+          faithfulSpot(position, 0, index + 1),
+        )}
         stance="stand"
+        gesture={gesture}
+        quality={quality}
       />
-      <Crowd spots={choirPeople} stance={choirStance} />
+      <Crowd spots={choirPeople} stance={choirStance} gesture={gesture} quality={quality} />
+      <Crowd spots={[cantor]} stance="stand" gesture={gesture} quality={quality} />
     </group>
   );
 }
@@ -262,7 +312,17 @@ function RouteRibbon({ route }: { route: RouteId }) {
 
 type March = { t: number; dir: 1 | -1 };
 
-function Procession({ route, reducedMotion }: { route: RouteId; reducedMotion: boolean }) {
+function Procession({
+  route,
+  reducedMotion,
+  quality,
+  censing,
+}: {
+  route: RouteId;
+  reducedMotion: boolean;
+  quality: Quality;
+  censing: boolean;
+}) {
   const march = useRef<March>({ t: 0.42, dir: 1 });
   const points = routePoints(route);
 
@@ -290,15 +350,15 @@ function Procession({ route, reducedMotion }: { route: RouteId; reducedMotion: b
     <group>
       {route === "little-entrance" ? (
         <>
-          <PathWalker points={points} march={march} offset={0} lead reducedMotion={reducedMotion} carry="gospel" role="deacon" />
+          <PathWalker points={points} march={march} offset={0} lead reducedMotion={reducedMotion} carry="gospel" role="deacon" quality={quality} censing={censing} />
           <Placed actor={stagingFor("little-entrance").priest}>
-            <Clergy role="priest" stance="stand" />
+            <Clergy role="priest" stance="stand" quality={quality} />
           </Placed>
         </>
       ) : (
         <>
-          <PathWalker points={points} march={march} offset={0} lead reducedMotion={reducedMotion} role="deacon" />
-          <PathWalker points={points} march={march} offset={0.04} reducedMotion={reducedMotion} carry="gifts" role="priest" />
+          <PathWalker points={points} march={march} offset={0} lead reducedMotion={reducedMotion} role="deacon" quality={quality} censing={censing} />
+          <PathWalker points={points} march={march} offset={0.04} reducedMotion={reducedMotion} carry="gifts" role="priest" quality={quality} />
         </>
       )}
     </group>
@@ -313,6 +373,8 @@ function PathWalker({
   reducedMotion,
   role,
   carry = "none",
+  quality,
+  censing = false,
 }: {
   points: Vec3[];
   march: RefObject<March>;
@@ -321,6 +383,8 @@ function PathWalker({
   reducedMotion: boolean;
   role: "priest" | "deacon";
   carry?: "none" | "gospel" | "gifts";
+  quality: Quality;
+  censing?: boolean;
 }) {
   const group = useRef<Group>(null);
   const next = useMemo(() => new Vector3(), []);
@@ -351,7 +415,7 @@ function PathWalker({
 
   return (
     <group ref={group}>
-      <Clergy role={role} stance="stand" walking={!reducedMotion} carry={carry} />
+      <Clergy role={role} stance="stand" walking={!reducedMotion} carry={carry} quality={quality} censing={censing} />
     </group>
   );
 }

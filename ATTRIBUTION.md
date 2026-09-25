@@ -11,7 +11,30 @@ The people in the church are CC0 humanoid meshes by Quaternius, dressed in this 
 - Animation source: https://quaternius.itch.io/universal-animation-library
 - License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
 - Credit: Models by @Quaternius
-- What changed here: body and hair textures were resized to 256 pixels, normal and roughness maps were removed, and the hair color was tinted dark brown. Vestments (phelonion, sticharion, epitrachelion, orarion), beards, and headscarves are modeled in the app on top of these meshes. The faithful share these two meshes.
+- What changed here: body and hair textures were resized to 256 pixels, normal and roughness maps were removed from the source files, and hair is tinted again in the app for children, adults, and elders. Vestments (brocaded phelonion, sticharion, epitrachelion, orarion, cuffs, kamilavka, pectoral cross), beards, headscarves, and the censer are modeled in the app. The faithful share these two meshes, scaled for age. No Mixamo, Ready Player Me, or other non-redistributable character was added. A separate photoreal rig was not included: the clips already match this skeleton, and a different skeleton would need animation data we are not allowed to redistribute.
+
+## Frescoes and additional icons
+
+These public-domain images are stored as WebP in `public/fresco/` and hung on the nave walls, pendentives, drum, apse, and west wall. The iconostas, dome medallion, and Platytera still use the JPEGs listed above.
+
+- `public/fresco/exaltation-of-the-cross-palekh-icon-19-c-privcol.webp` — Exaltation of the Cross, Palekh, 19th century. Commons: File:Exaltation of the Cross - Palekh icon (19 c, priv.coll).jpg. Public domain.
+- `public/fresco/050-presentation-of-jesus-at-the-temple-icon-fro.webp` — Presentation of Jesus. Commons: File:050 Presentation of Jesus at the Temple Icon from Saint Paraskevi Church in Langadas.jpg. Public domain.
+- `public/fresco/005-entry-into-jerusalem-icon-from-saint-paraske.webp` — Entry into Jerusalem. Commons: File:005 Entry into Jerusalem Icon from Saint Paraskevi Church in Langadas.jpg. Public domain.
+- `public/fresco/novgorod-school-the-raising-of-lazarus-ngm02420-.webp` — Raising of Lazarus, Novgorod. Commons: File:Novgorod School - The Raising of Lazarus - NG.M.02420 - National Museum of Art, Architecture and Design.jpg. Public domain.
+- `public/fresco/ascension-candia-15th-c-jpg.webp` — Ascension, Candia, 15th century. Commons: File:Ascension (Candia, 15th c.).jpg. Public domain.
+- `public/fresco/katholikon-hosios-loukas-pentecost-mosaicjpg.webp` — Pentecost mosaic, Hosios Loukas. Commons: File:Katholikon (Hosios Loukas) - Pentecost mosaic.jpg. Public domain.
+- `public/fresco/goluboe-uspeniejpg.webp` — Dormition (Uspenie). Commons: File:Goluboe uspenie.jpg. Public domain.
+- `public/fresco/master-of-cefalu-001-christ-pantocrator-adjusted.webp` — Cefalù Pantocrator. Commons: File:Master of Cefalu 001 Christ Pantocrator adjusted.JPG. Public domain.
+- `public/fresco/eucharisty-with-bread-1420s-sergiev-posad-jpg.webp` — Communion of the Apostles, bread, 1420s. Commons: File:Eucharisty with bread (1420s, Sergiev Posad).jpg. Public domain.
+- `public/fresco/eucharisty-with-wine-1420s-sergiev-posad-jpg.webp` — Communion of the Apostles, cup, 1420s. Commons: File:Eucharisty with wine (1420s, Sergiev Posad).jpg. Public domain.
+- `public/fresco/matthew-the-evangelist-iconjpeg.webp` — Matthew. Commons: File:Matthew the Evangelist - icon.jpeg. Public domain.
+- `public/fresco/087-mark-the-evangelist-icon-from-saint-paraskev.webp` — Mark. Commons: File:087 Mark the Evangelist Icon from Saint Paraskevi Church in Langadas.jpg. Public domain.
+- `public/fresco/st-luke-the-evangelistjpg.webp` — Luke. Commons: File:St Luke the Evangelist.jpg. Public domain.
+- `public/fresco/john-the-evangelistjpg.webp` — John. Commons: File:John the Evangelist.jpg. Public domain.
+- `public/fresco/prophet-elijah-venerable-pimen-the-great-and-mos.webp` — Prophet Elijah with Pimen and Moses the Black. Commons: File:Prophet Elijah, Venerable Pimen the Great and Moses Murin.jpg. Public domain.
+
+Nativity, Annunciation, Transfiguration, the Trinity, the Deesis and Great Feasts, the archangels, St Nicholas, and the Forerunner are the same public-domain files already credited above, repeated on the walls, the tetrapod, and the proskynetarion.
+
 
 # Icon attribution
 
