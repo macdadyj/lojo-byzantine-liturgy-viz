@@ -80,6 +80,30 @@ This column scores the door state and the camera subject. Floating and clipping 
 - **Medium quality drops the anaphora camera (P1).** After switching to Medium, the frame is an empty stretch of nave with the doors closed. High and Low stay on the holy table. `pass5-quality-anaphora-medium.png`.
 - **Hairless heads inside the new cast (folded into People).** Several women in the pews have a smooth scalp. The priest’s beard and kamilavka do read. `pass5-people-nave-close.png`.
 
+## Fixed in pass 6
+
+This section is the pass 6 response. The **Verified pass 5** tables above are unchanged.
+
+`npm run build` is `tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && vite build`. The app project no longer typechecks `vite.config.ts`. That file is checked by `tsconfig.node.json` with `"types": ["node"]` and a `/// <reference types="node" />` directive, so `node:fs/promises` resolves. `@types/node` was already a devDependency. A clean `npm run build` and `npm test` (18 tests) passed on this branch. `docker` is not installed in this environment, so the image was not built here. The Dockerfile still runs `npm run build`.
+
+People stand on the shoe soles, not the foot bone. The walk cycle was leaving the shoes about 11 cm above a planted ankle. Sitting and kneeling soles meet the floor as well. Standing, bowing, and kneeling spots are in the aisle east of each pew. The communion and dismissal queues are two files in the center aisle, on the solea and then the nave floor, at least a meter apart and clear of the priest. A measured pass put standing soles within about 2 cm of the floor and the closest congregation pair at 1 m or more. Kneeling soles were within about 5 cm.
+
+Both entrances use the widened north opening (about 1.9 m). Two candle-bearers lead, then the deacon, then the priest. The march begins with the line already coming out onto the solea, and the camera sits behind the priest in the nave. A slow frame cannot skip the rest of the path.
+
+Communion draws a chalice and spoon in front of the priest, between him and the line. The dismissal draws a hand cross at the ambon, in front of the priest, where the queue can see it.
+
+The anaphora camera and the door state do not read the quality setting. Medium, High, and Low use the same sanctuary pose. One post-processing pass stays mounted at Medium and High so swapping quality does not rebuild the camera. Door leaves and the curtain take their open pose before the first paint.
+
+| Item | Fixed in pass 6 |
+| --- | --- |
+| Build (`npm run build` / Docker tsc) | Fixed. Node types apply to `vite.config.ts` only. The app `tsc` and the config `tsc` both pass, then Vite builds. |
+| People float and clip | Fixed. Soles are planted on the floor of the nave, solea, sanctuary, and kliros. Standing spots are between the pews. Queues do not overlap the priest or each other. |
+| Entrances clip the north door | Fixed. The opening is wider, the path goes through it, candles lead, and the Great Entrance camera follows the line out on the solea. |
+| Communion chalice and dismissal cross | Fixed. A chalice with a spoon, and a hand cross, are placed where the step’s camera is already looking. |
+| Medium anaphora | Fixed. Medium uses the same sanctuary camera and open royal doors as High and Low. |
+
+Medium frames from this pass: gathering, Great Entrance, anaphora, Communion, and dismissal.
+
 ---
 
 Tested as a first-time user on current `main` (`61757d1`, “MakeHuman people, candlelit nave, and clergy framing”). No app code was changed. The sections below are that first walk. They are unchanged on purpose.

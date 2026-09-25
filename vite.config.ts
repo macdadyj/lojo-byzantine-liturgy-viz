@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { readFile } from "node:fs/promises";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";

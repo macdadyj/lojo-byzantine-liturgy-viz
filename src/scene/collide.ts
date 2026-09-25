@@ -85,8 +85,8 @@ export function resolveWalk(x: number, z: number, doors: DoorGaps): WalkSpot {
   const wallHalf = 0.34;
   if (Math.abs(pz - wallZ) < wallHalf + bodyRadius) {
     const royal = doors.royal && Math.abs(px) < 0.85;
-    const north = doors.north && Math.abs(px + world.deaconDoorX) < 0.55;
-    const south = doors.south && Math.abs(px - world.deaconDoorX) < 0.55;
+    const north = doors.north && Math.abs(px + world.deaconDoorX) < world.deaconOpeningHalf;
+    const south = doors.south && Math.abs(px - world.deaconDoorX) < world.deaconOpeningHalf;
     if (!royal && !north && !south) {
       pz = pz >= wallZ ? wallZ + wallHalf + bodyRadius : wallZ - wallHalf - bodyRadius;
     }

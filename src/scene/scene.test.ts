@@ -3,7 +3,8 @@ import { steps } from "../liturgy/steps";
 import { spaceList } from "../liturgy/spaces";
 import { resolveWalk } from "./collide";
 import { censingFor, gestureFor } from "./gestures";
-import { pointOnPath } from "./path";
+import { pointBehind, pointOnPath } from "./path";
+import { closestPair, communionLine, dismissalLine, faithfulPlace } from "./crowdLayout";
 import { nextQuality } from "./quality";
 import { cameraFor, doorsFor, isStagedId, stagedStepIds, stagingFor } from "./staging";
 import { floorPatches, greatEntrancePath, littleEntrancePath, world } from "./world";
@@ -74,6 +75,22 @@ describe("3D liturgy staging", () => {
     );
     expect(mid[2]).toBeCloseTo(5);
     expect(pointOnPath([], 0.4)).toEqual([0, 0, 0]);
+    expect(pointBehind([[0, 0, 0], [0, 0, 10]], 1, 4)[2]).toBeCloseTo(6, 0);
+  });
+
+  it("stands the faithful on the floor, off the pews, and apart", () => {
+    expect(closestPair(communionLine)).toBeGreaterThan(0.85);
+    expect(closestPair(dismissalLine)).toBeGreaterThan(0.85);
+    for (const spot of [...communionLine, ...dismissalLine]) {
+      expect(spot[1]).toBeGreaterThan(0);
+      expect(spot[1]).toBeLessThanOrEqual(world.soleaFloor);
+    }
+    const standing = faithfulPlace(-2.2, 4.6, "stand");
+    expect(standing[1]).toBeCloseTo(0.02);
+    expect(standing[2]).toBeLessThan(4.6 - 0.9);
+    const sitting = faithfulPlace(2.2, 7, "sit");
+    expect(sitting[2]).toBeCloseTo(7);
+    expect(world.deaconOpeningHalf).toBeGreaterThanOrEqual(0.9);
   });
 
   it("keeps a walking person out of walls, pews, and a closed iconostas", () => {
@@ -91,6 +108,12 @@ describe("3D liturgy staging", () => {
     expect(Math.abs(paintedDoor.z - world.iconZ)).toBeGreaterThan(0.4);
     const northDoor = resolveWalk(-world.deaconDoorX, world.iconZ, { royal: false, north: true, south: false });
     expect(Math.abs(northDoor.z - world.iconZ)).toBeLessThan(0.5);
+    const wideNorth = resolveWalk(-world.deaconDoorX + world.deaconOpeningHalf - 0.15, world.iconZ, {
+      royal: false,
+      north: true,
+      south: false,
+    });
+    expect(Math.abs(wideNorth.z - world.iconZ)).toBeLessThan(0.5);
     const column = resolveWalk(world.columnX, 4.2, shut);
     expect(Math.hypot(column.x - world.columnX, column.z - 4.2)).toBeGreaterThan(0.7);
   });

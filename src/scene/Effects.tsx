@@ -34,28 +34,23 @@ export function StageLook({ quality }: { quality: Quality }) {
 
 export function QualityEffects({ quality }: { quality: Quality }) {
   if (quality === "low") return null;
-  const bloom = <Bloom luminanceThreshold={0.55} mipmapBlur intensity={quality === "high" ? 0.16 : 0.09} />;
-  const vignette = <Vignette eskil={false} offset={0.18} darkness={0.42} />;
-  if (quality === "high") {
-    return (
-      <EffectComposer multisampling={0}>
-        <N8AO
-          halfRes
-          aoSamples={8}
-          denoiseSamples={2}
-          aoRadius={0.85}
-          intensity={1.15}
-          quality="performance"
-        />
-        {bloom}
-        {vignette}
-      </EffectComposer>
-    );
-  }
+  return <PictureGrade quality={quality} />;
+}
+
+function PictureGrade({ quality }: { quality: "high" | "medium" }) {
+  const high = quality === "high";
   return (
     <EffectComposer multisampling={0}>
-      {bloom}
-      {vignette}
+      <N8AO
+        halfRes
+        aoSamples={high ? 8 : 1}
+        denoiseSamples={high ? 2 : 1}
+        aoRadius={high ? 0.85 : 0.01}
+        intensity={high ? 1.15 : 0}
+        quality="performance"
+      />
+      <Bloom luminanceThreshold={0.55} mipmapBlur intensity={high ? 0.16 : 0.09} />
+      <Vignette eskil={false} offset={0.18} darkness={0.42} />
     </EffectComposer>
   );
 }

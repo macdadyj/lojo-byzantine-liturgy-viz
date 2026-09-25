@@ -72,7 +72,7 @@ const deaconByAltar: Actor = {
   stance: "stand",
 };
 const readerAside: Actor = {
-  position: [2.3, 0, 4.4],
+  position: [3.55, 0.02, 3.35],
   facing: 0,
   stance: "stand",
 };
@@ -111,15 +111,15 @@ const cameraPoses: Record<StagedId, CameraPose> = {
   proskomedia: { position: [-4.15, 1.7, -13.05], target: [-6.45, 1.2, -14.55] },
   opening: { position: [0.15, 1.66, -7.05], target: [0.05, 1.4, -13.9] },
   "litany-of-peace": { position: [-2.15, 1.7, -4.35], target: [-0.55, 1.42, -9.4] },
-  antiphons: { position: [4.15, 4.42, 6.35], target: [8.15, 4.05, 6.05] },
-  "little-entrance": { position: [-5.6, 1.68, -5.4], target: [-7.4, 1.35, -9.15] },
+  antiphons: { position: [4.6, 6.15, 3.15], target: [8.7, 3.85, 6.2] },
+  "little-entrance": { position: [-3.5, 1.72, -2.4], target: [-4.4, 1.32, -6.4] },
   trisagion: { position: [1.35, 1.7, 5.6], target: [-1.8, 1.32, 3.5] },
   epistle: { position: [1.05, 1.6, -3.35], target: [0.28, 1.32, -5.48] },
   gospel: { position: [0.85, 1.58, -2.55], target: [0.4, 1.3, -5.18] },
   homily: { position: [1.45, 1.66, 2.15], target: [0.02, 1.38, -5.42] },
   "before-the-gifts": { position: [2.8, 1.95, 0.6], target: [-0.55, 1.4, -7.1] },
   cherubic: { position: [-3.55, 1.74, -12.55], target: [-6.35, 1.22, -14.55] },
-  "great-entrance": { position: [-5.4, 1.68, -4.2], target: [-7.45, 1.35, -9.2] },
+  "great-entrance": { position: [-3.6, 1.74, -1.6], target: [-2.2, 1.28, -6.2] },
   creed: { position: [0.35, 1.74, 6.6], target: [0.05, 1.4, -8.8] },
   anaphora: { position: [1.45, 1.74, -13.05], target: [0.02, 1.32, -15.2] },
   epiklesis: { position: [0.25, 1.68, 3.4], target: [0.02, 1.22, -14.9] },

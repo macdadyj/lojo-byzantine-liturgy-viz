@@ -7,10 +7,14 @@ import {
   BoxGeometry,
   CylinderGeometry,
   LoopRepeat,
+  Matrix4,
   Mesh,
   MeshStandardMaterial,
   PlaneGeometry,
+  Quaternion,
+  SkinnedMesh,
   SphereGeometry,
+  type BufferGeometry,
   Color,
   Group,
   Vector3,
@@ -20,12 +24,13 @@ import {
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { nextBlockerId, releaseBlocker, trackBlocker } from "./collide";
 import type { Gesture } from "./gestures";
+import { faithfulPlace } from "./crowdLayout";
 import type { Vec3 } from "./path";
 import type { Quality } from "./quality";
 import type { Stance } from "./staging";
 
 export type ClergyRole = "priest" | "deacon" | "reader";
-export type Carry = "none" | "gospel" | "gifts";
+export type Carry = "none" | "gospel" | "gifts" | "candle" | "cross";
 export type Age = "child" | "teen" | "adult" | "elder";
 type ClipName = "idle" | "walk" | "sit" | "kneel";
 
@@ -73,6 +78,22 @@ const smokeMat = new MeshStandardMaterial({
 });
 
 const scratch = new Vector3();
+const parentPoint = new Vector3();
+const footPoint = new Vector3();
+const scalePoint = new Vector3();
+const aimDir = new Vector3();
+const basisX = new Vector3();
+const basisZ = new Vector3();
+const axisX = new Vector3(1, 0, 0);
+const axisY = new Vector3(0, 1, 0);
+const axisZ = new Vector3(0, 0, 1);
+const worldDown = new Vector3(0, -1, 0);
+const forwardDir = new Vector3();
+const thighDir = new Vector3();
+const shinDir = new Vector3();
+const quatA = new Quaternion();
+const quatB = new Quaternion();
+const basis = new Matrix4();
 
 export function ageScale(age: Age): number {
   switch (age) {
@@ -154,11 +175,11 @@ export function Crowd({
     <group>
       {shown.map((spot) => {
         const file = castNames[spot.cast % castNames.length] ?? "m-hoodie";
-        const forward = stance === "kneel" ? -0.72 : stance === "sit" ? 0.04 : 0;
+        const placed = spot.position[1] === 0 ? faithfulPlace(spot.position[0], spot.position[2], stance) : spot.position;
         return (
           <group
             key={`${spot.position.join(",")}-${spot.cast}`}
-            position={[spot.position[0], spot.position[1], spot.position[2] + forward]}
+            position={placed}
             rotation={[0, spot.rotationY, 0]}
             scale={ageScale(spot.age)}
           >
@@ -266,9 +287,12 @@ function Person({
       if (accum.current < 0.2) return;
       mixer.update(accum.current);
       accum.current = 0;
-      return;
+    } else {
+      mixer.update(walking ? delta : delta * 0.55);
     }
-    mixer.update(walking ? delta : delta * 0.55);
+    if (!walking) poseLegs(clone, group, stance);
+    plantFeet(group, clone);
+    if (far) return;
     const time = state.clock.elapsedTime + phase * 6;
     if (stance === "bow") {
       const torso = clone.getObjectByName("Torso");
@@ -349,23 +373,60 @@ function attachProps(
 ): Object3D[] {
   const added: Object3D[] = [];
   const chest = clone.getObjectByName("Chest") ?? clone.getObjectByName("Torso");
-  if (options.carry !== "none" && chest) {
-    const held = options.carry === "gospel" ? gospel() : gifts();
-    held.position.set(0.02, options.elevated ? 0.42 : 0.02, 0.22);
-    chest.add(held);
+  const hand = clone.getObjectByName("WristR") ?? chest;
+  const held = propFor(options.carry);
+  const anchor = options.carry === "candle" ? hand : chest;
+  if (held && anchor) {
+    held.position.copy(propOffset(options.carry, options.elevated));
+    anchor.add(held);
     added.push(held);
   }
-  if (options.censing) {
-    const hand = clone.getObjectByName("Wrist.R") ?? chest;
-    if (hand) {
-      const censer = makeCenser();
-      censer.position.set(0, -0.18, 0.04);
-      hand.add(censer);
-      clone.userData.censer = censer;
-      added.push(censer);
-    }
+  if (options.censing && hand) {
+    const censer = makeCenser();
+    censer.position.set(0, -0.18, 0.04);
+    hand.add(censer);
+    clone.userData.censer = censer;
+    added.push(censer);
   }
   return added;
+}
+
+function propFor(carry: Carry): Group | null {
+  switch (carry) {
+    case "none":
+      return null;
+    case "gospel":
+      return gospel();
+    case "gifts":
+      return gifts();
+    case "candle":
+      return candle();
+    case "cross":
+      return handCross();
+    default: {
+      const exhaustive: never = carry;
+      return exhaustive;
+    }
+  }
+}
+
+function propOffset(carry: Carry, elevated: boolean): Vector3 {
+  switch (carry) {
+    case "none":
+      return new Vector3();
+    case "gospel":
+      return new Vector3(0.02, elevated ? 0.42 : 0.08, 0.24);
+    case "gifts":
+      return new Vector3(0.0, elevated ? 0.5 : 0.16, 0.36);
+    case "candle":
+      return new Vector3(0.04, 0.02, 0.08);
+    case "cross":
+      return new Vector3(0.08, 0.18, 0.32);
+    default: {
+      const exhaustive: never = carry;
+      return exhaustive;
+    }
+  }
 }
 
 function gospel(): Group {
@@ -380,11 +441,54 @@ function gospel(): Group {
 
 function gifts(): Group {
   const group = new Group();
-  const disk = new Mesh(new CylinderGeometry(0.07, 0.07, 0.018, 12), gold);
-  disk.position.x = -0.08;
-  const cup = new Mesh(new CylinderGeometry(0.038, 0.022, 0.1, 10), gold);
-  cup.position.set(0.07, 0.05, 0);
-  group.add(disk, cup);
+  const foot = new Mesh(new CylinderGeometry(0.055, 0.06, 0.018, 12), gold);
+  const stem = new Mesh(new CylinderGeometry(0.012, 0.014, 0.14, 10), gold);
+  stem.position.y = 0.08;
+  const cup = new Mesh(new CylinderGeometry(0.072, 0.034, 0.1, 14), gold);
+  cup.position.y = 0.18;
+  const bowl = new Mesh(new SphereGeometry(0.028, 10, 8), gold);
+  bowl.scale.set(1, 0.45, 1);
+  bowl.position.y = 0.2;
+  const handle = new Mesh(new CylinderGeometry(0.006, 0.006, 0.22, 8), gold);
+  handle.rotation.z = Math.PI / 2.4;
+  handle.position.set(0.12, 0.16, 0.02);
+  const scoop = new Mesh(new SphereGeometry(0.022, 8, 6), gold);
+  scoop.scale.set(1.3, 0.45, 1);
+  scoop.position.set(0.2, 0.2, 0.02);
+  group.add(foot, stem, cup, bowl, handle, scoop);
+  group.scale.setScalar(1.75);
+  return group;
+}
+
+function candle(): Group {
+  const group = new Group();
+  const wax = new Mesh(
+    new CylinderGeometry(0.02, 0.022, 0.42, 10),
+    new MeshStandardMaterial({ color: "#f6f1e4", roughness: 0.62 }),
+  );
+  wax.position.y = 0.16;
+  const flame = new Mesh(
+    new SphereGeometry(0.028, 8, 6),
+    new MeshStandardMaterial({ color: "#ffb45a", emissive: "#ff8a1e", emissiveIntensity: 1.4, roughness: 0.4 }),
+  );
+  flame.scale.set(1, 1.5, 1);
+  flame.position.y = 0.4;
+  group.add(wax, flame);
+  return group;
+}
+
+function handCross(): Group {
+  const group = new Group();
+  const upright = new Mesh(new BoxGeometry(0.028, 0.28, 0.016), gold);
+  const main = new Mesh(new BoxGeometry(0.16, 0.022, 0.016), gold);
+  main.position.y = 0.04;
+  const title = new Mesh(new BoxGeometry(0.09, 0.016, 0.014), gold);
+  title.position.y = 0.1;
+  const foot = new Mesh(new BoxGeometry(0.07, 0.014, 0.014), gold);
+  foot.position.y = -0.07;
+  foot.rotation.z = 0.35;
+  group.add(upright, main, title, foot);
+  group.scale.setScalar(1.85);
   return group;
 }
 
@@ -407,11 +511,117 @@ function makeCenser(): Group {
 }
 
 function applyCross(clone: Object3D, t: number): void {
-  const upper = clone.getObjectByName("UpperArm.R");
-  const lower = clone.getObjectByName("LowerArm.R");
+  const upper = clone.getObjectByName("UpperArmR");
+  const lower = clone.getObjectByName("LowerArmR");
   if (!upper || !lower) return;
   const lift = Math.sin(Math.min(1, t * 1.35) * Math.PI);
-  upper.rotation.z += 0.9 * lift;
-  upper.rotation.x += -0.8 * lift;
-  lower.rotation.z += 0.7 * lift;
+  upper.rotation.z += 1.15 * lift;
+  upper.rotation.x += -1.05 * lift;
+  lower.rotation.z += 0.85 * lift;
+}
+
+function poseLegs(clone: Object3D, facingRoot: Object3D, stance: Stance): void {
+  switch (stance) {
+    case "stand":
+    case "bow":
+      return;
+    case "sit":
+      clone.updateMatrixWorld(true);
+      for (const side of ["L", "R"] as const) {
+        const lower = clone.getObjectByName(`LowerLeg${side}`);
+        if (lower) aimLocalY(lower, worldDown);
+        placeFoot(clone, side, 0.42);
+      }
+      return;
+    case "kneel": {
+      const body = clone.getObjectByName("Body");
+      if (body) body.position.y = 0.36;
+      clone.updateMatrixWorld(true);
+      facingRoot.getWorldQuaternion(quatA);
+      forwardDir.set(0, 0, 1).applyQuaternion(quatA).normalize();
+      thighDir.set(0, -0.92, 0).addScaledVector(forwardDir, 0.35);
+      shinDir.set(0, -0.08, 0).addScaledVector(forwardDir, -1);
+      for (const side of ["L", "R"] as const) {
+        const upper = clone.getObjectByName(`UpperLeg${side}`);
+        const lower = clone.getObjectByName(`LowerLeg${side}`);
+        if (upper) aimLocalY(upper, thighDir);
+        if (lower) aimLocalY(lower, shinDir);
+        placeFoot(clone, side, 0.42);
+      }
+      return;
+    }
+    default: {
+      const exhaustive: never = stance;
+      return exhaustive;
+    }
+  }
+}
+
+function aimLocalY(bone: Object3D, direction: Vector3): void {
+  const parent = bone.parent;
+  if (!parent) return;
+  parent.updateWorldMatrix(true, false);
+  parent.getWorldQuaternion(quatA);
+  const y = footPoint.copy(direction).normalize();
+  const helper = Math.abs(y.y) > 0.85 ? axisX : axisY;
+  const x = basisX.crossVectors(helper, y);
+  if (x.lengthSq() < 1e-8) x.crossVectors(axisZ, y);
+  x.normalize();
+  const z = basisZ.crossVectors(x, y).normalize();
+  quatB.setFromRotationMatrix(basis.makeBasis(x, y, z));
+  bone.quaternion.copy(quatA.invert()).multiply(quatB);
+  bone.updateMatrixWorld(true);
+}
+
+function placeFoot(clone: Object3D, side: "L" | "R", length: number): void {
+  const lower = clone.getObjectByName(`LowerLeg${side}`);
+  const foot = clone.getObjectByName(`Foot${side}`);
+  if (!lower || !foot?.parent) return;
+  lower.updateMatrixWorld(true);
+  lower.getWorldQuaternion(quatB);
+  const shin = aimDir.set(0, 1, 0).applyQuaternion(quatB);
+  lower.getWorldPosition(footPoint);
+  footPoint.addScaledVector(shin, length);
+  foot.parent.worldToLocal(footPoint);
+  foot.position.copy(footPoint);
+}
+
+/** Lowest bind-pose vertices are the shoes. Sampling them keeps the sole on the floor when a clip leaves the foot bone above the mesh. */
+function soleIndices(geometry: BufferGeometry): number[] {
+  const existing = geometry.userData.soleIndices as number[] | undefined;
+  if (existing) return existing;
+  const position = geometry.getAttribute("position");
+  const order = Array.from({ length: position.count }, (_, index) => index);
+  order.sort((left, right) => position.getY(left) - position.getY(right));
+  const indices = order.slice(0, 32);
+  geometry.userData.soleIndices = indices;
+  return indices;
+}
+
+function plantFeet(root: Group, clone: Object3D): void {
+  const parent = root.parent;
+  if (!parent) return;
+  root.updateMatrixWorld(true);
+  parent.getWorldPosition(parentPoint);
+  let minY = Infinity;
+  clone.traverse((child) => {
+    if (!(child instanceof SkinnedMesh)) return;
+    for (const index of soleIndices(child.geometry)) {
+      child.getVertexPosition(index, footPoint);
+      footPoint.applyMatrix4(child.matrixWorld);
+      if (footPoint.y < minY) minY = footPoint.y;
+    }
+  });
+  if (!Number.isFinite(minY)) {
+    for (const name of ["FootL", "FootR"]) {
+      const foot = clone.getObjectByName(name);
+      if (!foot) continue;
+      foot.getWorldPosition(footPoint);
+      if (footPoint.y < minY) minY = footPoint.y;
+    }
+  }
+  if (!Number.isFinite(minY)) return;
+  root.getWorldScale(scalePoint);
+  const scaleY = Math.abs(scalePoint.y) > 0.001 ? scalePoint.y : 1;
+  root.position.y += (parentPoint.y - minY) / scaleY;
 }

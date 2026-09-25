@@ -80,11 +80,14 @@ function Iconostas({ doors, maps, quality }: { doors: DoorState; maps: IconMaps;
 
 function Screen() {
   // Three openings: royal doors in the center, deacon doors to the north and south.
+  const half = world.deaconOpeningHalf;
+  const outer = world.deaconDoorX + half;
+  const inner = world.deaconDoorX - half;
   const panels: [number, number, number, number][] = [
-    [-8.68, 1.9, 1.04, 3.56],
-    [-3.95, 1.9, 5.9, 3.56],
-    [3.95, 1.9, 5.9, 3.56],
-    [8.68, 1.9, 1.04, 3.56],
+    [-(outer + 9.2) / 2, 1.9, 9.2 - outer, 3.56],
+    [-(inner + 1) / 2, 1.9, inner - 1, 3.56],
+    [(inner + 1) / 2, 1.9, inner - 1, 3.56],
+    [(outer + 9.2) / 2, 1.9, 9.2 - outer, 3.56],
     [0, 6.05, 18.4, 4.5],
   ];
   return (
@@ -152,6 +155,11 @@ function Framed({
 
 function Curtain({ open }: { open: boolean }) {
   const veil = useRef<Group>(null);
+  useLayoutEffect(() => {
+    const cloth = veil.current;
+    if (!cloth) return;
+    cloth.scale.x = open ? 0.06 : 1;
+  }, [open]);
   useFrame((_, delta) => {
     const cloth = veil.current;
     if (!cloth) return;
@@ -191,26 +199,31 @@ function DeaconLeaf({
   quality: Quality;
 }) {
   const hinge = useRef<Group>(null);
+  const width = world.deaconOpeningHalf * 2;
+  const panelX = side === -1 ? world.deaconOpeningHalf : -world.deaconOpeningHalf;
+  const openAngle = side * 1.65;
   useLayoutEffect(() => {
-    hinge.current?.traverse((object) => {
+    const leaf = hinge.current;
+    if (!leaf) return;
+    leaf.rotation.y = open ? openAngle : 0;
+    leaf.traverse((object) => {
       object.userData.icon = card;
     });
-  }, [card]);
+  }, [card, open, openAngle]);
   useFrame((_, delta) => {
     const leaf = hinge.current;
     if (!leaf) return;
-    const goal = open ? side * 1.15 : 0;
+    const goal = open ? openAngle : 0;
     leaf.rotation.y += (goal - leaf.rotation.y) * (1 - Math.exp(-delta * 3.2));
   });
-  const panelX = side === -1 ? 0.5 : -0.5;
   return (
-    <group ref={hinge} position={[side * (world.deaconDoorX + 0.52), 0, 0.14]}>
+    <group ref={hinge} position={[side * (world.deaconDoorX + world.deaconOpeningHalf), 0, 0.14]}>
       <mesh position={[panelX, 1.85, 0]}>
-        <boxGeometry args={[1.02, 3.35, 0.07]} />
+        <boxGeometry args={[width, 3.35, 0.07]} />
         <meshStandardMaterial color={colors.woodDark} roughness={0.55} />
       </mesh>
       <mesh position={[panelX, 1.88, 0.04]}>
-        <planeGeometry args={[0.88, 2.7]} />
+        <planeGeometry args={[width - 0.16, 2.7]} />
         <IconSurface map={map} quality={quality} />
       </mesh>
     </group>
@@ -233,17 +246,21 @@ function RoyalLeaf({
   quality: Quality;
 }) {
   const hinge = useRef<Group>(null);
-  useLayoutEffect(() => {
-    hinge.current?.traverse((object) => {
-      object.userData.icon = card;
-    });
-  }, [card]);
   const geometry = useMemo(() => halfPlane(0.78, 3.35, half), [half]);
   useLayoutEffect(() => () => geometry.dispose(), [geometry]);
+  const openAngle = side * 1.05;
+  useLayoutEffect(() => {
+    const leaf = hinge.current;
+    if (!leaf) return;
+    leaf.rotation.y = open ? openAngle : 0;
+    leaf.traverse((object) => {
+      object.userData.icon = card;
+    });
+  }, [card, open, openAngle]);
   useFrame((_, delta) => {
     const leaf = hinge.current;
     if (!leaf) return;
-    const goal = open ? side * 1.05 : 0;
+    const goal = open ? openAngle : 0;
     leaf.rotation.y += (goal - leaf.rotation.y) * (1 - Math.exp(-delta * 3.5));
   });
   const panelX = side === -1 ? 0.42 : -0.42;
