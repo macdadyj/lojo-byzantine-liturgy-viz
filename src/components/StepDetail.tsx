@@ -1,5 +1,6 @@
 import { spaceById, type SpaceId } from "../liturgy/spaces";
 import { roleLabels, phaseLabel, type LiturgyStep } from "../liturgy/types";
+import { pinHolyBeat, useHolyBeat } from "../scene/holyBeat";
 import { HearList } from "./HearList";
 
 type StepDetailProps = {
@@ -17,6 +18,7 @@ export function StepDetail({
   selectedSpace,
   onSelectSpace,
 }: StepDetailProps) {
+  const beat = useHolyBeat(step.id);
   return (
     <article className="detail" aria-labelledby="step-title">
       <div className="detail-lead">
@@ -59,6 +61,26 @@ export function StepDetail({
             );
           })}
         </ul>
+        {step.id === "holy-things" ? (
+          <div className="beat-row" role="group" aria-label="Holy Things">
+            <button
+              type="button"
+              className={beat === "elevation" ? "where-chip is-selected" : "where-chip"}
+              aria-pressed={beat === "elevation"}
+              onClick={() => pinHolyBeat("elevation")}
+            >
+              Elevation
+            </button>
+            <button
+              type="button"
+              className={beat === "clergy" ? "where-chip is-selected" : "where-chip"}
+              aria-pressed={beat === "clergy"}
+              onClick={() => pinHolyBeat("clergy")}
+            >
+              Clergy communion
+            </button>
+          </div>
+        ) : null}
       </div>
       <p className="see-caption">{step.see}</p>
       <details className="detail-more" open={index === 0}>

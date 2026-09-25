@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { ByzantineCross } from "./Figures";
 import { colors } from "./colors";
 import { iconCards, type IconCard } from "./iconCards";
+import { holyClosesDoors } from "./holyBeat";
 import type { Quality } from "./quality";
 import { giltTexture } from "./surfaces";
 import type { DoorState } from "./staging";
@@ -153,19 +154,24 @@ function Framed({
   );
 }
 
+function curtainShown(open: boolean): boolean {
+  return open && !holyClosesDoors();
+}
+
 function Curtain({ open }: { open: boolean }) {
   const veil = useRef<Group>(null);
   useLayoutEffect(() => {
     const cloth = veil.current;
     if (!cloth) return;
     cloth.userData.doorKind = "curtain";
-    cloth.scale.x = open ? 0.06 : 1;
+    cloth.scale.x = curtainShown(open) ? 0.06 : 1;
   }, [open]);
   useFrame((_, delta) => {
     const cloth = veil.current;
     if (!cloth) return;
-    const goal = open ? 0.06 : 1;
-    if (!open) {
+    const shown = curtainShown(open);
+    const goal = shown ? 0.06 : 1;
+    if (!shown) {
       cloth.scale.x = 1;
       return;
     }
@@ -261,7 +267,8 @@ function RoyalLeaf({
   useLayoutEffect(() => {
     const leaf = hinge.current;
     if (!leaf) return;
-    leaf.rotation.y = open ? openAngle : 0;
+    const shown = open && !holyClosesDoors();
+    leaf.rotation.y = shown ? openAngle : 0;
     leaf.userData.doorKind = "royal";
     leaf.traverse((object) => {
       object.userData.icon = card;
@@ -270,8 +277,9 @@ function RoyalLeaf({
   useFrame((_, delta) => {
     const leaf = hinge.current;
     if (!leaf) return;
-    const goal = open ? openAngle : 0;
-    if (!open) {
+    const shown = open && !holyClosesDoors();
+    const goal = shown ? openAngle : 0;
+    if (!shown) {
       leaf.rotation.y = 0;
       return;
     }

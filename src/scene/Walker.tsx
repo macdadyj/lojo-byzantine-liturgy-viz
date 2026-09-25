@@ -1,10 +1,8 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useRef } from "react";
 import { PerspectiveCamera, Vector3 } from "three";
-import { resolveWalk, type DoorGaps } from "./collide";
+import { clampLookPitchAt, minEyeHeight, resolveWalk, standingEye, type DoorGaps } from "./collide";
 import { requestWalk, walkGoal, walkStick } from "./walkGoal";
-
-const EYE = 1.65;
 
 type WalkerProps = {
   enabled: boolean;
@@ -37,13 +35,13 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
     const forward = new Vector3();
     camera.getWorldDirection(forward);
     yaw.current = Math.atan2(-forward.x, -forward.z);
-    pitch.current = Math.asin(Math.min(1, Math.max(-1, forward.y)));
+    pitch.current = clampLookPitchAt(Math.asin(Math.min(1, Math.max(-1, forward.y))), spot.current.x, spot.current.z);
 
     if (!(camera instanceof PerspectiveCamera)) return;
     const previousFov = camera.fov;
     const previousNear = camera.near;
     camera.fov = 62;
-    camera.near = 0.08;
+    camera.near = 0.15;
     camera.updateProjectionMatrix();
 
     const previous = document.body.dataset.walk;
@@ -81,7 +79,7 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
       if (!locked && !dragging.current) return;
       yaw.current -= event.movementX * 0.0022;
       pitch.current -= event.movementY * 0.0022;
-      pitch.current = Math.min(1.15, Math.max(-1.2, pitch.current));
+      pitch.current = clampLookPitchAt(pitch.current, spot.current.x, spot.current.z);
     };
 
     window.addEventListener("keydown", onKey);
@@ -117,6 +115,7 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
       spot.current.z += (walkGoal.z - spot.current.z) * step;
       yaw.current += (walkGoal.yaw - yaw.current) * step;
       pitch.current += (walkGoal.pitch - pitch.current) * step;
+      pitch.current = clampLookPitchAt(pitch.current, spot.current.x, spot.current.z);
       goalLeft.current = Math.max(0, goalLeft.current - delta);
     } else {
       let forward = 0;
@@ -146,7 +145,9 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
     spot.current.x = resolved.x;
     spot.current.z = resolved.z;
     const bob = headBob ? Math.sin(bobPhase.current) * 0.035 : 0;
-    camera.position.set(resolved.x, resolved.floor + EYE + bob, resolved.z);
+    pitch.current = clampLookPitchAt(pitch.current, resolved.x, resolved.z);
+    const eye = Math.max(minEyeHeight, standingEye(resolved.floor) + bob);
+    camera.position.set(resolved.x, eye, resolved.z);
     camera.rotation.order = "YXZ";
     camera.rotation.y = yaw.current;
     camera.rotation.x = pitch.current;

@@ -73,6 +73,24 @@ No regression on the floor contact, the clothes, the north door, the Medium anap
 
 ---
 
+## Fixed in pass 8
+
+This section is the pass 8 response. The **Verified pass 7** findings above are unchanged.
+
+The Holy Things close was a `useEffect` on the step id. Every time that effect was set up it forced the elevation back on and started a new 1.8 s interval, and the cleanup cancelled the interval. The royal leaves and the curtain only shut when that React flag flipped. Nothing on the door meshes read a clock of their own, so a fresh setup during the same visit — a remount, or the effect running again — left 0.4 s and 4.5 s on the open elevation. Quality is not a React key on the scene, and StrictMode’s double mount is development-only; those were not, by themselves, the miss. The clock now lives outside the effect. Entering Holy Things arms it once. Noting the same step again does not move the start. A page interval and the door frame both publish that clock, and the leaves snap shut from it even while the React prop still says open. The step panel has Elevation and Clergy communion controls on the same beat, so the shut doors are a click as well as a timer.
+
+Free look no longer pitches to about −69°. In the nave the limit is −37°, and beside a pew it is −28°. Eye height cannot drop below 1.15 m, which is above the pew back. The walk volume around each pew is deeper, so the camera is kept out of the bench.
+
+The faithful are still the Quaternius Sunday cast. Skin is a physical material with a warm sheen. Jackets use a muted color plus a weave normal and a roughness map; shirts and shoes stay separate tones. Adult heads are scaled to 0.9, elders 0.92, teens 0.94, children 0.98. Idle clips start at different frames and run at different speeds. No licensed replacement rig was swapped in: a headless fetch could not be checked here for closed mouths, fitted clothes, and a non-bind pose without risking the grounding and the Sunday clothes that already passed.
+
+| Item | Fixed in pass 8 |
+| --- | --- |
+| Holy Things close | Fixed. The visit clock does not restart when the step is noted again. Doors and curtain stay open for the elevation, then shut at 1.8 s. Elevation and Clergy communion in the step panel set that beat immediately. |
+| Free look under a pew | Fixed. Pitch and eye height are clamped, and the pew collision volume is deeper. |
+| People, more realistic | Stepped up on the same Sunday bodies. Warmer skin sheen, a cloth weave and roughness map, separate shirt and shoe tones, smaller heads, and idle clips that do not share one phase. Grounding and clothes stay as pass 7 left them. |
+
+---
+
 ## Verified pass 6
 
 Independent retest of `cursor/liturgy-pass-5-339c` at `d2cdaab` (“Plant the congregation on the floor and typecheck the Vite config”). No app code was changed. The “Fixed in pass 6” section below is the developer’s claim. This section is the walk.

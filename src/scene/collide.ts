@@ -11,6 +11,13 @@ const pewBanks = [
 
 const bodyRadius = 0.32;
 const columnReach = 0.58;
+const pewHalfZ = 0.55;
+
+/** Steep enough for the dome tour, not steep enough to look under a pew. */
+export const lookPitchMin = -0.65;
+export const lookPitchMax = 0.85;
+/** Above the pew back, so the eye cannot sit in the space under the seat. */
+export const minEyeHeight = 1.15;
 
 export type WalkSpot = {
   x: number;
@@ -72,9 +79,8 @@ export function resolveWalk(x: number, z: number, doors: DoorGaps): WalkSpot {
 
   for (const bank of pewBanks) {
     for (const row of pewRows) {
-      const halfZ = 0.4;
       const overlapX = bank.half + bodyRadius - Math.abs(px - bank.x);
-      const overlapZ = halfZ + bodyRadius - Math.abs(pz - row);
+      const overlapZ = pewHalfZ + bodyRadius - Math.abs(pz - row);
       if (overlapX <= 0 || overlapZ <= 0) continue;
       if (overlapX < overlapZ) px += (px >= bank.x ? 1 : -1) * overlapX;
       else pz += (pz >= row ? 1 : -1) * overlapZ;
@@ -121,6 +127,28 @@ export function resolveWalk(x: number, z: number, doors: DoorGaps): WalkSpot {
   if (pz < world.iconZ + 0.2) floor = world.sanctuaryFloor;
   else if (pz < -5.5) floor = world.soleaFloor;
   return { x: px, z: pz, floor };
+}
+
+export function standingEye(floor: number): number {
+  return Math.max(minEyeHeight, floor + 1.65);
+}
+
+/** A steep look beside a pew is held higher so the view stays on the seat, not under it. */
+export function clampLookPitchAt(pitch: number, x: number, z: number): number {
+  const min = pewGap(x, z) < 0.45 ? -0.48 : lookPitchMin;
+  return clamp(pitch, min, lookPitchMax);
+}
+
+function pewGap(x: number, z: number): number {
+  let best = Infinity;
+  for (const bank of pewBanks) {
+    for (const row of pewRows) {
+      const dx = Math.max(0, Math.abs(x - bank.x) - bank.half);
+      const dz = Math.max(0, Math.abs(z - row) - pewHalfZ);
+      best = Math.min(best, Math.hypot(dx, dz));
+    }
+  }
+  return best;
 }
 
 function clamp(value: number, min: number, max: number): number {
