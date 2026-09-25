@@ -1,18 +1,18 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useRef } from "react";
 import { PerspectiveCamera, Vector3 } from "three";
-import { resolveWalk } from "./collide";
+import { resolveWalk, type DoorGaps } from "./collide";
 import { requestWalk, walkGoal, walkStick } from "./walkGoal";
 
 const EYE = 1.65;
 
 type WalkerProps = {
   enabled: boolean;
-  doorsOpen: boolean;
+  doors: DoorGaps;
   headBob: boolean;
 };
 
-export function Walker({ enabled, doorsOpen, headBob }: WalkerProps) {
+export function Walker({ enabled, doors, headBob }: WalkerProps) {
   const { camera, gl } = useThree();
   const keys = useRef({
     forward: false,
@@ -27,12 +27,12 @@ export function Walker({ enabled, doorsOpen, headBob }: WalkerProps) {
   const dragging = useRef(false);
   const goalToken = useRef(0);
   const goalLeft = useRef(0);
-  const doors = useRef(doorsOpen);
-  doors.current = doorsOpen;
+  const gaps = useRef(doors);
+  gaps.current = doors;
 
   useLayoutEffect(() => {
     if (!enabled) return;
-    const here = resolveWalk(camera.position.x, camera.position.z, doors.current);
+    const here = resolveWalk(camera.position.x, camera.position.z, gaps.current);
     spot.current = { x: here.x, z: here.z };
     const forward = new Vector3();
     camera.getWorldDirection(forward);
@@ -70,7 +70,8 @@ export function Walker({ enabled, doorsOpen, headBob }: WalkerProps) {
     const onDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       dragging.current = true;
-      element.requestPointerLock?.();
+      const lock = element.requestPointerLock?.();
+      void lock?.catch(() => undefined);
     };
     const onUp = () => {
       dragging.current = false;
@@ -135,13 +136,13 @@ export function Walker({ enabled, doorsOpen, headBob }: WalkerProps) {
       const rz = -sin;
       const nextX = spot.current.x + (fx * forward + rx * strafe) * speed;
       const nextZ = spot.current.z + (fz * forward + rz * strafe) * speed;
-      const resolved = resolveWalk(nextX, nextZ, doors.current);
+      const resolved = resolveWalk(nextX, nextZ, gaps.current);
       spot.current.x = resolved.x;
       spot.current.z = resolved.z;
       const moving = Math.abs(forward) + Math.abs(strafe) > 0.05;
       if (headBob && moving) bobPhase.current += delta * 8;
     }
-    const resolved = resolveWalk(spot.current.x, spot.current.z, doors.current);
+    const resolved = resolveWalk(spot.current.x, spot.current.z, gaps.current);
     spot.current.x = resolved.x;
     spot.current.z = resolved.z;
     const bob = headBob ? Math.sin(bobPhase.current) * 0.035 : 0;

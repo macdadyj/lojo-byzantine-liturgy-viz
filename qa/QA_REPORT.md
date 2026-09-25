@@ -4,6 +4,30 @@ Tested as a first-time user on current `main` (`61757d1`, “MakeHuman people, c
 
 **Verdict:** the lesson text is careful, and Next / Previous / Home / End really do walk all 22 steps. The picture does not. For the proskomedia, the Cherubic Hymn, the Creed, the anaphora, the epiklesis, and “Holy Things,” the camera sits on the iconostas. The royal doors and the red curtain are shut, or only cracked, so the altar, the gifts, and the priest’s prayer are not what you see. The congregation is one bald man and one bald woman in tube clothes, repeated down the pews. On a phone the controls cover the church. I would not show this build to a parish as a finished walkthrough.
 
+## Fixed in pass 5
+
+The findings above are unchanged. This column and the table below were added after pass 5. `public/` is about 14 MB.
+
+| Item | Fixed in pass 5 |
+| --- | --- |
+| 1 Sanctuary visibility (P0-1) | Fixed. Proskomedia, Cherubic Hymn, Creed, anaphora, epiklesis, and Holy Things no longer look at a shut screen. Royal doors, deacon doors, and the curtain each have a state, and the leaves are animated. |
+| 2 Deacon doors (P0-2) | Fixed. The screen has real openings. The north leaf opens for the entrances and at the thanksgiving. The procession does not walk through a solid icon panel. Collision follows the open leaf. The south door stays shut. |
+| 3 People (P0-3) | Fixed. Eleven CC0 Quaternius characters replace the two bald meshes: hair, different faces, skin tones, heights, and fitted clothes (hoodie, suit, dress, work clothes, head covering). The priest has a bell phelonion, epitrachelion, a beard on the chin, and a kamilavka on the head. The deacon has a sticharion, orarion, and cuffs. Children are the shorter meshes from that pack (it has no separate child body), with a slightly larger head. Sit and kneel are posed, not a bind pose. |
+| 4 Wrong subject (P1-1) | Fixed. Gathering is the narthex. Antiphons are the kliros. Trisagion and the Our Father are the people. |
+| 5 Holy Things (top 5) | Fixed. One step, two beats: the gifts are lifted with the doors open, then the doors and curtain close while the clergy receive. |
+| 6 Epiklesis kneel (P1-2) | Fixed. The nave and the reader kneel. The gifts stay visible. |
+| 7 Entrances (top 7) | Fixed. The march starts at the door, and the camera sits behind the carrier. |
+| 8 Phone (P1-6) | Fixed. At 390×844 the church is the first screen. Joystick, hint, and cast key do not overlap. The touch hint does not say WASD. |
+| 9 Low quality (P1-7) | Fixed. Low anaphora stays a readable warm interior. Icons are lit. The repeated wall-saint field is gone. Medium and Low draw fewer skeletons. High adds contact-style ambient occlusion, a little bloom, and window shafts. |
+| 10 First-run UI (P2-1) | Fixed. The “what you see” line is always visible, the disclosure starts open on step 1, and the key hint follows Follow versus Free look. |
+| P1-3 Communion and dismissal | Fixed. A line of adults and a child at the open doors, then people coming to the hand cross and moving toward the narthex. |
+| P1-4 Readings and homily | Fixed. Doors open. The camera is in on the ambon. |
+| P1-5 Free look and the dome tour | Fixed. Shut deacon doors are solid. People keep the eye back. The Pantocrator tour stop is pulled down into the nave. |
+| P2-2 Pointer lock and head bob | Fixed. The lock promise is caught (a canvas click no longer throws). Head bob starts off, and stays off for a coarse pointer, a narrow screen, or reduced motion. |
+| P2-3 Legend and step 3 | Fixed. Cast colors match the vestments (priest burgundy, deacon cream). Step 3 is closer on the open doors. |
+| P2-4 THREE.Clock | Fixed. The dev console and a production load no longer construct `THREE.Clock`. |
+
+
 ## How this was tested
 
 - `npm ci && npm run build && npx vite preview` on `http://127.0.0.1:4173/`
@@ -37,30 +61,30 @@ This is the ordo the pictures should teach. It follows the app’s own sentences
 
 Deacon doors (north and south) stay shut except when someone passes. The curtain is shut for the proskomedia, opens with the royal doors at “Blessed is the kingdom,” and may close again only while the clergy receive.
 
-| Step | What I saw | Doors I expected | Camera I expected |
-| --- | --- | --- | --- |
-| 1 Gathering | Iconostas fills the frame. This is not arriving through the narthex. | Shut, curtain shut | Nave / narthex, people, lamps, screen in the distance |
-| 2 Proskomedia | Same kind of icon wall. The Lamb and the chalice are not the subject. | Shut, because the nave does not see this rite | Inside, at the north prothesis, with the priest and deacon |
-| 3 Blessed is the kingdom | The one sanctuary glimpse that works: a slot through the screen toward the altar. The priest is small. | Royal doors and curtain open | From the nave, priest at the altar, a candle beside him |
-| 4 Litany of Peace | Deacon’s back on the solea, doors shut in front of him | Still open from the blessing | Deacon clearly leading, in front of open doors |
-| 5 Antiphons | Icon wall again. No choir. | Open is fine | Singers at the kliros, iconostas in front of the nave, not instead of the singers |
-| 6 Little Entrance | Starts in the nave; a few seconds later the Gospel carrier is gone in a dark empty volume | North deacon door open, then royal doors open | Follow the Gospel book and the candles |
-| 7 Trisagion | Another solea shot. I do not see the people cross themselves. | Open | Nave and kliros facing the altar |
-| 8 Epistle | Reader / ambon is closer to the right subject | The step says the royal doors are often open. They do not read as open. | Reader with the Apostle, people sitting |
-| 9 Gospel | Ambon from the nave. Better aim than the altar steps. | Open, deacon facing the people, candles | That, large enough to read |
-| 10 Homily | Preacher at the ambon. Usable aim. | Either, as long as the preacher is the subject | Priest facing a seated nave |
-| 11 Litanies before the gifts | Deacon on the solea again | As the litany | Solea, and a hint of the narthex if catechumens are sent out |
-| 12 Cherubic Hymn | Bright screen, not incense at the table of preparation | Open for the censing | Inside: priest, censer, gifts still on the prothesis |
-| 13 Great Entrance | A shape in the nave, not a chalice coming back through open royal doors | North door open, royal doors open | Follow the vessels onto the altar |
-| 14 Creed | Icon wall. People crossing themselves are not the picture. | The step says often open | Nave standing, facing the altar |
-| 15 Anaphora | Shut (or fully blocking) royal doors and curtain. No holy table. | Open, or a camera already inside | Priest at the altar, gifts visible, people facing east |
-| 16 Epiklesis | Same shut screen. Nobody is kneeling. | Open enough to see the gifts | Altar, deacon indicating the gifts, nave kneeling |
-| 17 Theotokos | The iconostas is all you get. The priest naming the saints at the altar is missing. | Open, or inside plus a readable Theotokos icon | Both the altar and her icon |
-| 18 Our Father | Solea again, not the assembly singing | Open | People, and the priest inviting from the altar |
-| 19 Holy Things | A dark slot through the screen. The lifting of the gifts is not a picture, and the doors never then close for the clergy. | Open for the elevation, then shut (curtain too) while the clergy commune | Those two beats |
-| 20 Communion | Nave is busy. A real communion line with the chalice at open doors does not read. | Open | Solea, chalice, adults and children coming up |
-| 21 Thanksgiving | Another dark slot. The blessing from the doors is not obvious. | Open, priest in the doorway | That, then the vessels leaving for the prothesis |
-| 22 Dismissal | Ambon area. Nobody comes up for the cross or antidoron. | Either | Priest with the hand cross, people venerating, then the narthex |
+| Step | What I saw | Doors I expected | Camera I expected | Fixed in pass 5 |
+| --- | --- | --- | --- | --- |
+| 1 Gathering | Iconostas fills the frame. This is not arriving through the narthex. | Shut, curtain shut | Nave / narthex, people, lamps, screen in the distance | Fixed. Narthex and nave, people and lamps, shut screen in the distance. |
+| 2 Proskomedia | Same kind of icon wall. The Lamb and the chalice are not the subject. | Shut, because the nave does not see this rite | Inside, at the north prothesis, with the priest and deacon | Fixed. Camera inside at the north prothesis. Doors and curtain stay shut. |
+| 3 Blessed is the kingdom | The one sanctuary glimpse that works: a slot through the screen toward the altar. The priest is small. | Royal doors and curtain open | From the nave, priest at the altar, a candle beside him | Fixed. Royal doors and curtain open. Closer on the priest and a candle. |
+| 4 Litany of Peace | Deacon’s back on the solea, doors shut in front of him | Still open from the blessing | Deacon clearly leading, in front of open doors | Fixed. Deacon on the solea in front of open doors. |
+| 5 Antiphons | Icon wall again. No choir. | Open is fine | Singers at the kliros, iconostas in front of the nave, not instead of the singers | Fixed. Singers at the kliros, lit, iconostas not the subject. |
+| 6 Little Entrance | Starts in the nave; a few seconds later the Gospel carrier is gone in a dark empty volume | North deacon door open, then royal doors open | Follow the Gospel book and the candles | Fixed. North deacon door opens. The follow camera stays on the Gospel. |
+| 7 Trisagion | Another solea shot. I do not see the people cross themselves. | Open | Nave and kliros facing the altar | Fixed. Nave facing the altar through open doors. |
+| 8 Epistle | Reader / ambon is closer to the right subject | The step says the royal doors are often open. They do not read as open. | Reader with the Apostle, people sitting | Fixed. Reader at the ambon, doors open, people sitting. |
+| 9 Gospel | Ambon from the nave. Better aim than the altar steps. | Open, deacon facing the people, candles | That, large enough to read | Fixed. Deacon facing the people, doors open. |
+| 10 Homily | Preacher at the ambon. Usable aim. | Either, as long as the preacher is the subject | Priest facing a seated nave | Fixed. Priest at the ambon facing a seated nave. |
+| 11 Litanies before the gifts | Deacon on the solea again | As the litany | Solea, and a hint of the narthex if catechumens are sent out | Fixed. Solea, with the nave behind. |
+| 12 Cherubic Hymn | Bright screen, not incense at the table of preparation | Open for the censing | Inside: priest, censer, gifts still on the prothesis | Fixed. Inside at the prothesis: priest, deacon, censer, gifts. |
+| 13 Great Entrance | A shape in the nave, not a chalice coming back through open royal doors | North door open, royal doors open | Follow the vessels onto the altar | Fixed. North door open. The camera follows the vessels. |
+| 14 Creed | Icon wall. People crossing themselves are not the picture. | The step says often open | Nave standing, facing the altar | Fixed. Nave standing toward the altar. Royal doors stay open. |
+| 15 Anaphora | Shut (or fully blocking) royal doors and curtain. No holy table. | Open, or a camera already inside | Priest at the altar, gifts visible, people facing east | Fixed. Inside, beside the holy table. Priest, diskos, and chalice. |
+| 16 Epiklesis | Same shut screen. Nobody is kneeling. | Open enough to see the gifts | Altar, deacon indicating the gifts, nave kneeling | Fixed. Nave kneeling. Gifts visible through open doors. |
+| 17 Theotokos | The iconostas is all you get. The priest naming the saints at the altar is missing. | Open, or inside plus a readable Theotokos icon | Both the altar and her icon | Fixed. Altar in the foreground and the Platytera in the apse. |
+| 18 Our Father | Solea again, not the assembly singing | Open | People, and the priest inviting from the altar | Fixed. The people in front, the priest at the altar beyond them. |
+| 19 Holy Things | A dark slot through the screen. The lifting of the gifts is not a picture, and the doors never then close for the clergy. | Open for the elevation, then shut (curtain too) while the clergy commune | Those two beats | Fixed. Gifts raised with the doors open, then doors and curtain shut. |
+| 20 Communion | Nave is busy. A real communion line with the chalice at open doors does not read. | Open | Solea, chalice, adults and children coming up | Fixed. Open doors, chalice, adults and a child on the solea. |
+| 21 Thanksgiving | Another dark slot. The blessing from the doors is not obvious. | Open, priest in the doorway | That, then the vessels leaving for the prothesis | Fixed. Royal doors and the north door open. Priest at the doorway. |
+| 22 Dismissal | Ambon area. Nobody comes up for the cross or antidoron. | Either | Priest with the hand cross, people venerating, then the narthex | Fixed. Priest with the hand cross. People come up, then move toward the narthex. |
 
 ## P0 — broken or embarrassing
 
@@ -198,7 +222,7 @@ Shots: `live-step-03.png`, `live-step-15.png`.
 ## Console and network
 
 | Source | Result |
-| --- | --- |
+| --- | --- | --- | --- | --- |
 | Local, phone, live | One warning: deprecated `THREE.Clock` |
 | Local canvas clicks | Six uncaught `WrongDocumentError` from pointer lock |
 | Failed or HTTP 4xx/5xx requests | None |

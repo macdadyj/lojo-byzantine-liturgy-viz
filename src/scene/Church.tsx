@@ -3,6 +3,7 @@ import { CanvasTexture, SRGBColorSpace, Vector3, type PointLight } from "three";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { colors } from "./colors";
+import type { DoorState } from "./staging";
 import { Frescoes } from "./Frescoes";
 import { ByzantineCross } from "./Figures";
 import { SacredArt } from "./Iconostas";
@@ -13,7 +14,7 @@ import type { SpaceId } from "../liturgy/spaces";
 import { floorPatches, spaceLabels, world } from "./world";
 
 type ChurchProps = {
-  doorsOpen: boolean;
+  doors: DoorState;
   showLabels: boolean;
   quality: Quality;
   activeSpaces: readonly SpaceId[];
@@ -24,7 +25,7 @@ type ChurchProps = {
 const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
 const domeZ = -1.15;
 
-export function Church({ doorsOpen, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
+export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
   return (
     <group>
       <Ground />
@@ -37,7 +38,11 @@ export function Church({ doorsOpen, showLabels, quality, activeSpaces, selectedS
       <Floors />
       <Pews />
       <Furnishings />
-      <SacredArt doorsOpen={doorsOpen} />
+      <SacredArt doors={doors} quality={quality} />
+      {quality === "high" ? <WindowRays /> : null}
+      <pointLight position={[0.1, 2.7, -14.6]} color="#ffc99a" intensity={quality === "low" ? 7 : 3.4} distance={10} decay={2} />
+      <pointLight position={[-6.4, 2.4, -14.2]} color="#ffc99a" intensity={quality === "low" ? 4.5 : 2.2} distance={7} decay={2} />
+      <pointLight position={[7.2, 5.35, 6.1]} color="#ffd2a8" intensity={quality === "low" ? 8 : 4.2} distance={9} decay={2} />
       <Frescoes />
       <Lamps flicker={quality !== "low"} quality={quality} />
       <CandleStands quality={quality} />
@@ -362,14 +367,24 @@ function Furnishings() {
           <boxGeometry args={[1.9, 0.08, 1.1]} />
           <meshStandardMaterial color={colors.cloth} roughness={0.65} />
         </mesh>
-        <group position={[0.05, 1.22, 0.12]}>
+        <group position={[-0.16, 1.28, 0.08]}>
           <mesh>
-            <boxGeometry args={[0.22, 0.05, 0.3]} />
-            <meshStandardMaterial color="#6a2a22" roughness={0.5} metalness={0.2} />
+            <cylinderGeometry args={[0.16, 0.16, 0.035, 16]} />
+            <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.28} />
           </mesh>
-          <mesh position={[0, 0.02, 0]}>
-            <boxGeometry args={[0.16, 0.02, 0.22]} />
-            <meshStandardMaterial color="#f4efe4" roughness={0.7} />
+          <mesh position={[0, 0.03, 0]}>
+            <cylinderGeometry args={[0.11, 0.11, 0.02, 16]} />
+            <meshStandardMaterial color="#f4efe4" roughness={0.65} />
+          </mesh>
+        </group>
+        <group position={[0.22, 1.32, 0.02]}>
+          <mesh>
+            <cylinderGeometry args={[0.055, 0.04, 0.16, 12]} />
+            <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.28} />
+          </mesh>
+          <mesh position={[0, 0.1, 0]}>
+            <sphereGeometry args={[0.045, 10, 8]} />
+            <meshStandardMaterial color={colors.gold} metalness={0.6} roughness={0.3} />
           </mesh>
         </group>
         <group position={[0, 1.7, 0]}>
@@ -392,6 +407,24 @@ function Furnishings() {
           <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
         </mesh>
       </group>
+    </group>
+  );
+}
+
+function WindowRays() {
+  const shafts: [number, number, number][] = [
+    [-6.2, 8.6, 2.4],
+    [5.8, 8.8, 7.2],
+    [0.4, 9.4, -1.2],
+  ];
+  return (
+    <group>
+      {shafts.map((position) => (
+        <mesh key={position.join(",")} position={position} rotation={[0.55, 0, 0]}>
+          <coneGeometry args={[1.35, 7.5, 8, 1, true]} />
+          <meshBasicMaterial color="#ffe0b8" transparent opacity={0.05} depthWrite={false} side={2} />
+        </mesh>
+      ))}
     </group>
   );
 }

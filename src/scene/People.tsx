@@ -2,83 +2,68 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import {
+  AnimationClip,
   AnimationMixer,
   BoxGeometry,
-  Color,
   CylinderGeometry,
-  Group,
-  LatheGeometry,
   LoopRepeat,
   Mesh,
   MeshStandardMaterial,
   PlaneGeometry,
   SphereGeometry,
-  Vector2,
+  Color,
+  Group,
   Vector3,
-  AnimationClip,
   type Material,
   type Object3D,
 } from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { nextBlockerId, releaseBlocker, trackBlocker } from "./collide";
 import type { Gesture } from "./gestures";
 import type { Vec3 } from "./path";
 import type { Quality } from "./quality";
 import type { Stance } from "./staging";
-import {
-  deaconBrocadeTexture,
-  priestBrocadeTexture,
-  weaveNormalTexture,
-  weaveTexture,
-} from "./surfaces";
 
 export type ClergyRole = "priest" | "deacon" | "reader";
 export type Carry = "none" | "gospel" | "gifts";
 export type Age = "child" | "teen" | "adult" | "elder";
-type Gender = "man" | "woman";
-type ClipName = "idle" | "walk" | "sit";
+type ClipName = "idle" | "walk" | "sit" | "kneel";
 
-const manUrl = `${import.meta.env.BASE_URL}models/man.glb`;
-const womanUrl = `${import.meta.env.BASE_URL}models/woman.glb`;
+const castNames = [
+  "m-hoodie",
+  "m-casual",
+  "m-farmer",
+  "m-worker",
+  "m-suit",
+  "m-elder",
+  "w-casual",
+  "w-formal",
+  "w-suit",
+  "w-worker",
+  "w-dress",
+] as const;
 
-useGLTF.preload(manUrl);
-useGLTF.preload(womanUrl);
+export type CastName = (typeof castNames)[number];
 
-const phelonionGap = 1.15;
-const phelonion = new LatheGeometry(
-  [
-    new Vector2(0.28, -0.78),
-    new Vector2(0.55, -0.22),
-    new Vector2(0.48, 0.18),
-    new Vector2(0.34, 0.46),
-    new Vector2(0.2, 0.64),
-  ],
-  22,
-  phelonionGap / 2,
-  Math.PI * 2 - phelonionGap,
-);
+function modelUrl(file: string): string {
+  return `${import.meta.env.BASE_URL}models/cast/${file}.glb`;
+}
 
-const sticharion = new LatheGeometry(
-  [
-    new Vector2(0.2, -0.9),
-    new Vector2(0.32, -0.35),
-    new Vector2(0.26, 0.16),
-    new Vector2(0.2, 0.48),
-    new Vector2(0.13, 0.64),
-  ],
-  18,
-);
+const animUrl = modelUrl("anims");
+const priestUrl = modelUrl("priest");
+const deaconUrl = modelUrl("deacon");
 
-const coatShape = new LatheGeometry(
-  [
-    new Vector2(0.18, -0.82),
-    new Vector2(0.28, -0.28),
-    new Vector2(0.24, 0.18),
-    new Vector2(0.19, 0.5),
-  ],
-  16,
-);
+for (const name of castNames) useGLTF.preload(modelUrl(name));
+useGLTF.preload(animUrl);
+useGLTF.preload(priestUrl);
+useGLTF.preload(deaconUrl);
 
-const black = new MeshStandardMaterial({ color: "#1a1614", roughness: 0.72 });
+const skinTints = ["#e0ac69", "#c68642", "#8d5524", "#f1c27d", "#6b4423", "#a56b43", "#d9a066", "#4a3128"];
+const hairTints = ["#2a2118", "#1a120e", "#4a3424", "#6b5344", "#111111", "#c8c2b4", "#3a2418", "#241610"];
+
+const gold = new MeshStandardMaterial({ color: "#d4b06a", roughness: 0.35, metalness: 0.65 });
+const book = new MeshStandardMaterial({ color: "#6a242c", roughness: 0.55, metalness: 0.12 });
+const page = new MeshStandardMaterial({ color: "#f4efe4", roughness: 0.7 });
 const smokeMat = new MeshStandardMaterial({
   color: "#efe6d8",
   transparent: true,
@@ -87,91 +72,14 @@ const smokeMat = new MeshStandardMaterial({
   roughness: 1,
 });
 
-const cloth = {
-  priest: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.62, metalness: 0.08, side: 2 }),
-  deacon: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.62, metalness: 0.08, side: 2 }),
-  reader: new MeshStandardMaterial({ color: "#3c3848", roughness: 0.8, side: 2 }),
-  under: new MeshStandardMaterial({ color: "#f3efe4", roughness: 0.84, side: 2 }),
-  gold: new MeshStandardMaterial({
-    color: "#e0b85a",
-    roughness: 0.32,
-    metalness: 0.72,
-    emissive: "#5a3e12",
-    emissiveIntensity: 0.18,
-  }),
-  hair: new MeshStandardMaterial({ color: "#2a211c", roughness: 0.85 }),
-  scarf: new MeshStandardMaterial({ color: "#6b4034", roughness: 0.9, side: 2 }),
-  book: new MeshStandardMaterial({ color: "#4a2a22", roughness: 0.55, metalness: 0.15 }),
-  page: new MeshStandardMaterial({ color: "#f4efe4", roughness: 0.7 }),
-};
-
-let dressed = false;
-
-function dressMaterials(): void {
-  if (dressed || typeof document === "undefined") return;
-  dressed = true;
-  const weave = weaveTexture();
-  const normal = weaveNormalTexture();
-  cloth.priest.map = priestBrocadeTexture();
-  cloth.priest.normalMap = normal;
-  cloth.priest.normalScale.set(0.45, 0.45);
-  cloth.deacon.map = deaconBrocadeTexture();
-  cloth.deacon.normalMap = normal;
-  cloth.deacon.normalScale.set(0.4, 0.4);
-  cloth.under.map = weave;
-  cloth.reader.map = weave;
-  cloth.scarf.map = weave;
-}
-
-const coatMaterials = new Map<string, MeshStandardMaterial>();
-
-function coatMaterial(color: string): MeshStandardMaterial {
-  dressMaterials();
-  const existing = coatMaterials.get(color);
-  if (existing) return existing;
-  const material = new MeshStandardMaterial({ color, roughness: 0.78, metalness: 0.02, side: 2 });
-  const weave = weaveTexture();
-  material.map = weave;
-  material.normalMap = weaveNormalTexture();
-  material.normalScale.set(0.35, 0.35);
-  coatMaterials.set(color, material);
-  return material;
-}
-
-const sharedGeometry = new Set<LatheGeometry>([phelonion, sticharion, coatShape]);
-const elderSkin = new Color("#c8b8a8");
-const hairColors: Record<Age, string> = {
-  child: "#4a3424",
-  teen: "#24180f",
-  adult: "#2a211c",
-  elder: "#c4beb4",
-};
-
-const worldPoint = new Vector3();
-
-type PersonProps = {
-  gender: Gender;
-  stance: Stance;
-  walking?: boolean;
-  role?: ClergyRole;
-  carry?: Carry;
-  beard?: boolean;
-  scarf?: boolean;
-  coat?: string;
-  age?: Age;
-  phase?: number;
-  gesture?: Gesture;
-  censing?: boolean;
-  quality?: Quality;
-  important?: boolean;
-};
+const scratch = new Vector3();
 
 export function ageScale(age: Age): number {
   switch (age) {
     case "child":
-      return 0.58;
+      return 0.74;
     case "teen":
-      return 0.8;
+      return 0.88;
     case "adult":
       return 1;
     case "elder":
@@ -191,6 +99,7 @@ export function Clergy({
   gesture = "none",
   censing = false,
   quality = "medium",
+  elevated = false,
 }: {
   role: ClergyRole;
   stance: Stance;
@@ -199,19 +108,22 @@ export function Clergy({
   gesture?: Gesture;
   censing?: boolean;
   quality?: Quality;
+  elevated?: boolean;
 }) {
+  const file: CastName | "priest" | "deacon" = role === "priest" ? "priest" : role === "deacon" ? "deacon" : "m-suit";
   return (
     <Person
-      gender="man"
+      file={file}
       stance={stance}
       walking={walking}
-      role={role}
       carry={carry}
-      beard={role !== "reader"}
       gesture={gesture}
       censing={censing && role === "deacon"}
       quality={quality}
       important
+      age="adult"
+      tint={role === "priest" ? 4 : 1}
+      elevated={elevated}
     />
   );
 }
@@ -219,10 +131,8 @@ export function Clergy({
 export type CrowdSpot = {
   position: Vec3;
   rotationY: number;
-  color: string;
-  woman: boolean;
+  cast: number;
   age: Age;
-  scarf?: boolean;
   phase: number;
 };
 
@@ -238,118 +148,138 @@ export function Crowd({
   quality?: Quality;
 }) {
   if (spots.length === 0) return null;
-  // The sit clip folds the body into the aisle in front of the pew. Stand in the row instead.
-  const shown = stance === "sit" ? "stand" : stance;
+  const limit = quality === "high" ? spots.length : quality === "medium" ? Math.min(spots.length, 14) : Math.min(spots.length, 8);
+  const shown = spots.slice(0, limit);
   return (
     <group>
-      {spots.map((spot) => (
-        <group
-          key={spot.position.join(",")}
-          position={spot.position}
-          rotation={[0, spot.rotationY, 0]}
-          scale={ageScale(spot.age)}
-        >
-          <Person
-            gender={spot.woman ? "woman" : "man"}
-            stance={shown}
-            scarf={spot.scarf ?? spot.woman}
-            coat={spot.color}
-            age={spot.age}
-            phase={spot.phase}
-            gesture={gesture}
-            quality={quality}
-          />
-        </group>
-      ))}
+      {shown.map((spot) => {
+        const file = castNames[spot.cast % castNames.length] ?? "m-hoodie";
+        const forward = stance === "kneel" ? -0.72 : stance === "sit" ? 0.04 : 0;
+        return (
+          <group
+            key={`${spot.position.join(",")}-${spot.cast}`}
+            position={[spot.position[0], spot.position[1], spot.position[2] + forward]}
+            rotation={[0, spot.rotationY, 0]}
+            scale={ageScale(spot.age)}
+          >
+            <Person
+              file={file}
+              stance={stance}
+              age={spot.age}
+              phase={spot.phase}
+              gesture={gesture}
+              quality={quality}
+              tint={spot.cast}
+            />
+          </group>
+        );
+      })}
     </group>
   );
 }
 
 function Person({
-  gender,
+  file,
   stance,
   walking = false,
-  role,
   carry = "none",
-  beard = false,
-  scarf = false,
-  coat,
   age = "adult",
   phase = 0,
   gesture = "none",
   censing = false,
   quality = "medium",
   important = false,
-}: PersonProps) {
-  const man = useGLTF(manUrl);
-  const woman = useGLTF(womanUrl);
-  const source = gender === "woman" ? woman : man;
-  const clone = useMemo(() => cloneSkeleton(source.scene), [source.scene]);
+  tint = 0,
+  elevated = false,
+}: {
+  file: CastName | "priest" | "deacon";
+  stance: Stance;
+  walking?: boolean;
+  carry?: Carry;
+  age?: Age;
+  phase?: number;
+  gesture?: Gesture;
+  censing?: boolean;
+  quality?: Quality;
+  important?: boolean;
+  tint?: number;
+  elevated?: boolean;
+}) {
+  const body = useGLTF(modelUrl(file));
+  const anim = useGLTF(animUrl);
+  const clone = useMemo(() => cloneSkeleton(body.scene), [body.scene]);
   const mixer = useMemo(() => new AnimationMixer(clone), [clone]);
-  const clipName: ClipName = walking ? "walk" : stance === "sit" ? "sit" : "idle";
-  const clip = useMemo(() => findClip(source.animations, clipName), [clipName, source.animations]);
+  const clips = useMemo(() => prepareClips(anim.animations), [anim.animations]);
+  const clipName: ClipName = walking ? "walk" : stance === "sit" ? "sit" : stance === "kneel" ? "kneel" : "idle";
+  const clip = clips.get(clipName) ?? clips.get("idle");
   const root = useRef<Group>(null);
   const accum = useRef(0);
+  const blocker = useRef(0);
 
   useLayoutEffect(() => {
-    dressMaterials();
-    const tinted = tintFigure(clone, hairColors[age], age);
-    const added = dress(clone, { role, carry, beard, scarf, coat, censing: censing && quality !== "low" });
+    const created = tintFigure(clone, tint, age);
+    const added = attachProps(clone, { carry, censing: censing && quality !== "low", elevated });
+    const head = clone.getObjectByName("Head");
+    if (head && age === "child") head.scale.setScalar(1.22);
     return () => {
-      for (const material of tinted) material.dispose();
+      for (const material of created) material.dispose();
       for (const object of added) {
         object.traverse((child) => {
-          if (child instanceof Mesh && !sharedGeometry.has(child.geometry as LatheGeometry)) {
+          if (child instanceof Mesh) {
             child.geometry.dispose();
-          }
-          if (child instanceof Mesh && child.material instanceof MeshStandardMaterial && child.material.opacity < 1) {
-            child.material.dispose();
+            const material = child.material;
+            if (material instanceof MeshStandardMaterial && material !== gold && material !== book && material !== page) {
+              material.dispose();
+            }
           }
         });
         object.removeFromParent();
       }
     };
-  }, [age, beard, carry, censing, clone, coat, quality, role, scarf]);
+  }, [age, carry, censing, clone, elevated, quality, tint]);
 
   useLayoutEffect(() => {
+    if (!clip) return;
     mixer.stopAllAction();
     const action = mixer.clipAction(clip);
     action.reset();
     action.setLoop(LoopRepeat, Infinity);
     action.play();
-    if (!walking) mixer.update(stance === "sit" ? 0.35 : 0.08 + phase * 0.2);
-  }, [clip, mixer, phase, stance, walking]);
+    mixer.update(walking ? 0.2 : 0.05 + phase * 0.4);
+  }, [clip, mixer, phase, walking]);
+
+  useLayoutEffect(() => {
+    const id = nextBlockerId();
+    blocker.current = id;
+    return () => releaseBlocker(id);
+  }, []);
 
   useFrame((state, delta) => {
-    const body = root.current;
-    if (!body) return;
-    body.getWorldPosition(worldPoint);
-    const distance = state.camera.position.distanceTo(worldPoint);
-    const far = !important && distance > (quality === "low" ? 9 : 14);
+    const group = root.current;
+    if (!group) return;
+    group.getWorldPosition(scratch);
+    trackBlocker(blocker.current, scratch.x, scratch.z, age === "child" ? 0.28 : 0.4);
+    const distance = state.camera.position.distanceTo(scratch);
+    const far = !important && distance > (quality === "low" ? 11 : 16);
     if (far) {
       accum.current += delta;
-      if (accum.current < 0.16) return;
+      if (accum.current < 0.2) return;
       mixer.update(accum.current);
       accum.current = 0;
       return;
     }
-    mixer.update(walking ? delta : delta * 0.45);
+    mixer.update(walking ? delta : delta * 0.55);
     const time = state.clock.elapsedTime + phase * 6;
-    if (stance !== "bow" && !walking) {
-      const spine = clone.getObjectByName("spine_01");
-      if (spine) spine.rotation.x += Math.sin(time * 1.5) * 0.025;
-    }
     if (stance === "bow") {
-      const spine = clone.getObjectByName("spine_02");
-      if (spine) spine.rotation.x = 0.7;
+      const torso = clone.getObjectByName("Torso");
+      if (torso) torso.rotation.x = 0.55;
     }
     if (gesture === "cross") applyCross(clone, (time % 2.8) / 2.8);
     const censer = clone.userData.censer as Group | undefined;
     if (censer) {
-      censer.rotation.z = Math.sin(time * 2.5) * 0.65;
+      censer.rotation.z = Math.sin(time * 2.4) * 0.55;
       censer.children.forEach((child, index) => {
-        if (!(child instanceof Mesh) || child.material === smokeMat) return;
-        if (child.userData.puff === undefined) return;
+        if (!(child instanceof Mesh) || child.userData.puff === undefined) return;
         const puff = Number(child.userData.puff);
         child.position.y = 0.22 + ((time * 0.35 + puff) % 1) * 0.45;
         const material = child.material as MeshStandardMaterial;
@@ -366,104 +296,70 @@ function Person({
   );
 }
 
-function findClip(animations: AnimationClip[], name: ClipName): AnimationClip {
-  const clip = animations.find((item) => item.name === name);
-  if (!clip) return animations[0] ?? new AnimationClip("idle", 0, []);
-  return clip;
+function prepareClips(animations: AnimationClip[]): Map<ClipName, AnimationClip> {
+  const map = new Map<ClipName, AnimationClip>();
+  const aliases: Record<ClipName, string[]> = {
+    idle: ["idle", "Idle_Neutral", "Idle"],
+    walk: ["walk", "Walk"],
+    sit: ["sit"],
+    kneel: ["kneel"],
+  };
+  const names: ClipName[] = ["idle", "walk", "sit", "kneel"];
+  for (const name of names) {
+    const wanted = aliases[name];
+    const found = animations.find((clip) => wanted.some((alias) => clip.name === alias || clip.name.startsWith(`${alias}_`)));
+    if (!found) continue;
+    const tracks = found.tracks.filter((track) => !track.name.startsWith("Root.position"));
+    map.set(name, new AnimationClip(name, found.duration, tracks));
+  }
+  return map;
 }
 
-function tintFigure(root: Object3D, hair: string, age: Age): Material[] {
+function tintFigure(root: Object3D, tint: number, age: Age): Material[] {
   const created: Material[] = [];
+  const skin = new Color(skinTints[Math.abs(tint) % skinTints.length] ?? "#c68642");
+  const hair = new Color(hairTints[Math.abs(tint + 3) % hairTints.length] ?? "#2a2118");
+  if (age === "elder") hair.lerp(new Color("#d9d3c7"), 0.72);
   root.traverse((child) => {
     if (!(child instanceof Mesh)) return;
     const source = child.material;
-    if (Array.isArray(source) || !(source instanceof MeshStandardMaterial)) return;
-    const name = source.name.toLowerCase();
-    if (name.includes("hair")) {
-      const next = source.clone();
-      next.color.set(hair);
-      child.material = next;
-      created.push(next);
-    } else if (age === "elder" && name.includes("superhero")) {
-      const next = source.clone();
-      next.color.lerp(elderSkin, 0.35);
-      child.material = next;
-      created.push(next);
-    }
+    const list = Array.isArray(source) ? source : [source];
+    let changed = false;
+    const next = list.map((material) => {
+      if (!(material instanceof MeshStandardMaterial)) return material;
+      const label = material.name.toLowerCase();
+      const touchesSkin = label.includes("skin");
+      const touchesHair = label.includes("hair") || label.includes("eyebrow");
+      if (!touchesSkin && !touchesHair) return material;
+      const copy = material.clone();
+      if (touchesSkin) copy.color.multiply(skin);
+      if (touchesHair) copy.color.multiply(hair);
+      created.push(copy);
+      changed = true;
+      return copy;
+    });
+    if (changed) child.material = Array.isArray(source) ? next : (next[0] ?? source);
   });
   return created;
 }
 
-function dress(
+function attachProps(
   clone: Object3D,
-  options: { role?: ClergyRole; carry: Carry; beard: boolean; scarf: boolean; coat?: string; censing: boolean },
+  options: { carry: Carry; censing: boolean; elevated: boolean },
 ): Object3D[] {
   const added: Object3D[] = [];
-  const pelvis = clone.getObjectByName("pelvis");
-  const head = clone.getObjectByName("Head");
-  const spine = clone.getObjectByName("spine_03");
-  if (options.role && pelvis) {
-    const robe = vestment(options.role);
-    pelvis.add(robe);
-    added.push(robe);
-  } else if (options.coat && pelvis) {
-    const garment = new Mesh(coatShape, coatMaterial(options.coat));
-    garment.rotation.x = -0.28;
-    pelvis.add(garment);
-    added.push(garment);
-  }
-  if (options.beard && head) {
-    const beard = new Mesh(new SphereGeometry(0.07, 14, 12), cloth.hair);
-    beard.scale.set(1.2, 1.15, 0.72);
-    beard.position.set(0, -0.07, 0.08);
-    head.add(beard);
-    added.push(beard);
-    const moustache = new Mesh(new SphereGeometry(0.028, 8, 6), cloth.hair);
-    moustache.scale.set(1.6, 0.55, 0.7);
-    moustache.position.set(0, -0.02, 0.1);
-    head.add(moustache);
-    added.push(moustache);
-  }
-  if (options.scarf && head) {
-    const veil = new Mesh(new SphereGeometry(0.14, 14, 10), cloth.scarf);
-    veil.scale.set(1.08, 0.7, 1.15);
-    veil.position.set(0, 0.02, 0);
-    head.add(veil);
-    added.push(veil);
-  }
-  if (options.role === "priest" && head) {
-    const hat = new Mesh(new CylinderGeometry(0.09, 0.105, 0.11, 14), black);
-    hat.position.set(0, 0.16, 0.01);
-    head.add(hat);
-    added.push(hat);
-  }
-  if (options.role === "priest" && spine) {
-    const cross = pectoral();
-    cross.position.set(0, 0.02, 0.3);
-    spine.add(cross);
-    added.push(cross);
-  }
-  if (options.role === "priest" || options.role === "deacon") {
-    for (const name of ["lowerarm_l", "lowerarm_r"]) {
-      const arm = clone.getObjectByName(name);
-      if (!arm) continue;
-      const cuff = new Mesh(new BoxGeometry(0.07, 0.045, 0.08), cloth.gold);
-      cuff.position.set(0, 0.16, 0);
-      arm.add(cuff);
-      added.push(cuff);
-    }
-  }
-  if (options.carry !== "none" && spine) {
+  const chest = clone.getObjectByName("Chest") ?? clone.getObjectByName("Torso");
+  if (options.carry !== "none" && chest) {
     const held = options.carry === "gospel" ? gospel() : gifts();
-    held.position.set(0.04, -0.05, 0.28);
-    spine.add(held);
+    held.position.set(0.02, options.elevated ? 0.42 : 0.02, 0.22);
+    chest.add(held);
     added.push(held);
   }
   if (options.censing) {
-    const hand = clone.getObjectByName("hand_r") ?? spine;
+    const hand = clone.getObjectByName("Wrist.R") ?? chest;
     if (hand) {
       const censer = makeCenser();
-      censer.position.set(0, -0.16, 0.05);
+      censer.position.set(0, -0.18, 0.04);
       hand.add(censer);
       clone.userData.censer = censer;
       added.push(censer);
@@ -472,107 +368,50 @@ function dress(
   return added;
 }
 
-function vestment(role: ClergyRole): Group {
-  const group = new Group();
-  group.rotation.x = -0.28;
-  switch (role) {
-    case "priest":
-      group.add(new Mesh(sticharion, cloth.under));
-      group.add(new Mesh(phelonion, cloth.priest));
-      group.add(strip([0, -0.02, 0.38], [0.1, 1.25, 0.02]));
-      group.add(crossMark([0, 0.28, 0.42]));
-      group.add(crossMark([-0.2, -0.08, 0.42]));
-      group.add(crossMark([0.2, -0.08, 0.42]));
-      return group;
-    case "deacon":
-      group.add(new Mesh(sticharion, cloth.deacon));
-      group.add(strip([-0.12, 0.02, 0.36], [0.055, 1.35, 0.02], 0.5));
-      group.add(crossMark([-0.16, 0.28, 0.4], 0.7));
-      group.add(crossMark([-0.08, -0.05, 0.4], 0.7));
-      group.add(crossMark([-0.02, -0.38, 0.4], 0.7));
-      return group;
-    case "reader":
-      group.add(new Mesh(sticharion, cloth.reader));
-      return group;
-    default: {
-      const exhaustive: never = role;
-      return exhaustive;
-    }
-  }
-}
-
-function strip(position: [number, number, number], size: [number, number, number], tilt = 0): Mesh {
-  const panel = new Mesh(new BoxGeometry(size[0], size[1], size[2]), cloth.gold);
-  panel.position.set(position[0], position[1], position[2]);
-  panel.rotation.z = tilt;
-  return panel;
-}
-
-function crossMark(position: [number, number, number], scale = 1): Group {
-  const group = new Group();
-  group.position.set(position[0], position[1], position[2]);
-  group.scale.setScalar(scale);
-  const horizontal = new Mesh(new BoxGeometry(0.11, 0.02, 0.012), cloth.gold);
-  const vertical = new Mesh(new BoxGeometry(0.02, 0.15, 0.012), cloth.gold);
-  group.add(horizontal, vertical);
-  return group;
-}
-
-function pectoral(): Group {
-  const group = crossMark([0, 0, 0], 0.85);
-  const chain = new Mesh(new BoxGeometry(0.012, 0.18, 0.012), cloth.gold);
-  chain.position.y = 0.14;
-  group.add(chain);
-  return group;
-}
-
 function gospel(): Group {
   const group = new Group();
-  const cover = new Mesh(new BoxGeometry(0.2, 0.27, 0.05), cloth.book);
-  const pages = new Mesh(new BoxGeometry(0.17, 0.23, 0.03), cloth.page);
-  const ornament = new Mesh(new BoxGeometry(0.07, 0.09, 0.012), cloth.gold);
-  ornament.position.z = 0.028;
+  const cover = new Mesh(new BoxGeometry(0.16, 0.22, 0.04), book);
+  const pages = new Mesh(new BoxGeometry(0.13, 0.18, 0.025), page);
+  const ornament = new Mesh(new BoxGeometry(0.06, 0.08, 0.01), gold);
+  ornament.position.z = 0.024;
   group.add(cover, pages, ornament);
   return group;
 }
 
 function gifts(): Group {
   const group = new Group();
-  const disk = new Mesh(new CylinderGeometry(0.09, 0.09, 0.02, 12), cloth.gold);
-  disk.position.x = -0.1;
-  const cup = new Mesh(new CylinderGeometry(0.045, 0.028, 0.12, 10), cloth.gold);
-  cup.position.set(0.08, 0.06, 0);
-  const foot = new Mesh(new CylinderGeometry(0.04, 0.04, 0.015, 10), cloth.gold);
-  foot.position.set(0.08, 0.0, 0);
-  group.add(disk, cup, foot);
+  const disk = new Mesh(new CylinderGeometry(0.07, 0.07, 0.018, 12), gold);
+  disk.position.x = -0.08;
+  const cup = new Mesh(new CylinderGeometry(0.038, 0.022, 0.1, 10), gold);
+  cup.position.set(0.07, 0.05, 0);
+  group.add(disk, cup);
   return group;
 }
 
 function makeCenser(): Group {
   const group = new Group();
-  const chain = new Mesh(new CylinderGeometry(0.008, 0.008, 0.28, 6), cloth.gold);
-  chain.position.y = 0.12;
-  const bowl = new Mesh(new SphereGeometry(0.055, 12, 10), cloth.gold);
+  const chain = new Mesh(new CylinderGeometry(0.006, 0.006, 0.22, 6), gold);
+  chain.position.y = 0.1;
+  const bowl = new Mesh(new SphereGeometry(0.045, 10, 8), gold);
   bowl.scale.set(1, 0.7, 1);
   group.add(chain, bowl);
-  const puff = new PlaneGeometry(0.22, 0.32);
+  const puff = new PlaneGeometry(0.18, 0.26);
   for (let index = 0; index < 3; index += 1) {
     const material = smokeMat.clone();
     const cloud = new Mesh(puff, material);
     cloud.userData.puff = index;
-    cloud.position.y = 0.25 + index * 0.12;
+    cloud.position.y = 0.22 + index * 0.1;
     group.add(cloud);
   }
   return group;
 }
 
 function applyCross(clone: Object3D, t: number): void {
-  const upper = clone.getObjectByName("upperarm_r");
-  const lower = clone.getObjectByName("lowerarm_r");
+  const upper = clone.getObjectByName("UpperArm.R");
+  const lower = clone.getObjectByName("LowerArm.R");
   if (!upper || !lower) return;
   const lift = Math.sin(Math.min(1, t * 1.35) * Math.PI);
-  upper.rotation.x += -1.15 * lift;
-  upper.rotation.z += 0.85 * lift;
-  lower.rotation.x += 0.35 * lift;
-  lower.rotation.z += 1.05 * lift;
+  upper.rotation.z += 0.9 * lift;
+  upper.rotation.x += -0.8 * lift;
+  lower.rotation.z += 0.7 * lift;
 }

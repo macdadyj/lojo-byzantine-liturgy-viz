@@ -1,6 +1,6 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
 import type { Group } from "three";
 import type { SpaceId } from "../liturgy/spaces";
@@ -13,7 +13,7 @@ import type { IconCard } from "./iconCards";
 import { Clergy, Crowd, type CrowdSpot } from "./People";
 import { pointOnPath, type Vec3 } from "./path";
 import { dprFor, type Quality } from "./quality";
-import { cameraFor, stagingFor, type Actor, type Stance } from "./staging";
+import { cameraFor, doorsFor, stagingFor, type Actor, type Stance } from "./staging";
 import { Walker } from "./Walker";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
 
@@ -46,14 +46,17 @@ const processionFocus = {
 const pewRows = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
 
 const roster = [
-  { age: "adult", woman: false, scarf: false },
-  { age: "elder", woman: true, scarf: true },
-  { age: "child", woman: true, scarf: false },
-  { age: "teen", woman: false, scarf: false },
-  { age: "adult", woman: true, scarf: false },
-  { age: "teen", woman: true, scarf: false },
-  { age: "child", woman: false, scarf: false },
-  { age: "elder", woman: false, scarf: false },
+  { age: "adult", cast: 0 },
+  { age: "elder", cast: 10 },
+  { age: "child", cast: 1 },
+  { age: "teen", cast: 6 },
+  { age: "adult", cast: 7 },
+  { age: "teen", cast: 8 },
+  { age: "child", cast: 9 },
+  { age: "elder", cast: 5 },
+  { age: "adult", cast: 2 },
+  { age: "adult", cast: 3 },
+  { age: "adult", cast: 4 },
 ] as const;
 
 function faithfulSpot(position: Vec3, rotationY: number, index: number): CrowdSpot {
@@ -61,10 +64,8 @@ function faithfulSpot(position: Vec3, rotationY: number, index: number): CrowdSp
   return {
     position,
     rotationY,
-    color: colors.faithful[index % colors.faithful.length] ?? colors.faithful[0],
-    woman: person.woman,
+    cast: person.cast,
     age: person.age,
-    scarf: person.scarf,
     phase: (index % 9) / 9,
   };
 }
@@ -80,10 +81,20 @@ const choirPeople: CrowdSpot[] = [4.0, 5.4, 6.8, 8.2].map((z, index) =>
 const cantor: CrowdSpot = faithfulSpot([8.35, 3.22, 3.15], Math.PI / 2, 4);
 
 const communionQueue: Vec3[] = [
-  [-0.55, world.soleaFloor, -4.15],
-  [0.6, world.soleaFloor, -4.15],
-  [-0.7, world.soleaFloor, -3.25],
-  [0.75, world.soleaFloor, -3.25],
+  [-0.55, world.soleaFloor, -4.35],
+  [0.55, world.soleaFloor, -4.4],
+  [-0.9, world.soleaFloor, -3.45],
+  [0.9, world.soleaFloor, -3.5],
+  [-0.15, 0, -2.55],
+  [0.4, 0, -2.5],
+];
+
+const venerationQueue: Vec3[] = [
+  [-0.4, world.soleaFloor, -4.05],
+  [0.55, world.soleaFloor, -4.1],
+  [-0.1, world.soleaFloor, -3.25],
+  [0.8, 0, -3.1],
+  [-0.85, 0, -3.05],
 ];
 
 export function LiturgyScene({
@@ -100,22 +111,33 @@ export function LiturgyScene({
   reducedMotion,
 }: LiturgySceneProps) {
   const pose = cameraFor(step.id);
-  const doorsOpen = step.route !== undefined || step.spaces.includes("royal-doors");
+  const [clergyReceiving, setClergyReceiving] = useState(false);
+  useEffect(() => {
+    if (step.id !== "holy-things") {
+      setClergyReceiving(false);
+      return;
+    }
+    setClergyReceiving(false);
+    const timer = window.setTimeout(() => setClergyReceiving(true), 4200);
+    return () => window.clearTimeout(timer);
+  }, [step.id]);
+  const doors = doorsFor(step.id, clergyReceiving);
+  const dim = quality === "low";
   return (
     <Canvas
       dpr={dprFor(quality)}
       camera={{ fov: 42, position: pose.position, near: 0.15, far: 140 }}
       gl={{ antialias: quality !== "low", powerPreference: "high-performance" }}
     >
-      <color attach="background" args={["#8d7358"]} />
-      <fog attach="fog" args={["#8d7358", 16, 52]} />
-      <hemisphereLight args={["#f0d2a4", "#4a382c", 0.36]} />
-      <ambientLight intensity={0.16} color="#f3e0c4" />
+      <color attach="background" args={[dim ? "#b9a48c" : "#8d7358"]} />
+      <fog attach="fog" args={[dim ? "#b9a48c" : "#8d7358", dim ? 26 : 18, dim ? 80 : 56]} />
+      <hemisphereLight args={["#f0d2a4", "#4a382c", dim ? 0.7 : 0.42]} />
+      <ambientLight intensity={dim ? 0.5 : 0.22} color="#f3e0c4" />
       <directionalLight position={[-4, 18, 26]} intensity={1.35} />
       <directionalLight position={[6, 12, -6]} intensity={0.38} />
       <StageLook quality={quality} />
       <FollowCamera pose={pose} enabled={mode === "follow"} reducedMotion={reducedMotion} />
-      {mode === "free" ? <Walker enabled doorsOpen={doorsOpen} headBob={headBob} /> : null}
+      {mode === "free" ? <Walker enabled doors={doors} headBob={headBob} /> : null}
       {mode === "follow" ? (
         <OrbitControls
           makeDefault
@@ -131,14 +153,14 @@ export function LiturgyScene({
       ) : null}
       <Suspense fallback={null}>
         <Church
-          doorsOpen={doorsOpen}
+          doors={doors}
           showLabels={showLabels}
           quality={quality}
           activeSpaces={activeSpaces}
           selectedSpace={selectedSpace}
           onSelectSpace={onSelectSpace}
         />
-        <Cast step={step} reducedMotion={reducedMotion} quality={quality} />
+        <Cast step={step} reducedMotion={reducedMotion} quality={quality} elevated={step.id === "holy-things" && !clergyReceiving} />
       </Suspense>
       <QualityEffects quality={quality} />
       <FpsProbe onFps={onFps} />
@@ -179,7 +201,7 @@ function FollowCamera({
       goalTarget.set(pose.target[0], pose.target[1], pose.target[2]);
     }
     const chasing = processionFocus.active && camera.position.distanceTo(goalPos) > 2.8;
-    const blend = reducedMotion || chasing ? 1 : 1 - Math.exp(-delta * (processionFocus.active ? 8 : 2.6));
+    const blend = reducedMotion || chasing ? 1 : 1 - Math.exp(-delta * (processionFocus.active ? 8 : 4.2));
     camera.position.lerp(goalPos, blend);
     look.lerp(goalTarget, blend);
     camera.lookAt(look);
@@ -192,18 +214,14 @@ function FollowCamera({
 
 function frameProcession(goalPos: Vector3, goalTarget: Vector3) {
   const { x, y, z, fx, fz } = processionFocus;
-  const ahead = 2.45;
-  let cx = x + fx * ahead;
-  let cz = z + fz * ahead;
-  if (Math.abs(x) < 1.8) {
-    cx += -fz * 0.75;
-    cz += fx * 0.75;
-  }
+  const behind = 2.05;
+  let cx = x - fx * behind + -fz * 0.9;
+  let cz = z - fz * behind + fx * 0.9;
   [cx, cz] = clearOfPews(cx, cz, x);
   cx = Math.min(10.2, Math.max(-10.2, cx));
   cz = Math.min(world.narthexWest - 1.2, Math.max(world.sanctuaryEast + 1.5, cz));
   goalPos.set(cx, Math.max(1.55, y + 1.6), cz);
-  goalTarget.set(x - fx * 0.45, y + 1.22, z - fz * 0.45);
+  goalTarget.set(x, y + 1.2, z);
 }
 
 const pewCentersX = [-7.15, -2.2, 2.2, 7.15];
@@ -222,10 +240,25 @@ function clearOfPews(x: number, z: number, preferX: number): [number, number] {
   return [x, z];
 }
 
-function Cast({ step, reducedMotion, quality }: { step: LiturgyStep; reducedMotion: boolean; quality: Quality }) {
+function Cast({
+  step,
+  reducedMotion,
+  quality,
+  elevated,
+}: {
+  step: LiturgyStep;
+  reducedMotion: boolean;
+  quality: Quality;
+  elevated: boolean;
+}) {
   const staging = stagingFor(step.id);
   const route = step.route;
-  const choirStance: Stance = staging.faithful === "bow" ? "bow" : step.roles.includes("choir") ? "stand" : "sit";
+  const choirStance: Stance =
+    staging.faithful === "bow" || staging.faithful === "kneel"
+      ? staging.faithful
+      : step.roles.includes("choir")
+        ? "stand"
+        : "sit";
   const gesture = gestureFor(step.id);
   const censing = censingFor(step.id);
 
@@ -237,7 +270,14 @@ function Cast({ step, reducedMotion, quality }: { step: LiturgyStep; reducedMoti
       ) : (
         <>
           <Placed actor={staging.priest}>
-            <Clergy role="priest" stance={staging.priest.stance} gesture={gesture} quality={quality} />
+            <Clergy
+              role="priest"
+              stance={staging.priest.stance}
+              gesture={gesture}
+              quality={quality}
+              elevated={elevated}
+              carry={elevated || step.id === "communion" ? "gifts" : "none"}
+            />
           </Placed>
           <Placed actor={staging.deacon}>
             <Clergy role="deacon" stance={staging.deacon.stance} gesture={gesture} censing={censing} quality={quality} />
@@ -254,18 +294,36 @@ function Cast({ step, reducedMotion, quality }: { step: LiturgyStep; reducedMoti
         <Clergy role="reader" stance="stand" quality={quality} />
       </Placed>
       <Crowd spots={pewPeople.slice(staging.communicants)} stance={staging.faithful} gesture={gesture} quality={quality} />
-      <Crowd
-        spots={communionQueue.slice(0, staging.communicants).map((position, index) =>
-          faithfulSpot(position, 0, index + 1),
-        )}
-        stance="stand"
-        gesture={gesture}
-        quality={quality}
-      />
+      <Approaching active={step.id === "dismissal"}>
+        <Crowd
+          spots={(step.id === "dismissal" ? venerationQueue : communionQueue)
+            .slice(0, staging.communicants)
+            .map((position, index) => faithfulSpot(position, 0, index + 2))}
+          stance="stand"
+          gesture={gesture}
+          quality={quality}
+        />
+      </Approaching>
       <Crowd spots={choirPeople} stance={choirStance} gesture={gesture} quality={quality} />
       <Crowd spots={[cantor]} stance="stand" gesture={gesture} quality={quality} />
     </group>
   );
+}
+
+function Approaching({ active, children }: { active: boolean; children: ReactNode }) {
+  const ref = useRef<Group>(null);
+  const elapsed = useRef(0);
+  useEffect(() => {
+    elapsed.current = 0;
+  }, [active]);
+  useFrame((_, delta) => {
+    const group = ref.current;
+    if (!group) return;
+    if (active) elapsed.current += delta;
+    const shift = active && elapsed.current > 5 ? Math.min(9, (elapsed.current - 5) * 1.15) : 0;
+    group.position.z = shift;
+  });
+  return <group ref={ref}>{children}</group>;
 }
 
 function Placed({ actor, children }: { actor: Actor; children: ReactNode }) {
@@ -327,7 +385,7 @@ function Procession({
   const points = routePoints(route);
 
   useEffect(() => {
-    march.current = { t: 0.42, dir: 1 };
+    march.current = { t: 0.05, dir: 1 };
     return () => {
       processionFocus.active = false;
     };

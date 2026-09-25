@@ -18,7 +18,31 @@ export type WalkSpot = {
   floor: number;
 };
 
-export function resolveWalk(x: number, z: number, doorsOpen: boolean): WalkSpot {
+export type DoorGaps = {
+  royal: boolean;
+  north: boolean;
+  south: boolean;
+};
+
+type Blocker = { x: number; z: number; radius: number };
+
+const blockers = new Map<number, Blocker>();
+let blockerSerial = 1;
+
+export function nextBlockerId(): number {
+  blockerSerial += 1;
+  return blockerSerial;
+}
+
+export function trackBlocker(id: number, x: number, z: number, radius: number): void {
+  blockers.set(id, { x, z, radius });
+}
+
+export function releaseBlocker(id: number): void {
+  blockers.delete(id);
+}
+
+export function resolveWalk(x: number, z: number, doors: DoorGaps): WalkSpot {
   let px = x;
   let pz = z;
   const limitX = world.halfWidth - 0.62;
@@ -60,9 +84,10 @@ export function resolveWalk(x: number, z: number, doorsOpen: boolean): WalkSpot 
   const wallZ = world.iconZ;
   const wallHalf = 0.34;
   if (Math.abs(pz - wallZ) < wallHalf + bodyRadius) {
-    const royal = doorsOpen && Math.abs(px) < 0.78;
-    const deacon = Math.abs(Math.abs(px) - world.deaconDoorX) < 0.5;
-    if (!royal && !deacon) {
+    const royal = doors.royal && Math.abs(px) < 0.85;
+    const north = doors.north && Math.abs(px + world.deaconDoorX) < 0.55;
+    const south = doors.south && Math.abs(px - world.deaconDoorX) < 0.55;
+    if (!royal && !north && !south) {
       pz = pz >= wallZ ? wallZ + wallHalf + bodyRadius : wallZ - wallHalf - bodyRadius;
     }
   }
@@ -73,6 +98,20 @@ export function resolveWalk(x: number, z: number, doorsOpen: boolean): WalkSpot 
   if (overlapX > 0 && overlapZ > 0) {
     if (overlapX < overlapZ) px += (px >= 0 ? 1 : -1) * overlapX;
     else pz += (pz >= altarZ ? 1 : -1) * overlapZ;
+  }
+
+  for (const blocker of blockers.values()) {
+    const dx = px - blocker.x;
+    const dz = pz - blocker.z;
+    const dist = Math.hypot(dx, dz);
+    const min = blocker.radius + bodyRadius * 0.65;
+    if (dist >= min) continue;
+    if (dist <= 0.0001) {
+      px += min;
+    } else {
+      px = blocker.x + (dx / dist) * min;
+      pz = blocker.z + (dz / dist) * min;
+    }
   }
 
   px = clamp(px, -limitX, limitX);

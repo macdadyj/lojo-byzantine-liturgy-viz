@@ -104,127 +104,12 @@ const drum: Placement[] = [
   drumPlacement(7, "forerunner", "forerunner"),
 ];
 
-const saintCycle: { key: FrescoKey; card: IconId }[] = [
-  { key: "nicholas", card: "nicholas" },
-  { key: "michael", card: "michael" },
-  { key: "forerunner", card: "forerunner" },
-  { key: "theotokos", card: "theotokos" },
-  { key: "christ", card: "christ" },
-  { key: "gabriel", card: "gabriel" },
-  { key: "matthew", card: "matthew" },
-  { key: "mark", card: "mark" },
-  { key: "luke", card: "luke" },
-  { key: "john", card: "john" },
-  { key: "prophets", card: "prophets" },
-];
-
-function blocked(x: number, y: number, z: number, width: number, height: number): boolean {
-  return [...placements, ...drum].some((item) => {
-    return (
-      Math.abs(item.position[0] - x) < 1.2 &&
-      Math.abs(item.position[2] - z) < item.size[0] / 2 + width / 2 + 0.05 &&
-      Math.abs(item.position[1] - y) < item.size[1] / 2 + height / 2 + 0.05
-    );
-  });
-}
-
-function register(x: number, rotationY: number, y: number, width: number, height: number, z0: number, z1: number, step: number): Placement[] {
-  const row: Placement[] = [];
-  let index = 0;
-  for (let z = z0; z <= z1; z += step) {
-    if (blocked(x, y, z, width, height)) continue;
-    const saint = saintCycle[index % saintCycle.length];
-    if (!saint) continue;
-    row.push({
-      key: saint.key,
-      card: saint.card,
-      position: [x, y, z],
-      rotation: [0, rotationY, 0],
-      size: [width, height],
-    });
-    index += 1;
-  }
-  return row;
-}
-
-const columnZ = [-4.6, -0.2, 4.2, 8.6, 13];
-
-const wallTiles: Placement[] = [
-  ...register(-11.38, north, 1.2, 1.05, 1.9, -16.2, 20.4, 1.35),
-  ...register(11.38, south, 1.2, 1.05, 1.9, -16.2, 20.4, 1.35),
-  ...register(-11.38, north, 4.85, 1.15, 2.15, -16.2, 20.4, 1.7),
-  ...register(11.38, south, 4.85, 1.15, 2.15, -16.2, 20.4, 1.7),
-  ...register(-11.38, north, 8.15, 0.95, 1.35, -15, 19, 2.1),
-  ...register(11.38, south, 8.15, 0.95, 1.35, -15, 19, 2.1),
-  ...acrossWall(west, 2.15, 1.15, 2.2, 22.32),
-  ...acrossWall(0, 2.35, 1.05, 1.85, -18.28),
-  ...acrossWall(0, 5.5, 0.9, 1.25, -18.28),
-];
-
-function acrossWall(rotationY: number, y: number, width: number, height: number, z: number): Placement[] {
-  return [-7.6, -5.8, -4.2, -2.7, 2.7, 4.2, 5.8, 7.6].map((x, index) => {
-    const saint = saintCycle[index % saintCycle.length];
-    return {
-      key: saint?.key ?? "christ",
-      card: saint?.card ?? "christ",
-      position: [x, y, z],
-      rotation: [0, rotationY, 0],
-      size: [width, height],
-    };
-  });
-}
-
-const medallions: Placement[] = [
-  ...[-1, 1].flatMap((side) =>
-    columnZ.slice(0, -1).flatMap((z, index) => {
-      const next = columnZ[index + 1] ?? z;
-      const mid = (z + next) / 2;
-      const saint = saintCycle[index % saintCycle.length];
-      if (!saint) return [];
-      return [
-        {
-          key: saint.key,
-          card: saint.card,
-          position: [side * 4.85, 7.22, mid] as [number, number, number],
-          rotation: [Math.PI / 2, 0, side > 0 ? Math.PI : 0] as [number, number, number],
-          size: [0.7, 0.7] as [number, number],
-        },
-      ];
-    }),
-  ),
-  ...columnZ.flatMap((z, index) =>
-    [-1, 1].map((side) => {
-      const saint = saintCycle[(index + 3) % saintCycle.length];
-      return {
-        key: saint?.key ?? "christ",
-        card: saint?.card ?? "christ",
-        position: [side * 4.85 - side * 0.52, 0.72, z] as [number, number, number],
-        rotation: [0, side > 0 ? south : north, 0] as [number, number, number],
-        size: [0.42, 0.62] as [number, number],
-      };
-    }),
-  ),
-];
-
-const vaultSaints: Placement[] = [-2.4, 0, 2.4].flatMap((x, row) =>
-  [2.2, 5.4, 8.6, 11.8, 15].map((z, index) => {
-    const saint = saintCycle[(row + index) % saintCycle.length];
-    const tilt = x === 0 ? 0 : x > 0 ? -0.55 : 0.55;
-    return {
-      key: saint?.key ?? "christ",
-      card: saint?.card ?? "christ",
-      position: [x, x === 0 ? 13.15 : 12.55, z] as [number, number, number],
-      rotation: [0.15, 0, tilt] as [number, number, number],
-      size: [1.15, 1.45] as [number, number],
-    };
-  }),
-);
 
 export const tourStops: { id: IconId; x: number; z: number; yaw: number; pitch: number }[] = [
   { id: "exaltation", x: -8.4, z: -2.2, yaw: Math.PI / 2, pitch: 0 },
   { id: "deesis", x: 8.2, z: 4.2, yaw: -Math.PI / 2, pitch: 0.15 },
   { id: "dormition", x: 0.2, z: 16.5, yaw: Math.PI, pitch: 0.05 },
-  { id: "pantocrator", x: 0.1, z: domeZ + 0.4, yaw: 0, pitch: -1.05 },
+  { id: "pantocrator", x: 0.4, z: 7.4, yaw: 0, pitch: -0.62 },
 ];
 
 export function Frescoes() {
@@ -244,15 +129,6 @@ export function Frescoes() {
       ))}
       {drum.map((item, index) => (
         <FrescoPlane key={`drum-${index}`} item={item} map={maps[item.key]} />
-      ))}
-      {wallTiles.map((item, index) => (
-        <FrescoPlane key={`wall-${index}`} item={item} map={maps[item.key]} framed={item.size[1] > 1.4} />
-      ))}
-      {medallions.map((item, index) => (
-        <FrescoPlane key={`medal-${index}`} item={item} map={maps[item.key]} framed={false} />
-      ))}
-      {vaultSaints.map((item, index) => (
-        <FrescoPlane key={`vault-${index}`} item={item} map={maps[item.key]} framed={false} />
       ))}
       {[-11.34, 11.34].map((x) =>
         [2.25, 6.15, 9.05].map((y) => (
@@ -297,7 +173,7 @@ function FrescoPlane({ item, map, framed = true }: { item: Placement; map: Textu
       ) : null}
       <mesh>
         <planeGeometry args={item.size} />
-        <meshBasicMaterial map={map} toneMapped={false} />
+        <meshStandardMaterial map={map} roughness={0.78} emissive="#fff6e8" emissiveMap={map} emissiveIntensity={0.24} />
       </mesh>
     </group>
   );
@@ -334,7 +210,7 @@ function Stand({
         </mesh>
         <mesh position={[0, 0, 0.04]}>
           <planeGeometry args={[0.7, 1]} />
-          <meshBasicMaterial map={map} toneMapped={false} />
+          <meshStandardMaterial map={map} roughness={0.78} emissive="#fff6e8" emissiveMap={map} emissiveIntensity={0.24} />
         </mesh>
       </group>
       {[-0.28, 0.28].map((x) => (

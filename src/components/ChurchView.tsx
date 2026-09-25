@@ -13,25 +13,26 @@ type ChurchViewProps = {
   activeSpaces: readonly SpaceId[];
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
+  onLookMode?: (mode: LookMode) => void;
 };
 
 const cast = [
   { label: "Priest", color: "#722433" },
-  { label: "Deacon", color: "#1f4a3c" },
-  { label: "Reader", color: "#3c3848" },
+  { label: "Deacon", color: "#e7dcc8" },
+  { label: "Reader", color: "#2a2e36" },
   { label: "Choir", color: "#4a3a28" },
-  { label: "Faithful", color: "#2c3c55" },
+  { label: "Faithful", color: "#3d4a62" },
 ];
 
 const qualities: Quality[] = ["high", "medium", "low"];
 
-export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }: ChurchViewProps) {
+export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, onLookMode }: ChurchViewProps) {
   const [mode, setMode] = useState<LookMode>("follow");
   const [showLabels, setShowLabels] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [quality, setQuality] = useState<Quality>("medium");
   const [pinned, setPinned] = useState(false);
-  const [headBob, setHeadBob] = useState(true);
+  const [headBob, setHeadBob] = useState(false);
   const [icon, setIcon] = useState<IconCard | null>(null);
   const [tour, setTour] = useState(0);
   const [coarse, setCoarse] = useState(false);
@@ -48,6 +49,7 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
       setNarrow(width.matches);
     };
     sync();
+    if (motion.matches || pointer.matches || width.matches) setHeadBob(false);
     motion.addEventListener("change", sync);
     pointer.addEventListener("change", sync);
     width.addEventListener("change", sync);
@@ -61,6 +63,10 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
   useEffect(() => {
     setIcon(null);
   }, [step.id]);
+
+  useEffect(() => {
+    onLookMode?.(mode);
+  }, [mode, onLookMode]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -165,7 +171,11 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace }:
         ) : null}
       </div>
       {mode === "free" ? (
-        <p className="walk-hint">Click the church, then walk with WASD or the arrow keys. Press E on an icon.</p>
+        <p className="walk-hint">
+          {coarse || narrow
+            ? "Drag to look. Move with the joystick. Home and End change the step."
+            : "Drag to look. Walk with WASD. Arrow keys walk here; Home and End change the step. Press E on an icon."}
+        </p>
       ) : null}
       {icon ? <IconPanel card={icon} onClose={() => setIcon(null)} /> : null}
       {mode === "free" && (coarse || narrow) ? <Joystick /> : null}

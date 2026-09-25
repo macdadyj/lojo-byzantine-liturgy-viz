@@ -2,16 +2,15 @@
 
 ## Figures
 
-The people in the church are CC0 humanoid meshes by Quaternius, dressed in this project for each liturgical role.
+The people in the church are CC0 modular characters by Quaternius. Eleven faithful share one humanoid skeleton and wear the pack’s own hair and fitted clothes. Skin and hair are tinted in the app so neighbors are not copies. Children use a shorter scale and a larger head on two of those outfits. The priest and deacon start from the same rig; the phelonion, sticharion, epitrachelion, orarion, beard, and kamilavka are modeled in this project and skinned to that skeleton.
 
-- Files in this repo: `public/models/man.glb`, `public/models/woman.glb` (about 3.5 MB together)
-- Body meshes: Superhero male and Superhero female from the free Standard pack of the Universal Base Characters. The free pack does not include the Regular or Teen bodies.
-- Source: https://quaternius.com/packs/universalbasecharacters.html
-- Animations: Idle, jog, and sitting clips from the Universal Animation Library (Standard, without root motion), renamed `idle`, `walk`, and `sit` and played on the same skeleton.
-- Animation source: https://quaternius.itch.io/universal-animation-library
+- Files: `public/models/cast/` (`m-hoodie`, `m-casual`, `m-farmer`, `m-worker`, `m-suit`, `m-elder`, `w-casual`, `w-formal`, `w-suit`, `w-worker`, `w-dress`, `priest`, `deacon`, and `anims`)
+- Men: Ultimate Modular Men, CC0 — https://quaternius.com/packs/ultimatemodularcharacters.html
+- Women: Ultimate Modular Women, CC0 — https://quaternius.com/packs/ultimatemodularwomen.html
 - License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
 - Credit: Models by @Quaternius
-- What changed here: body and hair textures were resized to 256 pixels, normal and roughness maps were removed from the source files, and hair is tinted again in the app for children, adults, and elders. Vestments (brocaded phelonion, sticharion, epitrachelion, orarion, cuffs, kamilavka, pectoral cross), beards, headscarves, and the censer are modeled in the app. The faithful share these two meshes, scaled for age. No Mixamo, Ready Player Me, or other non-redistributable character was added. A separate photoreal rig was not included: the clips already match this skeleton, and a different skeleton would need animation data we are not allowed to redistribute.
+- Animations: `Idle_Neutral` and `Walk` from those packs, plus `sit` and `kneel` posed on the same skeleton for the pews and the epiklesis. Root motion on the walk is removed so a procession does not slide out of the group.
+- Not used: Mixamo, Ready Player Me, or the earlier MakeHuman export (open mouths and bodysuit textures).
 
 ## Frescoes and additional icons
 

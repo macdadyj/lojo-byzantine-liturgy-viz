@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChurchView } from "./components/ChurchView";
+import type { LookMode } from "./scene/LiturgyScene";
 import { Pager } from "./components/Pager";
 import { SpaceNote } from "./components/SpaceNote";
 import { StepDetail } from "./components/StepDetail";
@@ -11,6 +12,7 @@ import { useLiturgyKeyboard } from "./useLiturgyKeyboard";
 
 export function App() {
   const [index, setIndex] = useState(0);
+  const [look, setLook] = useState<LookMode>("follow");
   const [pinnedSpace, setPinnedSpace] = useState<SpaceId | null>(null);
   const step = steps[index] ?? steps[0];
 
@@ -55,7 +57,7 @@ export function App() {
               the parish and the liturgical books.
             </p>
             <p>
-              The church is a teaching model of a large nave. The people are CC0 humanoid meshes, with cloth, vestments, and frescoes modeled or credited in ATTRIBUTION.md. As you face
+              The church is a teaching model of a large nave. The people are CC0 modular characters by Quaternius, with vestments modeled for this lesson and credited in ATTRIBUTION.md. As you face
               the iconostas, the Theotokos is at the left
               of the Royal Doors and Christ is at the right. The Royal Doors show the Ustyug
               Annunciation, the Mystical Supper is above them, and the patron on the north is St.
@@ -66,6 +68,7 @@ export function App() {
         <Pager
           index={index}
           count={steps.length}
+          hint={look === "free" ? "Home and End change the step" : "Arrow keys, Home, End"}
           onPrev={() => setIndex((current) => prevIndex(current, steps.length))}
           onNext={() => setIndex((current) => nextIndex(current, steps.length))}
         />
@@ -95,6 +98,7 @@ export function App() {
                 activeSpaces={step.spaces}
                 selectedSpace={featuredSpace}
                 onSelectSpace={setPinnedSpace}
+                onLookMode={setLook}
               />
               <ul className="legend" aria-label="Places in the church">
                 {spaceList.map((space) => {

@@ -13,7 +13,7 @@ export function StageLook({ quality }: { quality: Quality }) {
     const previous = gl.toneMapping;
     const previousExposure = gl.toneMappingExposure;
     gl.toneMapping = ACESFilmicToneMapping;
-    gl.toneMappingExposure = quality === "low" ? 0.82 : 0.9;
+    gl.toneMappingExposure = quality === "low" ? 1.18 : quality === "medium" ? 0.96 : 0.9;
     if (quality !== "high") return () => {
       gl.toneMapping = previous;
       gl.toneMappingExposure = previousExposure;
@@ -43,8 +43,8 @@ export function QualityEffects({ quality }: { quality: Quality }) {
           halfRes
           aoSamples={8}
           denoiseSamples={2}
-          aoRadius={0.5}
-          intensity={0.7}
+          aoRadius={0.85}
+          intensity={1.15}
           quality="performance"
         />
         {bloom}
