@@ -60,7 +60,7 @@ export function StepDetail({
           })}
         </ul>
       </div>
-      <details className="detail-more" open>
+      <details className="detail-more">
         <summary>What you see, hear, and why</summary>
         <div className="info-columns">
           <section>

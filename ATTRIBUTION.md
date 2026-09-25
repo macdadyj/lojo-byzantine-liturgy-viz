@@ -1,3 +1,18 @@
+# Attribution
+
+## Figures
+
+The people in the church are CC0 humanoid meshes by Quaternius, dressed in this project for each liturgical role.
+
+- Files in this repo: `public/models/man.glb`, `public/models/woman.glb` (about 3.5 MB together)
+- Body meshes: Superhero male and Superhero female from the free Standard pack of the Universal Base Characters. The free pack does not include the Regular or Teen bodies.
+- Source: https://quaternius.com/packs/universalbasecharacters.html
+- Animations: Idle, jog, and sitting clips from the Universal Animation Library (Standard, without root motion), renamed `idle`, `walk`, and `sit` and played on the same skeleton.
+- Animation source: https://quaternius.itch.io/universal-animation-library
+- License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
+- Credit: Models by @Quaternius
+- What changed here: body and hair textures were resized to 256 pixels, normal and roughness maps were removed, and the hair color was tinted dark brown. Vestments (phelonion, sticharion, epitrachelion, orarion), beards, and headscarves are modeled in the app on top of these meshes. The faithful share these two meshes.
+
 # Icon attribution
 
 These images are historical works from Wikimedia Commons. Each file below is marked Public domain or CC0 on Commons. They are stored in this repository at modest size for the teaching model. They are not photographs of a modern parish and they are not contemporary copyrighted icon prints.

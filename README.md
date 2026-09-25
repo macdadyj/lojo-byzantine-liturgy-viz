@@ -43,7 +43,8 @@ Service name `lojo-byzantine-liturgy-viz`, region `us-central1`, minimum instanc
 
 - Choose any step in the list, or use **Previous** and **Next**.
 - Arrow keys move one step. Home and End jump to the beginning and the end. They keep doing that while you look around the church.
-- **Follow liturgy** moves the camera with the step. **Free look** lets you orbit, pan, and zoom without changing the step. Drag to orbit, right-drag or two-finger drag to pan, scroll or pinch to zoom.
+- **Follow liturgy** moves the camera with the step and frames the clergy who are acting. On the entrances it stays ahead of the procession. **Free look** lets you orbit, pan, and zoom without changing the step. Drag to orbit, right-drag or two-finger drag to pan, scroll or pinch to zoom.
+- **Labels** shows or hides the place names in the church. They stay small, fade back, and disappear when they are behind you or too close to cover an icon.
 - Gold light on the floor marks the places for the current step. Click a floor, or its name under the view, to read what that place is.
 - During the Little Entrance the deacon carries the Gospel book out the north deacon door, through the nave, and back through the Royal Doors. During the Great Entrance the deacon leads and the priest follows with the gifts from the table of preparation to the altar. A path on the floor shows the route.
 
@@ -53,7 +54,7 @@ A suggested first path is in [DEMO.md](DEMO.md).
 
 Gathering and the proskomedia, the opening blessing, the Litany of Peace, the antiphons, the Little Entrance, the Trisagion, the Epistle, the Gospel, the homily, the litanies before the gifts, the Cherubic Hymn, the Great Entrance, the Symbol of Faith, the anaphora, the epiklesis, the commemoration of the Theotokos and the saints, the Our Father, “Holy Things for the holy,” Holy Communion, the thanksgiving, and the dismissal with antidoron.
 
-Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The priest wears a phelonion and epitrachelion, the deacon a sticharion with an orarion, and the reader a sticharion. The faithful wear ordinary clothes. Processions walk; the rest of the crowd is instanced.
+Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The priest wears a phelonion and epitrachelion, the deacon a sticharion with an orarion, and the reader a sticharion. The faithful wear ordinary clothes. Clergy and faithful are CC0 humanoid meshes (see [ATTRIBUTION.md](ATTRIBUTION.md)); the crowd reuses those two meshes. Processions play the walk clip. Everyone else holds an idle or sitting pose. The notes for each step — what you see, hear, and why — stay collapsed until you open them, and the top bar sits above the church so the step list remains visible.
 
 ## Icons
 

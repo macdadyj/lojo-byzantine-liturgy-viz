@@ -17,10 +17,21 @@ export type LookMode = "follow" | "free";
 type LiturgySceneProps = {
   step: LiturgyStep;
   mode: LookMode;
+  showLabels: boolean;
   activeSpaces: readonly SpaceId[];
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
   reducedMotion: boolean;
+};
+
+/** Lead walker writes this each frame so Follow liturgy can stay in front of a procession. */
+const processionFocus = {
+  active: false,
+  x: 0,
+  y: 0,
+  z: 0,
+  fx: 0,
+  fz: -1,
 };
 
 const pewRows = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
@@ -49,6 +60,7 @@ const communionQueue: Vec3[] = [
 export function LiturgyScene({
   step,
   mode,
+  showLabels,
   activeSpaces,
   selectedSpace,
   onSelectSpace,
@@ -82,12 +94,13 @@ export function LiturgyScene({
       <Suspense fallback={null}>
         <Church
           doorsOpen={doorsOpen}
+          showLabels={showLabels}
           activeSpaces={activeSpaces}
           selectedSpace={selectedSpace}
           onSelectSpace={onSelectSpace}
         />
+        <Cast step={step} reducedMotion={reducedMotion} />
       </Suspense>
-      <Cast step={step} reducedMotion={reducedMotion} />
     </Canvas>
   );
 }
@@ -117,9 +130,14 @@ function FollowCamera({
 
   useFrame((_, delta) => {
     if (!enabled) return;
-    goalPos.set(pose.position[0], pose.position[1], pose.position[2]);
-    goalTarget.set(pose.target[0], pose.target[1], pose.target[2]);
-    const blend = reducedMotion ? 1 : 1 - Math.exp(-delta * 2.6);
+    if (processionFocus.active) {
+      frameProcession(goalPos, goalTarget);
+    } else {
+      goalPos.set(pose.position[0], pose.position[1], pose.position[2]);
+      goalTarget.set(pose.target[0], pose.target[1], pose.target[2]);
+    }
+    const chasing = processionFocus.active && camera.position.distanceTo(goalPos) > 2.8;
+    const blend = reducedMotion || chasing ? 1 : 1 - Math.exp(-delta * (processionFocus.active ? 8 : 2.6));
     camera.position.lerp(goalPos, blend);
     look.lerp(goalTarget, blend);
     camera.lookAt(look);
@@ -128,6 +146,38 @@ function FollowCamera({
   });
 
   return null;
+}
+
+function frameProcession(goalPos: Vector3, goalTarget: Vector3) {
+  const { x, y, z, fx, fz } = processionFocus;
+  const ahead = 2.45;
+  let cx = x + fx * ahead;
+  let cz = z + fz * ahead;
+  if (Math.abs(x) < 1.8) {
+    cx += -fz * 0.75;
+    cz += fx * 0.75;
+  }
+  [cx, cz] = clearOfPews(cx, cz, x);
+  cx = Math.min(10.2, Math.max(-10.2, cx));
+  cz = Math.min(world.narthexWest - 1.2, Math.max(world.sanctuaryEast + 1.5, cz));
+  goalPos.set(cx, Math.max(1.55, y + 1.6), cz);
+  goalTarget.set(x - fx * 0.45, y + 1.22, z - fz * 0.45);
+}
+
+const pewCentersX = [-7.15, -2.2, 2.2, 7.15];
+const pewCentersZ = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
+
+function clearOfPews(x: number, z: number, preferX: number): [number, number] {
+  for (const px of pewCentersX) {
+    const half = Math.abs(px) < 4 ? 1.35 : 1.2;
+    if (Math.abs(x - px) > half) continue;
+    for (const pz of pewCentersZ) {
+      if (Math.abs(z - pz) > 0.7) continue;
+      const aisle = Math.abs(preferX) < 1.5 ? 0 : preferX < 0 ? -4.05 : 4.05;
+      return [aisle, z];
+    }
+  }
+  return [x, z];
 }
 
 function Cast({ step, reducedMotion }: { step: LiturgyStep; reducedMotion: boolean }) {
@@ -218,6 +268,9 @@ function Procession({ route, reducedMotion }: { route: RouteId; reducedMotion: b
 
   useEffect(() => {
     march.current = { t: 0.42, dir: 1 };
+    return () => {
+      processionFocus.active = false;
+    };
   }, [route]);
 
   useFrame((_, delta) => {
@@ -237,15 +290,15 @@ function Procession({ route, reducedMotion }: { route: RouteId; reducedMotion: b
     <group>
       {route === "little-entrance" ? (
         <>
-          <PathWalker points={points} march={march} offset={0} reducedMotion={reducedMotion} carry="gospel" role="deacon" />
+          <PathWalker points={points} march={march} offset={0} lead reducedMotion={reducedMotion} carry="gospel" role="deacon" />
           <Placed actor={stagingFor("little-entrance").priest}>
             <Clergy role="priest" stance="stand" />
           </Placed>
         </>
       ) : (
         <>
-          <PathWalker points={points} march={march} offset={0} reducedMotion={reducedMotion} role="deacon" />
-          <PathWalker points={points} march={march} offset={0.14} reducedMotion={reducedMotion} carry="gifts" role="priest" />
+          <PathWalker points={points} march={march} offset={0} lead reducedMotion={reducedMotion} role="deacon" />
+          <PathWalker points={points} march={march} offset={0.04} reducedMotion={reducedMotion} carry="gifts" role="priest" />
         </>
       )}
     </group>
@@ -256,6 +309,7 @@ function PathWalker({
   points,
   march,
   offset,
+  lead = false,
   reducedMotion,
   role,
   carry = "none",
@@ -263,6 +317,7 @@ function PathWalker({
   points: Vec3[];
   march: RefObject<March>;
   offset: number;
+  lead?: boolean;
   reducedMotion: boolean;
   role: "priest" | "deacon";
   carry?: "none" | "gospel" | "gifts";
@@ -276,11 +331,23 @@ function PathWalker({
     if (!body || !state) return;
     const travel = reducedMotion ? 0.62 : Math.min(1, Math.max(0, state.t - offset));
     const here = pointOnPath(points, travel);
-    const ahead = pointOnPath(points, Math.min(1, travel + 0.02));
+    const ahead = pointOnPath(points, Math.min(1, travel + 0.03));
     body.position.set(here[0], here[1], here[2]);
     next.set(ahead[0], here[1], ahead[2]);
     if (next.distanceTo(body.position) > 0.02) body.lookAt(next);
-  });
+    if (!lead) return;
+    const dx = ahead[0] - here[0];
+    const dz = ahead[2] - here[2];
+    const length = Math.hypot(dx, dz);
+    processionFocus.active = true;
+    processionFocus.x = here[0];
+    processionFocus.y = here[1];
+    processionFocus.z = here[2];
+    if (length > 0.04) {
+      processionFocus.fx = dx / length;
+      processionFocus.fz = dz / length;
+    }
+  }, -1);
 
   return (
     <group ref={group}>
