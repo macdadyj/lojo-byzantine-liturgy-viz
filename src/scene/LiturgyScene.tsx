@@ -107,10 +107,10 @@ export function LiturgyScene({
       camera={{ fov: 42, position: pose.position, near: 0.15, far: 140 }}
       gl={{ antialias: quality !== "low", powerPreference: "high-performance" }}
     >
-      <color attach="background" args={["#d5cbb8"]} />
-      <fog attach="fog" args={["#d5cbb8", 28, 78]} />
-      <hemisphereLight args={["#fff8ee", "#e7d7c0", 1.25]} />
-      <ambientLight intensity={0.55} />
+      <color attach="background" args={["#8d7358"]} />
+      <fog attach="fog" args={["#8d7358", 16, 52]} />
+      <hemisphereLight args={["#f0d2a4", "#4a382c", 0.36]} />
+      <ambientLight intensity={0.16} color="#f3e0c4" />
       <directionalLight position={[-4, 18, 26]} intensity={1.35} />
       <directionalLight position={[6, 12, -6]} intensity={0.38} />
       <StageLook quality={quality} />

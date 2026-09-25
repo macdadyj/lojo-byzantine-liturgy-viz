@@ -100,28 +100,28 @@ function stage(staging: Staging): Staging {
 }
 
 const cameraPoses: Record<StagedId, CameraPose> = {
-  gathering: { position: [0.4, 2.3, 19.2], target: [0, 5.2, -8] },
+  gathering: { position: [2.6, 1.82, -10.6], target: [0.55, 1.45, -11.7] },
   proskomedia: { position: [-3.2, 1.9, -11.8], target: [-5.8, 1.45, -14.5] },
   opening: { position: [1.35, 1.85, -6.8], target: [0.35, 1.55, -13.5] },
   "litany-of-peace": { position: [-3.1, 1.72, -4.4], target: [-0.7, 1.45, -6.85] },
-  antiphons: { position: [-2.4, 2.6, 9.2], target: [7.2, 3.6, 6] },
+  antiphons: { position: [2.35, 1.8, -12.2], target: [0.1, 1.45, -13.85] },
   "little-entrance": { position: [-4.05, 1.7, 0.4], target: [-4.05, 1.35, 3.2] },
   trisagion: { position: [-2.8, 1.75, -4.5], target: [-0.7, 1.45, -6.9] },
   epistle: { position: [2.4, 1.75, -7.5], target: [0.35, 1.45, -5.45] },
-  gospel: { position: [0.2, 1.72, -1.5], target: [0.45, 1.45, -5.2] },
-  homily: { position: [0.15, 1.72, -0.8], target: [0.2, 1.48, -5.35] },
+  gospel: { position: [1.55, 1.7, -3.15], target: [0.42, 1.28, -5.25] },
+  homily: { position: [1.4, 1.68, -3.05], target: [0.05, 1.3, -5.4] },
   "before-the-gifts": { position: [-2.7, 1.75, -4.1], target: [-0.7, 1.45, -6.85] },
   cherubic: { position: [-2.2, 2.05, -10.4], target: [-4.8, 1.5, -13.6] },
   "great-entrance": { position: [-4.05, 1.7, 2.2], target: [-4.05, 1.35, 5.2] },
-  creed: { position: [1.6, 1.9, -6.6], target: [0.2, 1.5, -13.6] },
+  creed: { position: [2.3, 1.82, -11.5], target: [0.1, 1.42, -13.75] },
   anaphora: { position: [2.35, 2.0, -11.0], target: [0.15, 1.5, -13.9] },
   epiklesis: { position: [2.45, 1.95, -11.1], target: [0.1, 1.4, -13.85] },
   theotokos: { position: [2.2, 2.0, -10.8], target: [0.2, 1.55, -13.8] },
   "our-father": { position: [-2.6, 1.8, -4.6], target: [-0.6, 1.45, -6.9] },
-  "holy-things": { position: [0.7, 1.85, -8.2], target: [0.05, 1.55, -13.4] },
-  communion: { position: [0.15, 1.72, -2.15], target: [0.4, 1.4, -5.9] },
-  thanksgiving: { position: [1.5, 1.85, -8.0], target: [0.05, 1.5, -10.5] },
-  dismissal: { position: [0.2, 1.72, -0.6], target: [0.15, 1.48, -5.4] },
+  "holy-things": { position: [1.35, 1.78, -6.2], target: [0.05, 1.48, -13.2] },
+  communion: { position: [1.7, 1.68, -3.4], target: [0.45, 1.28, -6.15] },
+  thanksgiving: { position: [1.85, 1.78, -6.35], target: [0.05, 1.45, -10.55] },
+  dismissal: { position: [1.45, 1.68, -2.85], target: [0.1, 1.3, -5.45] },
 };
 
 const stagingByStep: Record<StagedId, Staging> = {

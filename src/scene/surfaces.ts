@@ -14,14 +14,22 @@ export function marbleTexture(): Texture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   if (!ctx) return emptyTexture();
-  ctx.fillStyle = "#e7e0d4";
+  ctx.fillStyle = "#b7aa98";
   ctx.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 18; i += 1) {
-    ctx.strokeStyle = i % 2 === 0 ? "rgba(150,140,128,0.45)" : "rgba(255,252,246,0.35)";
-    ctx.lineWidth = 1 + (i % 3);
+  for (let y = 0; y < 256; y += 4) {
+    for (let x = 0; x < 256; x += 4) {
+      const n = ((x * 13 + y * 29) % 17) / 17;
+      const shade = Math.floor(150 + n * 55);
+      ctx.fillStyle = `rgb(${shade},${shade - 8},${shade - 18})`;
+      ctx.fillRect(x, y, 4, 4);
+    }
+  }
+  for (let i = 0; i < 22; i += 1) {
+    ctx.strokeStyle = i % 3 === 0 ? "rgba(92,78,64,0.55)" : "rgba(232,214,188,0.28)";
+    ctx.lineWidth = 1 + (i % 4);
     ctx.beginPath();
     ctx.moveTo((i * 37) % 256, 0);
-    ctx.bezierCurveTo(40 + i * 8, 80, 180 - i * 6, 140, (i * 53) % 256, 256);
+    ctx.bezierCurveTo(30 + i * 7, 70, 200 - i * 5, 150, (i * 53) % 256, 256);
     ctx.stroke();
   }
   marbleMap = new CanvasTexture(canvas);
@@ -55,6 +63,37 @@ export function deaconBrocadeTexture(): Texture {
   if (deaconBrocade) return deaconBrocade;
   deaconBrocade = paintBrocade("#1c4638", "#d7b15a");
   return deaconBrocade;
+}
+
+let ornamentMap: CanvasTexture | null = null;
+
+export function ornamentTexture(): Texture {
+  if (ornamentMap) return ornamentMap;
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 32;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return emptyTexture();
+  ctx.fillStyle = "#6a2430";
+  ctx.fillRect(0, 0, 128, 32);
+  ctx.strokeStyle = "#e4c56a";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(2, 2, 124, 28);
+  for (let x = 8; x < 128; x += 16) {
+    ctx.beginPath();
+    ctx.arc(x, 16, 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 6, 16);
+    ctx.quadraticCurveTo(x + 12, 6, x + 16, 16);
+    ctx.stroke();
+  }
+  ornamentMap = new CanvasTexture(canvas);
+  ornamentMap.colorSpace = SRGBColorSpace;
+  ornamentMap.wrapS = RepeatWrapping;
+  ornamentMap.wrapT = RepeatWrapping;
+  ornamentMap.repeat.set(18, 1);
+  return ornamentMap;
 }
 
 export function giltTexture(): Texture {

@@ -3,6 +3,7 @@ import { useTexture } from "@react-three/drei";
 import { SRGBColorSpace, type Group, type Texture } from "three";
 import { iconCards, type IconCard, type IconId } from "./iconCards";
 import { colors } from "./colors";
+import { ornamentTexture } from "./surfaces";
 
 const domeZ = -1.15;
 
@@ -103,6 +104,122 @@ const drum: Placement[] = [
   drumPlacement(7, "forerunner", "forerunner"),
 ];
 
+const saintCycle: { key: FrescoKey; card: IconId }[] = [
+  { key: "nicholas", card: "nicholas" },
+  { key: "michael", card: "michael" },
+  { key: "forerunner", card: "forerunner" },
+  { key: "theotokos", card: "theotokos" },
+  { key: "christ", card: "christ" },
+  { key: "gabriel", card: "gabriel" },
+  { key: "matthew", card: "matthew" },
+  { key: "mark", card: "mark" },
+  { key: "luke", card: "luke" },
+  { key: "john", card: "john" },
+  { key: "prophets", card: "prophets" },
+];
+
+function blocked(x: number, y: number, z: number, width: number, height: number): boolean {
+  return [...placements, ...drum].some((item) => {
+    return (
+      Math.abs(item.position[0] - x) < 1.2 &&
+      Math.abs(item.position[2] - z) < item.size[0] / 2 + width / 2 + 0.05 &&
+      Math.abs(item.position[1] - y) < item.size[1] / 2 + height / 2 + 0.05
+    );
+  });
+}
+
+function register(x: number, rotationY: number, y: number, width: number, height: number, z0: number, z1: number, step: number): Placement[] {
+  const row: Placement[] = [];
+  let index = 0;
+  for (let z = z0; z <= z1; z += step) {
+    if (blocked(x, y, z, width, height)) continue;
+    const saint = saintCycle[index % saintCycle.length];
+    if (!saint) continue;
+    row.push({
+      key: saint.key,
+      card: saint.card,
+      position: [x, y, z],
+      rotation: [0, rotationY, 0],
+      size: [width, height],
+    });
+    index += 1;
+  }
+  return row;
+}
+
+const columnZ = [-4.6, -0.2, 4.2, 8.6, 13];
+
+const wallTiles: Placement[] = [
+  ...register(-11.38, north, 1.2, 1.05, 1.9, -16.2, 20.4, 1.35),
+  ...register(11.38, south, 1.2, 1.05, 1.9, -16.2, 20.4, 1.35),
+  ...register(-11.38, north, 4.85, 1.15, 2.15, -16.2, 20.4, 1.7),
+  ...register(11.38, south, 4.85, 1.15, 2.15, -16.2, 20.4, 1.7),
+  ...register(-11.38, north, 8.15, 0.95, 1.35, -15, 19, 2.1),
+  ...register(11.38, south, 8.15, 0.95, 1.35, -15, 19, 2.1),
+  ...acrossWall(west, 2.15, 1.15, 2.2, 22.32),
+  ...acrossWall(0, 2.35, 1.05, 1.85, -18.28),
+  ...acrossWall(0, 5.5, 0.9, 1.25, -18.28),
+];
+
+function acrossWall(rotationY: number, y: number, width: number, height: number, z: number): Placement[] {
+  return [-7.6, -5.8, -4.2, -2.7, 2.7, 4.2, 5.8, 7.6].map((x, index) => {
+    const saint = saintCycle[index % saintCycle.length];
+    return {
+      key: saint?.key ?? "christ",
+      card: saint?.card ?? "christ",
+      position: [x, y, z],
+      rotation: [0, rotationY, 0],
+      size: [width, height],
+    };
+  });
+}
+
+const medallions: Placement[] = [
+  ...[-1, 1].flatMap((side) =>
+    columnZ.slice(0, -1).flatMap((z, index) => {
+      const next = columnZ[index + 1] ?? z;
+      const mid = (z + next) / 2;
+      const saint = saintCycle[index % saintCycle.length];
+      if (!saint) return [];
+      return [
+        {
+          key: saint.key,
+          card: saint.card,
+          position: [side * 4.85, 7.22, mid] as [number, number, number],
+          rotation: [Math.PI / 2, 0, side > 0 ? Math.PI : 0] as [number, number, number],
+          size: [0.7, 0.7] as [number, number],
+        },
+      ];
+    }),
+  ),
+  ...columnZ.flatMap((z, index) =>
+    [-1, 1].map((side) => {
+      const saint = saintCycle[(index + 3) % saintCycle.length];
+      return {
+        key: saint?.key ?? "christ",
+        card: saint?.card ?? "christ",
+        position: [side * 4.85 - side * 0.52, 0.72, z] as [number, number, number],
+        rotation: [0, side > 0 ? south : north, 0] as [number, number, number],
+        size: [0.42, 0.62] as [number, number],
+      };
+    }),
+  ),
+];
+
+const vaultSaints: Placement[] = [-2.4, 0, 2.4].flatMap((x, row) =>
+  [2.2, 5.4, 8.6, 11.8, 15].map((z, index) => {
+    const saint = saintCycle[(row + index) % saintCycle.length];
+    const tilt = x === 0 ? 0 : x > 0 ? -0.55 : 0.55;
+    return {
+      key: saint?.key ?? "christ",
+      card: saint?.card ?? "christ",
+      position: [x, x === 0 ? 13.15 : 12.55, z] as [number, number, number],
+      rotation: [0.15, 0, tilt] as [number, number, number],
+      size: [1.15, 1.45] as [number, number],
+    };
+  }),
+);
+
 export const tourStops: { id: IconId; x: number; z: number; yaw: number; pitch: number }[] = [
   { id: "exaltation", x: -8.4, z: -2.2, yaw: Math.PI / 2, pitch: 0 },
   { id: "deesis", x: 8.2, z: 4.2, yaw: -Math.PI / 2, pitch: 0.15 },
@@ -112,6 +229,7 @@ export const tourStops: { id: IconId; x: number; z: number; yaw: number; pitch: 
 
 export function Frescoes() {
   const maps = useTexture(frescoFiles) as Record<FrescoKey, Texture>;
+  const border = ornamentTexture();
   useLayoutEffect(() => {
     for (const texture of Object.values(maps)) {
       texture.colorSpace = SRGBColorSpace;
@@ -127,6 +245,23 @@ export function Frescoes() {
       {drum.map((item, index) => (
         <FrescoPlane key={`drum-${index}`} item={item} map={maps[item.key]} />
       ))}
+      {wallTiles.map((item, index) => (
+        <FrescoPlane key={`wall-${index}`} item={item} map={maps[item.key]} framed={item.size[1] > 1.4} />
+      ))}
+      {medallions.map((item, index) => (
+        <FrescoPlane key={`medal-${index}`} item={item} map={maps[item.key]} framed={false} />
+      ))}
+      {vaultSaints.map((item, index) => (
+        <FrescoPlane key={`vault-${index}`} item={item} map={maps[item.key]} framed={false} />
+      ))}
+      {[-11.34, 11.34].map((x) =>
+        [2.25, 6.15, 9.05].map((y) => (
+          <mesh key={`band-${x}-${y}`} position={[x, y, 2]}>
+            <boxGeometry args={[0.05, 0.16, 38]} />
+            <meshStandardMaterial map={border} color="#f0d7a0" roughness={0.45} metalness={0.25} />
+          </mesh>
+        )),
+      )}
       <Stand
         position={[0, 0, 1.15]}
         map={maps.nativity}
@@ -144,7 +279,7 @@ export function Frescoes() {
   );
 }
 
-function FrescoPlane({ item, map }: { item: Placement; map: Texture }) {
+function FrescoPlane({ item, map, framed = true }: { item: Placement; map: Texture; framed?: boolean }) {
   const ref = useRef<Group>(null);
   const card = iconCards[item.card];
   useLayoutEffect(() => {
@@ -154,10 +289,12 @@ function FrescoPlane({ item, map }: { item: Placement; map: Texture }) {
   }, [card]);
   return (
     <group ref={ref} position={item.position} rotation={item.rotation}>
-      <mesh position={[0, 0, -0.03]}>
-        <boxGeometry args={[item.size[0] + 0.16, item.size[1] + 0.16, 0.05]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.32} />
-      </mesh>
+      {framed ? (
+        <mesh position={[0, 0, -0.03]}>
+          <boxGeometry args={[item.size[0] + 0.12, item.size[1] + 0.12, 0.04]} />
+          <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.32} />
+        </mesh>
+      ) : null}
       <mesh>
         <planeGeometry args={item.size} />
         <meshBasicMaterial map={map} toneMapped={false} />
@@ -200,6 +337,18 @@ function Stand({
           <meshBasicMaterial map={map} toneMapped={false} />
         </mesh>
       </group>
+      {[-0.28, 0.28].map((x) => (
+        <group key={x} position={[x, 1.08, 0.18]}>
+          <mesh>
+            <cylinderGeometry args={[0.012, 0.012, 0.28, 6]} />
+            <meshStandardMaterial color="#f4efe4" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 0.16, 0]}>
+            <sphereGeometry args={[0.02, 6, 6]} />
+            <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={1.4} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
