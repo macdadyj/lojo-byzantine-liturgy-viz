@@ -2,16 +2,16 @@
 
 ## Figures
 
-The people in the church are generated with MakeHuman / MPFB2 from the CC0 MakeHuman system assets (body, skin, eyes, eyebrows, eyelashes, teeth, hair, suits, and shoes). The MPFB2 add-on itself is GPL-3.0-or-later and is not redistributed here; only the generated meshes are stored.
+The people in the church are CC0 humanoid meshes by Quaternius, dressed in this project for each liturgical role.
 
-- Files in this repo: `public/models/man-young.glb`, `man-elder.glb`, `woman-young.glb`, `woman-adult.glb`, `babushka.glb`, `girl.glb`, `boy.glb`, `priest.glb`, `deacon.glb`, `reader.glb`
-- Body, skin, eyes, hair, eyebrows, eyelashes, teeth, casual suits, and shoes: MakeHuman system assets, explicit CC0 release (September 2020). Copyright holders at release: Data Collection AB, Joel Palmius, Jonas Hauquier. https://static.makehumancommunity.org/assets/asset_packs/makehuman_system_assets.html
-- Each `.mhclo` / `.mhmat` used from that pack states “explicitly released as CC0”. Checked: skins (young, middle-aged, and old; African, Asian, and European), hair (short, bob, long, afro), eyebrows, eyelashes, low-poly eyes, teeth, male and female casual suits, the male work suit, and shoes 01–06.
+- Files in this repo: `public/models/man.glb`, `public/models/woman.glb` (about 3.5 MB together)
+- Body meshes: Superhero male and Superhero female from the free Standard pack of the Universal Base Characters. The free pack does not include the Regular or Teen bodies.
+- Source: https://quaternius.com/packs/universalbasecharacters.html
+- Animations: Idle, jog, and sitting clips from the Universal Animation Library (Standard, without root motion), renamed `idle`, `walk`, and `sit` and played on the same skeleton.
+- Animation source: https://quaternius.itch.io/universal-animation-library
 - License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
-- Shared skeleton: MPFB built-in `game_engine` rig (pelvis, spine, arms, legs, hands, head).
-- Clips baked on that rig: `idle`, `walk`, `sit`, `bow`, and `cross` (sign of the cross). They are keyed in place, not taken from a non-redistributable library.
-- What was modeled for this project, on the same skeleton: hair-card beards and moustaches, the babushka’s headscarf, dresses and a child’s shirt and shorts fitted from the body, the priest’s bell-shaped phelonion (open at the front, with folds) over a sleeved sticharion, the epitrachelion, the deacon’s orarion over the left shoulder, the reader’s cassock, and the priest’s kamilavka. The censer, Gospel book, and gifts are still simple meshes in the app, parented to the hand or chest.
-- Textures are scaled to 512 pixels and packed as WebP. No Quaternius, Mixamo, or Ready Player Me mesh is shipped.
+- Credit: Models by @Quaternius
+- What changed here: body and hair textures were resized to 256 pixels, normal and roughness maps were removed from the source files, and hair is tinted again in the app for children, adults, and elders. Vestments (brocaded phelonion, sticharion, epitrachelion, orarion, cuffs, kamilavka, pectoral cross), beards, headscarves, and the censer are modeled in the app. The faithful share these two meshes, scaled for age. No Mixamo, Ready Player Me, or other non-redistributable character was added. A separate photoreal rig was not included: the clips already match this skeleton, and a different skeleton would need animation data we are not allowed to redistribute.
 
 ## Frescoes and additional icons
 

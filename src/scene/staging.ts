@@ -67,7 +67,7 @@ const deaconByAltar: Actor = {
 const readerAside: Actor = {
   position: [2.3, 0, 4.4],
   facing: 0,
-  stance: "sit",
+  stance: "stand",
 };
 const readerAtAmbon: Actor = {
   position: [0.35, world.soleaFloor, -5.45],
