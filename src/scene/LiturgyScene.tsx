@@ -136,20 +136,21 @@ function FollowCamera({
       goalPos.set(pose.position[0], pose.position[1], pose.position[2]);
       goalTarget.set(pose.target[0], pose.target[1], pose.target[2]);
     }
-    const blend = reducedMotion ? 1 : 1 - Math.exp(-delta * 2.6);
+    const chasing = processionFocus.active && camera.position.distanceTo(goalPos) > 2.8;
+    const blend = reducedMotion || chasing ? 1 : 1 - Math.exp(-delta * (processionFocus.active ? 8 : 2.6));
     camera.position.lerp(goalPos, blend);
     look.lerp(goalTarget, blend);
     camera.lookAt(look);
     const orbit = controls as { target?: Vector3 } | null;
     if (orbit?.target) orbit.target.copy(look);
-  }, 1);
+  });
 
   return null;
 }
 
 function frameProcession(goalPos: Vector3, goalTarget: Vector3) {
   const { x, y, z, fx, fz } = processionFocus;
-  const ahead = 3.15;
+  const ahead = 2.45;
   let cx = x + fx * ahead;
   let cz = z + fz * ahead;
   if (Math.abs(x) < 1.8) {
@@ -337,14 +338,16 @@ function PathWalker({
     if (!lead) return;
     const dx = ahead[0] - here[0];
     const dz = ahead[2] - here[2];
-    const length = Math.hypot(dx, dz) || 1;
+    const length = Math.hypot(dx, dz);
     processionFocus.active = true;
     processionFocus.x = here[0];
     processionFocus.y = here[1];
     processionFocus.z = here[2];
-    processionFocus.fx = dx / length;
-    processionFocus.fz = dz / length;
-  });
+    if (length > 0.04) {
+      processionFocus.fx = dx / length;
+      processionFocus.fz = dz / length;
+    }
+  }, -1);
 
   return (
     <group ref={group}>
