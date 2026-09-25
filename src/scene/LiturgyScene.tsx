@@ -1,13 +1,13 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
 import type { Group } from "three";
 import type { SpaceId } from "../liturgy/spaces";
 import type { LiturgyStep, RouteId } from "../liturgy/types";
 import { Church } from "./Church";
 import { colors } from "./colors";
-import { Figure } from "./Figures";
+import { Clergy, Crowd, type CrowdSpot } from "./People";
 import { pointOnPath, type Vec3 } from "./path";
 import { cameraFor, stagingFor, type Actor, type Stance } from "./staging";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
@@ -23,29 +23,27 @@ type LiturgySceneProps = {
   reducedMotion: boolean;
 };
 
-const pewPeople: { position: Vec3; color: string; scale: number }[] = [
-  { position: [-2.28, 0, 2.7], color: colors.faithful[0], scale: 1 },
-  { position: [2.28, 0, 2.7], color: colors.faithful[1], scale: 0.96 },
-  { position: [-2.28, 0, 4.28], color: colors.faithful[2], scale: 1 },
-  { position: [2.28, 0, 4.28], color: colors.faithful[3], scale: 0.92 },
-  { position: [-2.28, 0, 5.88], color: colors.faithful[4], scale: 1 },
-  { position: [2.28, 0, 5.88], color: colors.faithful[5], scale: 0.98 },
-  { position: [-2.28, 0, 7.48], color: colors.faithful[0], scale: 0.86 },
-  { position: [2.28, 0, 7.48], color: colors.faithful[2], scale: 1 },
-];
+const pewRows = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
 
-const choirSpots: Vec3[] = [
-  [3.72, 0.41, 2.85],
-  [3.72, 0.41, 3.7],
-  [3.72, 0.41, 4.55],
-  [3.72, 0.41, 5.35],
-];
+const pewPeople: CrowdSpot[] = pewRows.flatMap((z, row) => [
+  { position: [-2.2, 0, z], rotationY: 0, color: colors.faithful[row % colors.faithful.length] ?? colors.faithful[0], woman: row % 2 === 0 },
+  { position: [2.2, 0, z], rotationY: 0, color: colors.faithful[(row + 2) % colors.faithful.length] ?? colors.faithful[1], woman: row % 2 === 1 },
+  { position: [-7.15, 0, z], rotationY: 0, color: colors.faithful[(row + 1) % colors.faithful.length] ?? colors.faithful[2], woman: row % 3 === 0 },
+  { position: [7.15, 0, z], rotationY: 0, color: colors.faithful[(row + 4) % colors.faithful.length] ?? colors.faithful[3], woman: row % 3 === 1 },
+]);
+
+const choirPeople: CrowdSpot[] = [4.0, 5.4, 6.8, 8.2].map((z, index) => ({
+  position: [8.35, 3.22, z] as Vec3,
+  rotationY: Math.PI / 2,
+  color: colors.choir,
+  woman: index % 2 === 0,
+}));
 
 const communionQueue: Vec3[] = [
-  [-0.42, world.soleaFloor, -1.05],
-  [0.58, world.soleaFloor, -0.95],
-  [-0.55, world.soleaFloor, -0.25],
-  [0.7, world.soleaFloor, -0.15],
+  [-0.55, world.soleaFloor, -4.15],
+  [0.6, world.soleaFloor, -4.15],
+  [-0.7, world.soleaFloor, -3.25],
+  [0.75, world.soleaFloor, -3.25],
 ];
 
 export function LiturgyScene({
@@ -60,28 +58,16 @@ export function LiturgyScene({
   const doorsOpen = step.route !== undefined || step.spaces.includes("royal-doors");
   return (
     <Canvas
-      shadows
-      dpr={[1, 1.6]}
-      camera={{ fov: 42, position: pose.position, near: 0.08, far: 80 }}
-      gl={{ antialias: true }}
+      dpr={[1, 1.5]}
+      camera={{ fov: 42, position: pose.position, near: 0.15, far: 140 }}
+      gl={{ antialias: true, powerPreference: "high-performance" }}
     >
-      <color attach="background" args={["#c9d0c8"]} />
-      <fog attach="fog" args={["#c9d0c8", 16, 42]} />
-      <hemisphereLight args={["#f7f1e6", "#d9cbb6", 0.85]} />
-      <ambientLight intensity={0.42} />
-      <directionalLight
-        position={[7, 14, 8]}
-        intensity={1.15}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-near={2}
-        shadow-camera-far={40}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-14}
-      />
+      <color attach="background" args={["#d5cbb8"]} />
+      <fog attach="fog" args={["#d5cbb8", 28, 78]} />
+      <hemisphereLight args={["#fff8ee", "#e7d7c0", 1.45]} />
+      <ambientLight intensity={0.72} />
+      <directionalLight position={[-4, 18, 26]} intensity={1.55} />
+      <directionalLight position={[6, 12, -6]} intensity={0.45} />
       <FollowCamera pose={pose} enabled={mode === "follow"} reducedMotion={reducedMotion} />
       <OrbitControls
         makeDefault
@@ -89,16 +75,18 @@ export function LiturgyScene({
         enableDamping
         dampingFactor={0.08}
         maxPolarAngle={Math.PI / 2 - 0.05}
-        minDistance={2.2}
-        maxDistance={22}
+        minDistance={1.4}
+        maxDistance={48}
         enablePan
       />
-      <Church
-        doorsOpen={doorsOpen}
-        activeSpaces={activeSpaces}
-        selectedSpace={selectedSpace}
-        onSelectSpace={onSelectSpace}
-      />
+      <Suspense fallback={null}>
+        <Church
+          doorsOpen={doorsOpen}
+          activeSpaces={activeSpaces}
+          selectedSpace={selectedSpace}
+          onSelectSpace={onSelectSpace}
+        />
+      </Suspense>
       <Cast step={step} reducedMotion={reducedMotion} />
     </Canvas>
   );
@@ -155,35 +143,27 @@ function Cast({ step, reducedMotion }: { step: LiturgyStep; reducedMotion: boole
       ) : (
         <>
           <Placed actor={staging.priest}>
-            <Figure robe={colors.priest} accent={colors.gold} stance={staging.priest.stance} />
+            <Clergy role="priest" stance={staging.priest.stance} />
           </Placed>
           <Placed actor={staging.deacon}>
-            <Figure robe={colors.deacon} stance={staging.deacon.stance} orarion />
+            <Clergy role="deacon" stance={staging.deacon.stance} />
           </Placed>
         </>
       )}
       <Placed actor={staging.reader}>
-        <Figure robe={colors.reader} stance={staging.reader.stance} />
+        <Clergy role="reader" stance={staging.reader.stance} />
       </Placed>
-      {pewPeople.map((person, index) => {
-        const inQueue = index < staging.communicants;
-        const position = inQueue ? communionQueue[index] : person.position;
-        if (!position) return null;
-        return (
-          <group key={person.position.join(",")} position={position} rotation={[0, inQueue ? 0 : 0, 0]}>
-            <Figure
-              robe={person.color}
-              stance={inQueue ? "stand" : staging.faithful}
-              scale={person.scale}
-            />
-          </group>
-        );
-      })}
-      {choirSpots.map((position) => (
-        <group key={position.join(",")} position={position} rotation={[0, Math.PI / 2, 0]}>
-          <Figure robe={colors.choir} stance={choirStance} scale={0.96} />
-        </group>
-      ))}
+      <Crowd spots={pewPeople.slice(staging.communicants)} stance={staging.faithful} />
+      <Crowd
+        spots={communionQueue.slice(0, staging.communicants).map((position, index) => ({
+          position,
+          rotationY: 0,
+          color: pewPeople[index]?.color ?? colors.faithful[0],
+          woman: index % 2 === 0,
+        }))}
+        stance="stand"
+      />
+      <Crowd spots={choirPeople} stance={choirStance} />
     </group>
   );
 }
@@ -233,11 +213,11 @@ function RouteRibbon({ route }: { route: RouteId }) {
 type March = { t: number; dir: 1 | -1 };
 
 function Procession({ route, reducedMotion }: { route: RouteId; reducedMotion: boolean }) {
-  const march = useRef<March>({ t: 0.12, dir: 1 });
+  const march = useRef<March>({ t: 0.42, dir: 1 });
   const points = routePoints(route);
 
   useEffect(() => {
-    march.current = { t: 0.08, dir: 1 };
+    march.current = { t: 0.42, dir: 1 };
   }, [route]);
 
   useFrame((_, delta) => {
@@ -257,23 +237,15 @@ function Procession({ route, reducedMotion }: { route: RouteId; reducedMotion: b
     <group>
       {route === "little-entrance" ? (
         <>
-          <PathWalker points={points} march={march} offset={0} reducedMotion={reducedMotion} carry="gospel" robe={colors.deacon} orarion />
+          <PathWalker points={points} march={march} offset={0} reducedMotion={reducedMotion} carry="gospel" role="deacon" />
           <Placed actor={stagingFor("little-entrance").priest}>
-            <Figure robe={colors.priest} accent={colors.gold} stance="stand" />
+            <Clergy role="priest" stance="stand" />
           </Placed>
         </>
       ) : (
         <>
-          <PathWalker points={points} march={march} offset={0} reducedMotion={reducedMotion} robe={colors.deacon} orarion />
-          <PathWalker
-            points={points}
-            march={march}
-            offset={0.14}
-            reducedMotion={reducedMotion}
-            carry="gifts"
-            robe={colors.priest}
-            accent={colors.gold}
-          />
+          <PathWalker points={points} march={march} offset={0} reducedMotion={reducedMotion} role="deacon" />
+          <PathWalker points={points} march={march} offset={0.14} reducedMotion={reducedMotion} carry="gifts" role="priest" />
         </>
       )}
     </group>
@@ -285,19 +257,15 @@ function PathWalker({
   march,
   offset,
   reducedMotion,
-  robe,
-  accent,
+  role,
   carry = "none",
-  orarion = false,
 }: {
   points: Vec3[];
   march: RefObject<March>;
   offset: number;
   reducedMotion: boolean;
-  robe: string;
-  accent?: string;
+  role: "priest" | "deacon";
   carry?: "none" | "gospel" | "gifts";
-  orarion?: boolean;
 }) {
   const group = useRef<Group>(null);
   const next = useMemo(() => new Vector3(), []);
@@ -316,7 +284,7 @@ function PathWalker({
 
   return (
     <group ref={group}>
-      <Figure robe={robe} accent={accent} stance="stand" carry={carry} orarion={orarion} />
+      <Clergy role={role} stance="stand" walking={!reducedMotion} carry={carry} />
     </group>
   );
 }

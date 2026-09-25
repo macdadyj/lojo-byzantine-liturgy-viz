@@ -118,9 +118,80 @@ button:disabled {
 }
 
 .page {
-  width: min(1240px, calc(100% - 1.5rem));
+  width: min(1480px, calc(100% - 1rem));
   margin: 0 auto;
-  padding: 1.5rem 0 3rem;
+  padding: 0.35rem 0 2rem;
+}
+
+.info-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-bottom: 0.65rem;
+  padding: 0.45rem 0.7rem 0.55rem;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 0 0 16px 16px;
+  box-shadow: var(--shadow);
+}
+
+.info-brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.9rem;
+}
+
+.info-brand h1 {
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  line-height: 1;
+}
+
+.info-brand .about {
+  margin-top: 0;
+  font-size: 0.92rem;
+}
+
+.detail-lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.detail-lead h2 {
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+}
+
+.detail-lead .progress {
+  flex: 1 1 8rem;
+  min-width: 6rem;
+}
+
+.detail-more {
+  margin-top: 0.45rem;
+}
+
+.detail-more summary {
+  cursor: pointer;
+  color: var(--kicker);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.info-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin-top: 0.45rem;
+}
+
+.info-columns p,
+.info-columns li {
+  font-size: 0.92rem;
 }
 
 .masthead {
@@ -231,15 +302,11 @@ button:disabled {
 }
 
 .pager {
-  position: sticky;
-  top: 0;
-  z-index: 4;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 0.9rem;
-  padding: 0.45rem 0;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  margin-top: 0.35rem;
+  padding: 0.15rem 0;
 }
 
 .pager-prev,
@@ -300,9 +367,9 @@ button:disabled {
 
 .church-view {
   position: relative;
-  height: min(72vh, 760px);
-  min-height: 520px;
-  margin-top: 0.6rem;
+  height: min(74vh, 880px);
+  min-height: 480px;
+  margin-top: 0;
   overflow: hidden;
   border-radius: 12px;
   background: #c5cfcb;
@@ -674,15 +741,18 @@ button:disabled {
     margin-top: 1rem;
   }
 
-  .pager {
-    top: 0;
-    margin-bottom: 0.4rem;
-    padding: 0.45rem 0;
+  .info-bar {
+    max-height: 42vh;
+    overflow: auto;
+  }
+
+  .info-columns {
+    grid-template-columns: 1fr;
   }
 
   .church-view {
-    height: 62vh;
-    min-height: 420px;
+    height: 58vh;
+    min-height: 340px;
   }
 }
 
