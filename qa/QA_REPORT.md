@@ -1,5 +1,78 @@
 # QA punch list — Divine Liturgy walkthrough
 
+## Verified pass 7
+
+Independent retest of `cursor/liturgy-pass-5-339c` at `f3c4fd2` (“Dress the congregation for church and plant shoes on the rendered floor”). No app code was changed. The “Fixed in pass 7” section below is the developer’s claim. This section is the walk.
+
+**Verdict: SHIP.**
+
+There is no remaining P0. The congregation stands and sits on the floor in Sunday clothes, the entrances clear the north door, and the epiklesis kneelers stay in the pews. The pictures are still simple models. That is a polish note, not a reason to hold the build. One liturgical beat is still missing: after the Holy Things elevation the royal doors and the curtain stay open.
+
+### Still P0
+
+None.
+
+### P1 / P2, not blockers
+
+1. **Holy Things does not shut (P1, not fixed).** The default quality is Medium. From 0.4s through 4.5s on Medium the frame is the elevation with the royal doors open (`pass7-holy-medium-t400.png`, `pass7-holy-medium-t4500.png`). Those two frames are the same picture. High and Low stay on that open elevation as well (`pass7-holy-high-t500.png`, `pass7-holy-low-t500.png`). The pass 5 retest had a later frame with the doors and curtain shut. This walk does not.
+2. **The people are still simple (P2).** Suits, sweaters, dresses, and headscarves read as church clothes. Faces, hair, and cloth are low-poly. A few kneeling knees meet the pew wood. A steep Free look in the pews can put the eye under a seat (`pass7-feet-gather.png`).
+
+### Build, tests, and Docker
+
+- `npm ci && npm run build && npm test` succeeded. Both `tsc` projects passed, Vite wrote `dist/assets/index-D95xQeFA.js`, and 18 tests passed.
+- `docker build .` succeeded and tagged `liturgy-pass7`. The image runs the Dockerfile’s `npm run build`.
+
+### How this retest was run
+
+- Preview of that production build at `http://127.0.0.1:4173/`.
+- Playwright, headed Chromium, WebGL 2 via ANGLE SwiftShader. Canvas about 1160×815.
+- Next through all 22 steps at High, then Medium, then Low. Titles matched. Previous from 22 back to 1. Home is Gathering. End is Dismissal.
+- Floor-level Free look at the gathering pews, the kliros, both entrances, the epiklesis, Communion, the dismissal, and the priest.
+- Holy Things timed on Medium, High, and Low.
+- Phone at 390×844. Icon E and the four-stop tour.
+- SwiftShader frame rate: High about 0.6–1.0 (mean 0.8), Medium about 0.6–1.3 (mean 1.0), Low about 0.9–3.3 (mean 2.2).
+- Console warnings: none. Page errors: none. Failed requests: none.
+
+New shots are `qa/screenshots/pass7-*.png`.
+
+### Verified pass 7 — this round’s checks
+
+| Item | Verified pass 7 | What this walk showed |
+| --- | --- | --- |
+| Church clothes | fixed | Suits, sweaters, and dresses in muted colors. Women wear headscarves. No hard hats, hi-vis vests, or costume pieces in the gathering, the kliros, Communion, or the dismissal. `pass7-high-step-01.png`, `pass7-feet-communion.png`, `pass7-high-step-05.png`. |
+| Floating feet | fixed | Shoes meet the nave floor in the pews, on the solea at both entrances, in the Communion line, and in the dismissal queue. The choir stands on the kliros slab. The priest stands on the sanctuary step at the opening and the anaphora. `pass7-feet-kliros.png`, `pass7-feet-priest.png`, `pass7-high-step-03.png`, `pass7-high-step-15.png`, `pass7-feet-dismissal.png`. |
+| Deacon door and Great Entrance camera | fixed | The north door is open. The deacon comes through clear of the leaf, with candles, at both entrances. The Great Entrance camera is on the solea, with the chalice and diskos in the nave. `pass7-high-step-06-later.png`, `pass7-feet-little.png`, `pass7-high-step-13-later.png`, `pass7-feet-great.png`. |
+| Epiklesis kneelers | fixed | The nave kneels in the pew rows, off the center aisle, and does not enter the iconostas. Gifts stay visible through the open doors. `pass7-high-step-16.png`, `pass7-feet-epiklesis.png`. |
+| Holy Things close | not fixed | The elevation is visible and the doors are open. They do not shut afterward on Medium, High, or Low. See the P1 note above. |
+
+### Verified pass 7 — earlier punch list
+
+| Item | Verified pass 7 | What this walk showed |
+| --- | --- | --- |
+| 1 Sanctuary visibility (P0-1) | fixed | Opening, anaphora at High, Medium, and Low, and the epiklesis still show the altar or the gifts. `pass7-high-step-15.png`, `pass7-medium-step-15.png`, `pass7-low-step-15.png`. |
+| 2 Deacon doors (P0-2) | fixed | North leaf opens and the procession passes clear of it. |
+| 3 People (P0-3) | fixed | Distinct Sunday clothes, headscarves, and feet on the floor. The models stay simple. That is the P2 note, not a floor or costume failure. |
+| 4 Wrong subject (P1-1) | fixed | Gathering is the narthex. Antiphons are the kliros. The people face the altar for the Trisagion and the Our Father. |
+| 5 Holy Things two beats | partly fixed | The open elevation is there. The shut beat is not. |
+| 6 Epiklesis kneel (P1-2) | fixed | Nave kneels. Gifts visible. Kneelers stay out of the screen. |
+| 7 Entrances (top 7) | fixed | Camera and carriers are on the solea, candles in front, vessels visible. |
+| 8 Phone (P1-6) | fixed | Church first at 390×844. Controls do not cover each other. The hint says joystick. `pass7-mobile-freelook.png`. |
+| 9 Low quality (P1-7) | fixed | Low anaphora is the holy table. Medium anaphora is the holy table. |
+| 10 First-run UI (P2-1) | fixed | Step 1 opens the see-line. The app starts on Medium. Free look names WASD on the desktop and the joystick on the phone. |
+| P1-3 Communion and dismissal | fixed | Chalice and spoon, a child, headscarves, feet on the floor. Dismissal has the hand cross and a line on the floor. `pass7-high-step-20.png`, `pass7-high-step-22.png`, `pass7-feet-communion.png`. |
+| P1-4 Readings and homily | fixed | All 22 titles advanced at all three qualities. No shut-door regression on the altar steps checked beside them. |
+| P1-5 Free look and the dome tour | partly fixed | E opened St. Nicholas. The tour reached the four frescoes (`pass7-tour-4.png`). A steep look down in the pews can put the eye under a seat. |
+| P2-2 Pointer lock and head bob | fixed | Head bob starts off. No page errors. |
+| P2-3 Legend and step 3 | fixed | Step 3 is the open doors, the priest on the step, and a candle. `pass7-high-step-03.png`. |
+| P2-4 THREE.Clock | fixed | Quiet console on the desktop walks and the phone walk. |
+| Build (`npm run build` / Docker) | fixed | Clean install, both typechecks, Vite, and `docker build .` all succeeded. |
+
+### Regressions
+
+No regression on the floor contact, the clothes, the north door, the Medium anaphora, the phone, or the console. Holy Things is the same miss as pass 6: the shut beat does not appear. It is not a new break in a picture that pass 6 had fixed.
+
+---
+
 ## Verified pass 6
 
 Independent retest of `cursor/liturgy-pass-5-339c` at `d2cdaab` (“Plant the congregation on the floor and typecheck the Vite config”). No app code was changed. The “Fixed in pass 6” section below is the developer’s claim. This section is the walk.
