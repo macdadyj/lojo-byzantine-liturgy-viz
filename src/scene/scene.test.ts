@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { steps } from "../liturgy/steps";
 import { spaceList } from "../liturgy/spaces";
+import { resolveWalk } from "./collide";
+import { censingFor, gestureFor } from "./gestures";
 import { pointOnPath } from "./path";
+import { nextQuality } from "./quality";
 import { cameraFor, isStagedId, stagedStepIds, stagingFor } from "./staging";
-import { floorPatches, greatEntrancePath, littleEntrancePath } from "./world";
+import { floorPatches, greatEntrancePath, littleEntrancePath, world } from "./world";
 
 describe("3D liturgy staging", () => {
   it("stages and frames every liturgy step", () => {
@@ -62,5 +65,33 @@ describe("3D liturgy staging", () => {
     );
     expect(mid[2]).toBeCloseTo(5);
     expect(pointOnPath([], 0.4)).toEqual([0, 0, 0]);
+  });
+
+  it("keeps a walking person out of walls, pews, and a closed iconostas", () => {
+    const outside = resolveWalk(40, 40, false);
+    expect(outside.x).toBeLessThan(world.halfWidth);
+    expect(outside.z).toBeLessThan(world.narthexWest);
+    const pew = resolveWalk(-2.2, 4.6, false);
+    expect(Math.hypot(pew.x + 2.2, pew.z - 4.6)).toBeGreaterThan(0.6);
+    const blocked = resolveWalk(0, world.iconZ, false);
+    expect(Math.abs(blocked.z - world.iconZ)).toBeGreaterThan(0.4);
+    const through = resolveWalk(0, world.iconZ, true);
+    expect(Math.abs(through.z - world.iconZ)).toBeLessThan(0.5);
+    const column = resolveWalk(world.columnX, 4.2, false);
+    expect(Math.hypot(column.x - world.columnX, column.z - 4.2)).toBeGreaterThan(0.7);
+  });
+
+  it("marks the cross and the censer on the steps that call for them", () => {
+    expect(gestureFor("trisagion")).toBe("cross");
+    expect(gestureFor("creed")).toBe("cross");
+    expect(gestureFor("epiklesis")).toBe("cross");
+    expect(gestureFor("gospel")).toBe("none");
+    expect(censingFor("great-entrance")).toBe(true);
+    expect(censingFor("cherubic")).toBe(true);
+    expect(censingFor("litany-of-peace")).toBe(false);
+    expect(nextQuality("high", 20)).toBe("medium");
+    expect(nextQuality("medium", 18)).toBe("low");
+    expect(nextQuality("low", 60)).toBe("medium");
+    expect(nextQuality("medium", 40)).toBe("medium");
   });
 });

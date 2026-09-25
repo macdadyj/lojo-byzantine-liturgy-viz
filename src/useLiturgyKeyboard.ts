@@ -16,9 +16,11 @@ export function useLiturgyKeyboard(setIndex: (update: (current: number) => numbe
       if (isTypingTarget(event.target)) return;
       const count = steps.length;
       if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        if (document.body.dataset.walk === "1") return;
         event.preventDefault();
         setIndex((current) => nextIndex(current, count));
       } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        if (document.body.dataset.walk === "1") return;
         event.preventDefault();
         setIndex((current) => prevIndex(current, count));
       } else if (event.key === "Home") {

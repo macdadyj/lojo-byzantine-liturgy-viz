@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CanvasTexture, SRGBColorSpace, Vector3 } from "three";
+import { CanvasTexture, SRGBColorSpace, Vector3, type PointLight } from "three";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { colors } from "./colors";
+import { Frescoes } from "./Frescoes";
 import { ByzantineCross } from "./Figures";
 import { SacredArt } from "./Iconostas";
 import { paintAltarFrontal } from "./icons";
+import type { Quality } from "./quality";
+import { giltTexture, marbleTexture } from "./surfaces";
 import type { SpaceId } from "../liturgy/spaces";
 import { floorPatches, spaceLabels, world } from "./world";
 
 type ChurchProps = {
   doorsOpen: boolean;
   showLabels: boolean;
+  quality: Quality;
   activeSpaces: readonly SpaceId[];
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
@@ -20,7 +24,7 @@ type ChurchProps = {
 const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
 const domeZ = -1.15;
 
-export function Church({ doorsOpen, showLabels, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
+export function Church({ doorsOpen, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
   return (
     <group>
       <Ground />
@@ -34,7 +38,10 @@ export function Church({ doorsOpen, showLabels, activeSpaces, selectedSpace, onS
       <Pews />
       <Furnishings />
       <SacredArt doorsOpen={doorsOpen} />
-      <Lamps />
+      <Frescoes />
+      <Lamps flicker={quality !== "low"} quality={quality} />
+      <CandleStands quality={quality} />
+      <Shafts quality={quality} />
       <Labels activeSpaces={activeSpaces} showLabels={showLabels} />
       {floorPatches.map((patch) => (
         <mesh
@@ -111,6 +118,10 @@ function Columns() {
             <mesh position={[0, 3.9, 0]}>
               <cylinderGeometry args={[0.28, 0.32, 7.1, 12]} />
               <meshStandardMaterial color="#efe6d6" roughness={0.78} />
+            </mesh>
+            <mesh position={[0, 7.35, 0]}>
+              <torusGeometry args={[0.34, 0.07, 8, 14]} />
+              <meshStandardMaterial map={giltTexture()} color={colors.gold} metalness={0.62} roughness={0.34} />
             </mesh>
             <mesh position={[0, 7.6, 0]}>
               <boxGeometry args={[0.7, 0.28, 0.7]} />
@@ -274,7 +285,7 @@ function Floors() {
     <group>
       <mesh position={[0, -0.04, 6.2]}>
         <boxGeometry args={[world.halfWidth * 2, 0.12, 33]} />
-        <meshStandardMaterial color="#c6aa84" roughness={0.88} />
+        <meshStandardMaterial map={marbleTexture()} color="#f4efe6" roughness={0.28} metalness={0.08} />
       </mesh>
       <mesh position={[0, 0.08, 19.6]}>
         <boxGeometry args={[world.halfWidth * 2, 0.1, 6.2]} />
@@ -286,7 +297,7 @@ function Floors() {
       </mesh>
       <mesh position={[0, 0.21, -13.9]}>
         <boxGeometry args={[world.halfWidth * 2, 0.42, 9.4]} />
-        <meshStandardMaterial color="#9a7d5c" roughness={0.84} />
+        <meshStandardMaterial map={marbleTexture()} color="#efe6da" roughness={0.32} metalness={0.06} />
       </mesh>
       <mesh position={[0, 0.16, -5.6]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1.7, 28, 0, Math.PI]} />
@@ -350,6 +361,16 @@ function Furnishings() {
           <boxGeometry args={[1.9, 0.08, 1.1]} />
           <meshStandardMaterial color={colors.cloth} roughness={0.65} />
         </mesh>
+        <group position={[0.05, 1.22, 0.12]}>
+          <mesh>
+            <boxGeometry args={[0.22, 0.05, 0.3]} />
+            <meshStandardMaterial color="#6a2a22" roughness={0.5} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, 0.02, 0]}>
+            <boxGeometry args={[0.16, 0.02, 0.22]} />
+            <meshStandardMaterial color="#f4efe4" roughness={0.7} />
+          </mesh>
+        </group>
         <group position={[0, 1.7, 0]}>
           <ByzantineCross scale={0.5} />
         </group>
@@ -393,7 +414,7 @@ function Candlestick({ position }: { position: [number, number, number] }) {
   );
 }
 
-function Lamps() {
+function Lamps({ flicker, quality }: { flicker: boolean; quality: Quality }) {
   const spots: [number, number, number][] = [
     [0, 7.4, 11],
     [0, 7.6, 4.5],
@@ -402,34 +423,111 @@ function Lamps() {
   ];
   return (
     <group>
-      {spots.map((position) => (
-        <Chandelier key={position.join(",")} position={position} />
+      {spots.map((position, index) => (
+        <Chandelier
+          key={position.join(",")}
+          position={position}
+          flicker={flicker}
+          light={quality !== "low" || index < 2}
+        />
       ))}
     </group>
   );
 }
 
-function Chandelier({ position }: { position: [number, number, number] }) {
+function Chandelier({
+  position,
+  flicker,
+  light,
+}: {
+  position: [number, number, number];
+  flicker: boolean;
+  light: boolean;
+}) {
+  const lamp = useRef<PointLight>(null);
+  useFrame((state) => {
+    const bulb = lamp.current;
+    if (!bulb || !flicker) return;
+    const time = state.clock.elapsedTime + position[2];
+    bulb.intensity = 5.2 + Math.sin(time * 8.2) * 0.65 + Math.sin(time * 14.5) * 0.22;
+  });
   return (
     <group position={position}>
       <mesh position={[0, 0.55, 0]}>
         <cylinderGeometry args={[0.012, 0.012, 1.1, 6]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.3} />
+        <meshStandardMaterial color={colors.gold} metalness={0.82} roughness={0.22} />
       </mesh>
       <mesh>
-        <torusGeometry args={[0.55, 0.025, 8, 20]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.75} roughness={0.25} />
+        <torusGeometry args={[0.72, 0.028, 8, 24]} />
+        <meshStandardMaterial color="#d7b15a" metalness={0.86} roughness={0.22} />
       </mesh>
-      {Array.from({ length: 8 }, (_, index) => {
-        const angle = (index / 8) * Math.PI * 2;
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.38, 0.018, 8, 20]} />
+        <meshStandardMaterial color="#e6c56e" metalness={0.84} roughness={0.24} />
+      </mesh>
+      {Array.from({ length: 10 }, (_, index) => {
+        const angle = (index / 10) * Math.PI * 2;
         return (
-          <mesh key={index} position={[Math.cos(angle) * 0.55, 0.16, Math.sin(angle) * 0.55]}>
-            <sphereGeometry args={[0.035, 8, 8]} />
-            <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={1.6} />
+          <mesh key={index} position={[Math.cos(angle) * 0.72, -0.08, Math.sin(angle) * 0.72]}>
+            <sphereGeometry args={[0.04, 8, 8]} />
+            <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={2.4} />
           </mesh>
         );
       })}
-      <pointLight color="#ffc48a" intensity={6} distance={16} decay={2} />
+      {light ? <pointLight ref={lamp} color="#ffc48a" intensity={5.4} distance={18} decay={2} /> : null}
+    </group>
+  );
+}
+
+function CandleStands({ quality }: { quality: Quality }) {
+  const spots: [number, number, number][] = [
+    [-1.5, 0, -6.4],
+    [1.5, 0, -6.4],
+    [0, 0, 2.4],
+    [-3.2, 0, 18.6],
+  ];
+  return (
+    <group>
+      {spots.map((position) => (
+        <group key={position.join(",")} position={position}>
+          <mesh position={[0, 0.45, 0]}>
+            <cylinderGeometry args={[0.16, 0.2, 0.9, 10]} />
+            <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.3} />
+          </mesh>
+          {[-0.08, 0, 0.08].map((x) => (
+            <mesh key={x} position={[x, 1.05, 0]}>
+              <sphereGeometry args={[0.035, 8, 8]} />
+              <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={2.2} />
+            </mesh>
+          ))}
+          {quality === "low" ? null : (
+            <pointLight color="#ffc48a" intensity={1.4} distance={4} decay={2} position={[0, 1.1, 0]} />
+          )}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function Shafts({ quality }: { quality: Quality }) {
+  if (quality === "low") return null;
+  const beams: [number, number, number][] = [
+    [-2.2, 11.2, domeZ],
+    [2.2, 11.2, domeZ],
+    [0, 11.4, domeZ + 2.4],
+  ];
+  return (
+    <group>
+      {beams.map((position) => (
+        <mesh key={position.join(",")} position={position} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.7, 7.5, 8, 1, true]} />
+          <meshBasicMaterial color="#fff3d4" transparent opacity={quality === "high" ? 0.055 : 0.03} depthWrite={false} side={2} />
+        </mesh>
+      ))}
+      <mesh position={[0, 2.2, -13.2]}>
+        <sphereGeometry args={[2.4, 12, 10]} />
+        <meshBasicMaterial color="#efe6d4" transparent opacity={0.035} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
