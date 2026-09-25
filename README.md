@@ -53,10 +53,10 @@ A suggested first path is in [DEMO.md](DEMO.md).
 
 Gathering and the proskomedia, the opening blessing, the Litany of Peace, the antiphons, the Little Entrance, the Trisagion, the Epistle, the Gospel, the homily, the litanies before the gifts, the Cherubic Hymn, the Great Entrance, the Symbol of Faith, the anaphora, the epiklesis, the commemoration of the Theotokos and the saints, the Our Father, “Holy Things for the holy,” Holy Communion, the thanksgiving, and the dismissal with antidoron.
 
-Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The priest wears a phelonion and the deacon a sticharion with an orarion, drawn simply so the movement stays clear.
+Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The priest wears a phelonion and epitrachelion, the deacon a sticharion with an orarion, and the reader a sticharion. The faithful wear ordinary clothes. Processions walk; the rest of the crowd is instanced.
 
 ## Icons
 
-The iconostas paintings are original drawings made for this app, in the traditional Byzantine manner: gold ground, halo, and a short English title. They are not copies of a parish’s icons and they are not scraped from printed or photographed icons. No third-party image files are used.
+The iconostas, dome, and apse use historical icons from Wikimedia Commons. Every file is public domain or CC0, at modest resolution, with source, title, date, and license in [ATTRIBUTION.md](ATTRIBUTION.md). They are not photographs of a modern parish and they are not contemporary copyrighted prints.
 
-As you face the iconostas, St. Nicholas and the Theotokos stand north of the Royal Doors, and Christ Pantocrator and St. John the Forerunner stand south of them. The Royal Doors show the Annunciation: Gabriel on the north leaf and the Theotokos on the south leaf. The Mystical Supper is above the doors.
+As you face the iconostas, St. Nicholas and the Theotokos of Vladimir stand north of the Royal Doors, and the Sinai Christ Pantocrator and St. John the Forerunner stand south of them. The Royal Doors divide the Ustyug Annunciation: Gabriel on the north leaf and the Theotokos on the south leaf. The Mystical Supper is above the doors. Deacon doors carry the archangels. A Deesis and feast tier (Nativity, Rublev’s Trinity, Transfiguration) sit higher. The dome medallion is the Daphni Pantocrator. The apse shows the Hagia Sophia Virgin and Child.

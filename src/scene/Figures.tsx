@@ -112,9 +112,9 @@ function Cuffs() {
   );
 }
 
-function GospelBook() {
+export function GospelBook() {
   return (
-    <group position={[0.05, 1.05, -0.28]}>
+    <group>
       <mesh castShadow>
         <boxGeometry args={[0.22, 0.28, 0.06]} />
         <meshStandardMaterial color="#4a2a22" roughness={0.55} />
@@ -127,9 +127,9 @@ function GospelBook() {
   );
 }
 
-function HolyGifts() {
+export function HolyGifts() {
   return (
-    <group position={[0, 1.02, -0.32]}>
+    <group>
       <mesh position={[-0.1, 0, 0]}>
         <cylinderGeometry args={[0.07, 0.09, 0.03, 12]} />
         <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />

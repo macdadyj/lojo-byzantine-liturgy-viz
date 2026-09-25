@@ -3,7 +3,7 @@ import { CanvasTexture, SRGBColorSpace } from "three";
 import { Html } from "@react-three/drei";
 import { colors } from "./colors";
 import { ByzantineCross } from "./Figures";
-import { Iconostas } from "./Iconostas";
+import { SacredArt } from "./Iconostas";
 import { paintAltarFrontal } from "./icons";
 import type { SpaceId } from "../liturgy/spaces";
 import { floorPatches, spaceLabels, world } from "./world";
@@ -15,15 +15,23 @@ type ChurchProps = {
   onSelectSpace: (id: SpaceId) => void;
 };
 
+const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
+const domeZ = -1.15;
+
 export function Church({ doorsOpen, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
   return (
     <group>
       <Ground />
       <Shell />
+      <Columns />
+      <Vault />
+      <Dome />
+      <Clerestory />
+      <Gallery />
       <Floors />
       <Pews />
       <Furnishings />
-      <Iconostas doorsOpen={doorsOpen} />
+      <SacredArt doorsOpen={doorsOpen} />
       <Lamps />
       <Labels activeSpaces={activeSpaces} />
       {floorPatches.map((patch) => (
@@ -40,7 +48,7 @@ export function Church({ doorsOpen, activeSpaces, selectedSpace, onSelectSpace }
           <meshBasicMaterial
             color={patch.id === selectedSpace ? "#f3e2a8" : "#e7c56a"}
             transparent
-            opacity={activeSpaces.includes(patch.id) ? 0.38 : 0}
+            opacity={activeSpaces.includes(patch.id) ? 0.34 : 0}
             depthWrite={false}
           />
         </mesh>
@@ -51,152 +59,118 @@ export function Church({ doorsOpen, activeSpaces, selectedSpace, onSelectSpace }
 
 function Ground() {
   return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.16, 2]} receiveShadow>
-        <circleGeometry args={[28, 40]} />
-        <meshStandardMaterial color={colors.ground} roughness={1} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.14, 14.2]} receiveShadow>
-        <planeGeometry args={[2.4, 4]} />
-        <meshStandardMaterial color={colors.path} roughness={0.95} />
-      </mesh>
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 2]}>
+      <circleGeometry args={[48, 48]} />
+      <meshStandardMaterial color={colors.ground} roughness={1} />
+    </mesh>
   );
 }
 
 function Shell() {
-  const span = world.narthexWest - world.sanctuaryEast;
+  const span = world.narthexWest - world.sanctuaryEast + 1.2;
   const centerZ = (world.narthexWest + world.sanctuaryEast) / 2;
   const outer = world.halfWidth + world.wall;
+  const height = world.wallHeight;
   return (
     <group>
-      <Wall position={[0, 2.2, world.sanctuaryEast - 0.2]} args={[outer * 2 + 0.4, 4.4, world.wall]} />
-      <Wall position={[-outer, 2.2, centerZ]} args={[world.wall, 4.4, span]} />
-      <Wall position={[outer, 2.2, centerZ]} args={[world.wall, 4.4, span]} />
-      <Wall position={[-2.4, 2.2, world.narthexWest]} args={[4.2, 4.4, world.wall]} />
-      <Wall position={[2.4, 2.2, world.narthexWest]} args={[4.2, 4.4, world.wall]} />
-      <Wall position={[0, 4.05, world.narthexWest]} args={[2.2, 0.7, world.wall]} />
-      <Skirt />
-      <InteriorFinish />
-      <Windows />
-      <Roof />
-      <Dome />
+      <Wall position={[0, height / 2, world.sanctuaryEast - 0.15]} args={[outer * 2 + 0.6, height, world.wall]} />
+      <Wall position={[-outer, height / 2, centerZ]} args={[world.wall, height, span]} />
+      <Wall position={[outer, height / 2, centerZ]} args={[world.wall, height, span]} />
+      <Wall position={[-6.2, height / 2, world.narthexWest]} args={[outer * 2 - 8.4, height, world.wall]} />
+      <Wall position={[6.2, height / 2, world.narthexWest]} args={[outer * 2 - 8.4, height, world.wall]} />
+      <Wall position={[0, height - 1.3, world.narthexWest]} args={[4.4, 2.6, world.wall]} />
+      <mesh position={[0, 2.2, world.narthexWest - 0.05]}>
+        <boxGeometry args={[3.2, 4.2, 0.12]} />
+        <meshStandardMaterial color="#6a5138" roughness={0.7} />
+      </mesh>
     </group>
   );
 }
 
 function Wall({ position, args }: { position: [number, number, number]; args: [number, number, number] }) {
   return (
-    <mesh position={position} castShadow receiveShadow>
+    <mesh position={position}>
       <boxGeometry args={args} />
       <meshStandardMaterial color={colors.plaster} roughness={0.9} />
     </mesh>
   );
 }
 
-function Skirt() {
-  const span = world.narthexWest - world.sanctuaryEast;
-  const centerZ = (world.narthexWest + world.sanctuaryEast) / 2;
-  const outer = world.halfWidth + world.wall + 0.08;
+function Columns() {
   return (
     <group>
-      <mesh position={[0, 0.35, world.sanctuaryEast - 0.28]} receiveShadow>
-        <boxGeometry args={[outer * 2 + 0.5, 0.7, 0.2]} />
-        <meshStandardMaterial color={colors.stone} roughness={0.95} />
-      </mesh>
-      <mesh position={[-outer, 0.35, centerZ]} receiveShadow>
-        <boxGeometry args={[0.16, 0.7, span]} />
-        <meshStandardMaterial color={colors.stone} roughness={0.95} />
-      </mesh>
-      <mesh position={[outer, 0.35, centerZ]} receiveShadow>
-        <boxGeometry args={[0.16, 0.7, span]} />
-        <meshStandardMaterial color={colors.stone} roughness={0.95} />
-      </mesh>
-    </group>
-  );
-}
-
-function InteriorFinish() {
-  return (
-    <group>
-      <mesh position={[-5.28, 0.58, 2.3]}>
-        <boxGeometry args={[0.08, 1.16, 18.5]} />
-        <meshStandardMaterial color="#7a3a32" roughness={0.82} />
-      </mesh>
-      <mesh position={[5.28, 0.58, 2.3]}>
-        <boxGeometry args={[0.08, 1.16, 18.5]} />
-        <meshStandardMaterial color="#7a3a32" roughness={0.82} />
-      </mesh>
-      <mesh position={[-5.28, 1.2, 2.3]}>
-        <boxGeometry args={[0.1, 0.06, 18.5]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.6} roughness={0.35} />
-      </mesh>
-      <mesh position={[5.28, 1.2, 2.3]}>
-        <boxGeometry args={[0.1, 0.06, 18.5]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.6} roughness={0.35} />
-      </mesh>
-    </group>
-  );
-}
-
-function Windows() {
-  const heights = [3.55];
-  const zs = [-5.6, -1.2, 2.2, 5.4, 8.2];
-  return (
-    <group>
-      {zs.map((z) =>
-        heights.map((y) => (
-          <group key={`${z}-${y}`}>
-            <Window x={-world.halfWidth - 0.02} z={z} y={y} />
-            <Window x={world.halfWidth + 0.02} z={z} y={y} />
+      {[-1, 1].map((side) =>
+        columnZ.map((z) => (
+          <group key={`${side}-${z}`} position={[side * world.columnX, 0, z]}>
+            <mesh position={[0, 0.18, 0]}>
+              <cylinderGeometry args={[0.42, 0.48, 0.36, 12]} />
+              <meshStandardMaterial color={colors.stone} roughness={0.85} />
+            </mesh>
+            <mesh position={[0, 3.9, 0]}>
+              <cylinderGeometry args={[0.28, 0.32, 7.1, 12]} />
+              <meshStandardMaterial color="#efe6d6" roughness={0.78} />
+            </mesh>
+            <mesh position={[0, 7.6, 0]}>
+              <boxGeometry args={[0.7, 0.28, 0.7]} />
+              <meshStandardMaterial color={colors.gold} metalness={0.45} roughness={0.4} />
+            </mesh>
           </group>
         )),
       )}
+      {[-1, 1].map((side) =>
+        columnZ.slice(0, -1).map((z, index) => {
+          const next = columnZ[index + 1] ?? z;
+          const mid = (z + next) / 2;
+          return (
+            <mesh key={`arch-${side}-${z}`} position={[side * world.columnX, 7.55, mid]}>
+              <boxGeometry args={[0.42, 0.32, next - z]} />
+              <meshStandardMaterial color={colors.plasterDeep} roughness={0.86} />
+            </mesh>
+          );
+        }),
+      )}
     </group>
   );
 }
 
-function Window({ x, y, z }: { x: number; y: number; z: number }) {
-  const flip = x > 0 ? Math.PI : 0;
-  return (
-    <group position={[x, y, z]} rotation={[0, flip, 0]}>
-      <mesh>
-        <planeGeometry args={[0.55, 1.7]} />
-        <meshStandardMaterial color={colors.glass} emissive={colors.glass} emissiveIntensity={0.35} />
-      </mesh>
-      <mesh position={[0, 0, 0.02]}>
-        <boxGeometry args={[0.62, 0.06, 0.04]} />
-        <meshStandardMaterial color={colors.woodDark} />
-      </mesh>
-    </group>
-  );
-}
-
-function Roof() {
-  const slopes: { tilt: number }[] = [{ tilt: 0.42 }, { tilt: -0.42 }];
-  const runs: { z: number; depth: number }[] = [
-    { z: -5.05, depth: 8.1 },
-    { z: 7.25, depth: 7.7 },
-  ];
+function Vault() {
   return (
     <group>
-      {slopes.map((slope) =>
-        runs.map((run) => (
-          <mesh key={`${slope.tilt}-${run.z}`} position={[0, 5.55, run.z]} rotation={[0, 0, slope.tilt]} castShadow>
-            <boxGeometry args={[6.4, 0.16, run.depth]} />
-            <meshStandardMaterial color={colors.roof} roughness={0.86} />
-          </mesh>
-        )),
-      )}
-      <mesh position={[0, 4.7, 2.4]}>
-        <boxGeometry args={[10.7, 0.12, 20.2]} />
+      <mesh position={[0, 9.15, 9.4]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[5.15, 5.15, 14.5, 28, 1, true, Math.PI / 2, Math.PI]} />
         <meshStandardMaterial
           color={colors.plasterDeep}
-          roughness={0.92}
+          roughness={0.9}
           side={2}
-          emissive={colors.plasterDeep}
-          emissiveIntensity={0.22}
+          emissive={colors.plaster}
+          emissiveIntensity={0.38}
         />
+      </mesh>
+      <mesh position={[0, 8.4, -6.4]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[4.4, 4.4, 5.2, 24, 1, true, Math.PI / 2, Math.PI]} />
+        <meshStandardMaterial
+          color={colors.plasterDeep}
+          roughness={0.9}
+          side={2}
+          emissive={colors.plaster}
+          emissiveIntensity={0.16}
+        />
+      </mesh>
+      <mesh position={[-8.2, 8.05, 4]}>
+        <boxGeometry args={[6.4, 0.22, 30]} />
+        <meshStandardMaterial color={colors.plasterDeep} roughness={0.92} emissive={colors.plaster} emissiveIntensity={0.12} />
+      </mesh>
+      <mesh position={[8.2, 8.05, 4]}>
+        <boxGeometry args={[6.4, 0.22, 30]} />
+        <meshStandardMaterial color={colors.plasterDeep} roughness={0.92} emissive={colors.plaster} emissiveIntensity={0.12} />
+      </mesh>
+      <mesh position={[0, 16.9, 11]}>
+        <boxGeometry args={[26, 0.35, 18]} />
+        <meshStandardMaterial color={colors.roof} roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 16.9, -10]}>
+        <boxGeometry args={[26, 0.35, 14]} />
+        <meshStandardMaterial color={colors.roof} roughness={0.9} />
       </mesh>
     </group>
   );
@@ -204,49 +178,116 @@ function Roof() {
 
 function Dome() {
   return (
-    <group position={[0, 4.75, 1.2]}>
-      <mesh position={[0, 1.35, 0]}>
-        <cylinderGeometry args={[2.15, 2.35, 2.2, 24]} />
-        <meshStandardMaterial color={colors.exterior} roughness={0.85} />
+    <group position={[0, 0, domeZ]}>
+      <mesh position={[0, 10.4, 0]}>
+        <cylinderGeometry args={[3.5, 4.7, 2.4, 24, 1, true]} />
+        <meshStandardMaterial color={colors.plaster} roughness={0.86} side={2} emissive={colors.plaster} emissiveIntensity={0.16} />
       </mesh>
-      <mesh position={[0, 2.5, 0]}>
-        <sphereGeometry args={[2.15, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color={colors.dome} metalness={0.35} roughness={0.4} />
+      <mesh position={[0, 12.3, 0]}>
+        <cylinderGeometry args={[3.35, 3.5, 1.7, 24, 1, true]} />
+        <meshStandardMaterial color="#efe6d4" roughness={0.8} side={2} />
       </mesh>
-      <group position={[0, 4.55, 0]}>
-        <ByzantineCross scale={0.55} />
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => {
+        const angle = (index / 8) * Math.PI * 2;
+        return (
+          <mesh key={index} position={[Math.cos(angle) * 3.42, 12.3, Math.sin(angle) * 3.42]} rotation={[0, -angle, 0]}>
+            <planeGeometry args={[0.55, 1.15]} />
+            <meshStandardMaterial color={colors.glass} emissive="#fff1d2" emissiveIntensity={0.7} />
+          </mesh>
+        );
+      })}
+      <mesh position={[0, 13.15, 0]}>
+        <sphereGeometry args={[3.35, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial
+          color="#c9a15a"
+          roughness={0.55}
+          metalness={0.25}
+          side={1}
+          emissive="#8a6230"
+          emissiveIntensity={0.25}
+        />
+      </mesh>
+      <group position={[0, 16.5, 0]}>
+        <ByzantineCross scale={0.7} />
       </group>
     </group>
   );
 }
 
-function Floors() {
-  const naveDepth = world.naveWest - -1.5;
-  const naveCenter = (-1.5 + world.naveWest) / 2;
+function Clerestory() {
+  const zs = [-6.2, -1.2, 3.4, 8.2, 12.6];
   return (
     <group>
-      <mesh position={[0, -0.06, naveCenter]} receiveShadow>
-        <boxGeometry args={[world.halfWidth * 2, 0.12, naveDepth]} />
-        <meshStandardMaterial color={colors.floor} roughness={0.88} />
+      {zs.map((z) => (
+        <group key={z}>
+          <HighWindow x={-world.halfWidth + 0.02} z={z} />
+          <HighWindow x={world.halfWidth - 0.02} z={z} />
+        </group>
+      ))}
+      <mesh position={[-6.2, 7.2, 6]} rotation={[0.35, 0, 0.15]}>
+        <boxGeometry args={[1.2, 9, 0.08]} />
+        <meshBasicMaterial color="#fff6e4" transparent opacity={0.07} depthWrite={false} />
       </mesh>
-      <mesh position={[0, -0.06, 10.75]} receiveShadow>
-        <boxGeometry args={[world.halfWidth * 2, 0.12, 3.2]} />
-        <meshStandardMaterial color={colors.floorDark} roughness={0.9} />
+      <mesh position={[5.4, 7.4, 2]} rotation={[0.2, 0, -0.2]}>
+        <boxGeometry args={[1.1, 9.5, 0.08]} />
+        <meshBasicMaterial color="#fff6e4" transparent opacity={0.07} depthWrite={false} />
       </mesh>
-      <mesh position={[0, 0.12, -5.3]} receiveShadow>
-        <boxGeometry args={[world.halfWidth * 2, 0.24, 4.5]} />
-        <meshStandardMaterial color="#9a7d5c" roughness={0.84} />
+    </group>
+  );
+}
+
+function HighWindow({ x, z }: { x: number; z: number }) {
+  const flip = x > 0 ? Math.PI : 0;
+  return (
+    <group position={[x, 10.3, z]} rotation={[0, flip, 0]}>
+      <mesh>
+        <planeGeometry args={[1.15, 2.1]} />
+        <meshStandardMaterial color={colors.glass} emissive="#fff1d2" emissiveIntensity={0.55} side={2} />
       </mesh>
-      <mesh position={[0, 0.07, -2.28]} receiveShadow>
-        <boxGeometry args={[8.6, 0.14, 1.55]} />
+    </group>
+  );
+}
+
+function Gallery() {
+  return (
+    <group position={[8.7, 3.15, 6.4]}>
+      <mesh>
+        <boxGeometry args={[4.6, 0.16, 9.2]} />
+        <meshStandardMaterial color={colors.wood} roughness={0.75} />
+      </mesh>
+      <mesh position={[-2.15, 0.5, 0]}>
+        <boxGeometry args={[0.08, 0.9, 9.2]} />
+        <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
+function Floors() {
+  return (
+    <group>
+      <mesh position={[0, -0.04, 6.2]}>
+        <boxGeometry args={[world.halfWidth * 2, 0.12, 33]} />
+        <meshStandardMaterial color="#c6aa84" roughness={0.88} />
+      </mesh>
+      <mesh position={[0, 0.08, 19.6]}>
+        <boxGeometry args={[world.halfWidth * 2, 0.1, 6.2]} />
+        <meshStandardMaterial color={colors.floorDark} roughness={0.92} />
+      </mesh>
+      <mesh position={[0, 0.1, -7.2]}>
+        <boxGeometry args={[16, 0.2, 3.4]} />
         <meshStandardMaterial color="#a88b68" roughness={0.84} />
       </mesh>
-      <mesh position={[0, 0.16, -1.15]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[1.25, 24, Math.PI, Math.PI]} />
+      <mesh position={[0, 0.21, -13.9]}>
+        <boxGeometry args={[world.halfWidth * 2, 0.42, 9.4]} />
+        <meshStandardMaterial color="#9a7d5c" roughness={0.84} />
+      </mesh>
+      <mesh position={[0, 0.16, -5.6]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.7, 28, 0, Math.PI]} />
         <meshStandardMaterial color="#b29772" roughness={0.84} />
       </mesh>
-      <mesh position={[0, 0.03, 4]} receiveShadow>
-        <boxGeometry args={[1.35, 0.02, 12.5]} />
+      <mesh position={[0, 0.05, 4.2]}>
+        <boxGeometry args={[1.7, 0.02, 24]} />
         <meshStandardMaterial color={colors.runner} roughness={0.8} />
       </mesh>
     </group>
@@ -254,28 +295,27 @@ function Floors() {
 }
 
 function Pews() {
-  const rows = [2.55, 4.15, 5.75, 7.35];
+  const rows = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
+  const banks = [-7.15, -2.2, 2.2, 7.15];
   return (
     <group>
-      {rows.map((z) => (
-        <group key={z}>
-          <Pew position={[-2.45, z]} />
-          <Pew position={[2.45, z]} />
-        </group>
-      ))}
+      {rows.map((z) =>
+        banks.map((x) => <Pew key={`${x}-${z}`} position={[x, z]} wide={Math.abs(x) < 4} />),
+      )}
     </group>
   );
 }
 
-function Pew({ position }: { position: [number, number] }) {
+function Pew({ position, wide }: { position: [number, number]; wide: boolean }) {
+  const width = wide ? 2.4 : 2.1;
   return (
     <group position={[position[0], 0, position[1]]}>
-      <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.85, 0.08, 0.46]} />
+      <mesh position={[0, 0.42, 0]}>
+        <boxGeometry args={[width, 0.08, 0.48]} />
         <meshStandardMaterial color={colors.wood} roughness={0.68} />
       </mesh>
-      <mesh position={[0, 0.78, -0.2]} castShadow>
-        <boxGeometry args={[1.85, 0.62, 0.08]} />
+      <mesh position={[0, 0.78, -0.2]}>
+        <boxGeometry args={[width, 0.62, 0.08]} />
         <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
       </mesh>
     </group>
@@ -292,68 +332,36 @@ function Furnishings() {
   return (
     <group>
       <group position={world.altar}>
-        <mesh position={[0, 0.48, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.28, 0.9, 0.72]} />
-          <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.5, 0.02]} castShadow>
-          <boxGeometry args={[1.4, 0.98, 0.7]} />
+        <mesh position={[0, 0.55, 0]}>
+          <boxGeometry args={[1.7, 1.05, 0.9]} />
           <meshStandardMaterial color={colors.altarRed} roughness={0.62} />
         </mesh>
-        <mesh position={[0, 0.55, 0.38]}>
-          <planeGeometry args={[1.28, 0.86]} />
+        <mesh position={[0, 0.62, 0.48]}>
+          <planeGeometry args={[1.5, 0.95]} />
           <meshStandardMaterial map={frontal} roughness={0.55} />
         </mesh>
-        <mesh position={[0, 1.02, 0]}>
-          <boxGeometry args={[1.5, 0.06, 0.92]} />
+        <mesh position={[0, 1.12, 0]}>
+          <boxGeometry args={[1.9, 0.08, 1.1]} />
           <meshStandardMaterial color={colors.cloth} roughness={0.65} />
         </mesh>
-        <mesh position={[0, 1.06, 0]}>
-          <boxGeometry args={[1.2, 0.02, 0.55]} />
-          <meshStandardMaterial color={colors.gold} metalness={0.45} roughness={0.4} />
-        </mesh>
-        <group position={[0, 1.55, 0]}>
-          <ByzantineCross scale={0.42} />
+        <group position={[0, 1.7, 0]}>
+          <ByzantineCross scale={0.5} />
         </group>
-        <Candlestick position={[-0.48, 1.08, 0.12]} />
-        <Candlestick position={[0.48, 1.08, -0.08]} />
-        <mesh position={[0.28, 1.12, 0.16]} castShadow>
-          <boxGeometry args={[0.22, 0.06, 0.16]} />
-          <meshStandardMaterial color="#3d2418" roughness={0.5} />
-        </mesh>
+        <Candlestick position={[-0.62, 1.2, 0.12]} />
+        <Candlestick position={[0.62, 1.2, -0.08]} />
       </group>
       <group position={world.prothesis}>
-        <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.15, 0.8, 0.62]} />
+        <mesh position={[0, 0.46, 0]}>
+          <boxGeometry args={[1.35, 0.88, 0.72]} />
           <meshStandardMaterial color={colors.wood} roughness={0.7} />
         </mesh>
-        <mesh position={[-0.22, 0.86, 0]}>
-          <cylinderGeometry args={[0.1, 0.12, 0.035, 12]} />
+        <mesh position={[-0.28, 0.96, 0]}>
+          <cylinderGeometry args={[0.12, 0.14, 0.04, 12]} />
           <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
         </mesh>
-        <mesh position={[0.22, 0.92, 0]}>
-          <cylinderGeometry args={[0.05, 0.04, 0.12, 12]} />
+        <mesh position={[0.26, 1.04, 0]}>
+          <cylinderGeometry args={[0.055, 0.045, 0.14, 12]} />
           <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
-        </mesh>
-      </group>
-      <group position={[1.55, 0, 3.22]}>
-        <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.55, 0.08, 0.46]} />
-          <meshStandardMaterial color={colors.wood} roughness={0.68} />
-        </mesh>
-        <mesh position={[0, 0.72, -0.18]} castShadow>
-          <boxGeometry args={[0.55, 0.52, 0.07]} />
-          <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
-        </mesh>
-      </group>
-      <group position={[4.15, 0, 4.05]}>
-        <mesh position={[0, 0.35, 0]} receiveShadow>
-          <boxGeometry args={[1.8, 0.12, 3.4]} />
-          <meshStandardMaterial color="#c4b49a" roughness={0.9} />
-        </mesh>
-        <mesh position={[0.7, 0.7, 0]}>
-          <boxGeometry args={[0.08, 0.7, 3.2]} />
-          <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
         </mesh>
       </group>
     </group>
@@ -364,16 +372,16 @@ function Candlestick({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       <mesh>
-        <cylinderGeometry args={[0.04, 0.06, 0.08, 8]} />
+        <cylinderGeometry args={[0.045, 0.07, 0.08, 8]} />
         <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
       </mesh>
-      <mesh position={[0, 0.28, 0]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.42, 6]} />
+      <mesh position={[0, 0.32, 0]}>
+        <cylinderGeometry args={[0.016, 0.016, 0.48, 6]} />
         <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
       </mesh>
-      <mesh position={[0, 0.52, 0]}>
-        <sphereGeometry args={[0.035, 8, 8]} />
-        <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={1.8} />
+      <mesh position={[0, 0.58, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={1.4} />
       </mesh>
     </group>
   );
@@ -381,9 +389,10 @@ function Candlestick({ position }: { position: [number, number, number] }) {
 
 function Lamps() {
   const spots: [number, number, number][] = [
-    [0, 4.15, 5.4],
-    [0, 4.05, 1.4],
-    [0, 3.7, -5.4],
+    [0, 7.4, 11],
+    [0, 7.6, 4.5],
+    [0, 7.2, -4.2],
+    [0, 5.8, -13.4],
   ];
   return (
     <group>
@@ -395,33 +404,26 @@ function Lamps() {
 }
 
 function Chandelier({ position }: { position: [number, number, number] }) {
-  const candles = [0, 1, 2, 3, 4, 5, 6, 7];
   return (
     <group position={position}>
-      <mesh position={[0, 0.35, 0]}>
-        <cylinderGeometry args={[0.012, 0.012, 0.7, 6]} />
+      <mesh position={[0, 0.55, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 1.1, 6]} />
         <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.3} />
       </mesh>
-      <mesh position={[0, -0.05, 0]}>
-        <torusGeometry args={[0.42, 0.02, 8, 20]} />
+      <mesh>
+        <torusGeometry args={[0.55, 0.025, 8, 20]} />
         <meshStandardMaterial color={colors.gold} metalness={0.75} roughness={0.25} />
       </mesh>
-      {candles.map((index) => {
-        const angle = (index / candles.length) * Math.PI * 2;
+      {Array.from({ length: 8 }, (_, index) => {
+        const angle = (index / 8) * Math.PI * 2;
         return (
-          <group key={index} position={[Math.cos(angle) * 0.42, -0.05, Math.sin(angle) * 0.42]}>
-            <mesh position={[0, 0.08, 0]}>
-              <cylinderGeometry args={[0.012, 0.012, 0.14, 6]} />
-              <meshStandardMaterial color="#f6efe4" />
-            </mesh>
-            <mesh position={[0, 0.17, 0]}>
-              <sphereGeometry args={[0.028, 8, 8]} />
-              <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={2.2} />
-            </mesh>
-          </group>
+          <mesh key={index} position={[Math.cos(angle) * 0.55, 0.16, Math.sin(angle) * 0.55]}>
+            <sphereGeometry args={[0.035, 8, 8]} />
+            <meshStandardMaterial color="#ffd9a8" emissive="#ffb45c" emissiveIntensity={1.6} />
+          </mesh>
         );
       })}
-      <pointLight position={[0, -0.1, 0]} color="#ffc48a" intensity={2.2} distance={8} decay={2} />
+      <pointLight color="#ffc48a" intensity={6} distance={16} decay={2} />
     </group>
   );
 }
@@ -434,7 +436,7 @@ function Labels({ activeSpaces }: { activeSpaces: readonly SpaceId[] }) {
           key={label.id}
           position={label.position}
           center
-          distanceFactor={11}
+          distanceFactor={18}
           zIndexRange={[4, 0]}
           style={{ pointerEvents: "none" }}
         >
@@ -443,13 +445,7 @@ function Labels({ activeSpaces }: { activeSpaces: readonly SpaceId[] }) {
           </span>
         </Html>
       ))}
-      <Html
-        position={[0, 0.42, -1.05]}
-        center
-        distanceFactor={11}
-        zIndexRange={[4, 0]}
-        style={{ pointerEvents: "none" }}
-      >
+      <Html position={[0, 1.5, -5.6]} center distanceFactor={18} zIndexRange={[4, 0]} style={{ pointerEvents: "none" }}>
         <span className="space-tag">Ambon</span>
       </Html>
     </group>

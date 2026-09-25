@@ -50,47 +50,47 @@ export type CameraPose = {
 };
 
 const priestAtAltar: Actor = {
-  position: [0, world.sanctuaryFloor, -5.28],
+  position: [0, world.sanctuaryFloor, -13.8],
   facing: 0,
   stance: "stand",
 };
 const deaconAtSolea: Actor = {
-  position: [-0.45, world.soleaFloor, -2.25],
+  position: [-0.7, world.soleaFloor, -6.9],
   facing: 0,
   stance: "stand",
 };
 const deaconByAltar: Actor = {
-  position: [0.85, world.sanctuaryFloor, -4.85],
+  position: [1.35, world.sanctuaryFloor, -13.2],
   facing: 0,
   stance: "stand",
 };
 const readerAside: Actor = {
-  position: [1.55, 0, 3.35],
+  position: [2.3, 0, 4.4],
   facing: 0,
   stance: "sit",
 };
 const readerAtAmbon: Actor = {
-  position: [0.2, world.soleaFloor, -1.35],
+  position: [0.35, world.soleaFloor, -5.45],
   facing: 0,
   stance: "stand",
 };
 const priestAtProthesis: Actor = {
-  position: [-2.95, world.sanctuaryFloor, -5.75],
+  position: [-5.7, world.sanctuaryFloor, -14.6],
   facing: Math.PI / 2,
   stance: "stand",
 };
 const deaconAtProthesis: Actor = {
-  position: [-2.35, world.sanctuaryFloor, -5.15],
+  position: [-5.3, world.sanctuaryFloor, -13.4],
   facing: Math.PI,
   stance: "stand",
 };
 const priestAtAmbon: Actor = {
-  position: [0, world.soleaFloor, -1.35],
+  position: [0, world.soleaFloor, -5.45],
   facing: Math.PI,
   stance: "stand",
 };
 const deaconFacingPeople: Actor = {
-  position: [0.15, world.soleaFloor, -1.25],
+  position: [0.45, world.soleaFloor, -5.2],
   facing: Math.PI,
   stance: "stand",
 };
@@ -100,33 +100,33 @@ function stage(staging: Staging): Staging {
 }
 
 const cameraPoses: Record<StagedId, CameraPose> = {
-  gathering: { position: [0.3, 1.65, 11.4], target: [0, 1.7, -2.2] },
-  proskomedia: { position: [-1.1, 1.7, -4.35], target: [-3.4, 1.15, -5.7] },
-  opening: { position: [0.15, 1.62, 4.4], target: [0, 1.35, -5.6] },
-  "litany-of-peace": { position: [1.8, 1.62, 1.1], target: [-0.3, 1.35, -2.4] },
-  antiphons: { position: [-1.6, 1.8, 5.6], target: [3.4, 1.4, 3.6] },
-  "little-entrance": { position: [0.35, 3.45, 7.4], target: [-0.4, 1.05, -1.6] },
-  trisagion: { position: [0, 1.65, 4.6], target: [0, 2.1, -3] },
-  epistle: { position: [2.1, 1.62, 1.15], target: [0.15, 1.35, -1.3] },
-  gospel: { position: [2.35, 1.6, 0.55], target: [0, 1.45, -1.25] },
-  homily: { position: [1.7, 1.6, 1.8], target: [0, 1.45, -1.3] },
-  "before-the-gifts": { position: [0.6, 1.65, 2.6], target: [0, 1.4, -2.5] },
-  cherubic: { position: [3.4, 2.5, 5.2], target: [0, 1.4, -3.4] },
-  "great-entrance": { position: [-0.15, 3.65, 8.1], target: [-0.5, 1.0, -2] },
-  creed: { position: [0.2, 1.65, 5.8], target: [0, 1.5, -4.2] },
-  anaphora: { position: [0.35, 1.7, 1.5], target: [0, 1.25, -5.7] },
-  epiklesis: { position: [1.35, 2.05, 4.4], target: [0, 1.15, -4.6] },
-  theotokos: { position: [2.6, 1.75, 0.2], target: [-0.6, 1.9, -3] },
-  "our-father": { position: [0, 1.65, 5.2], target: [0, 1.4, -5] },
-  "holy-things": { position: [1.5, 1.7, -3.55], target: [0, 1.2, -5.8] },
-  communion: { position: [3.15, 1.75, 0.15], target: [0.2, 1.25, -1.8] },
-  thanksgiving: { position: [0.2, 1.65, 2.8], target: [0, 1.4, -3.4] },
-  dismissal: { position: [0.15, 1.75, 6.8], target: [0, 1.3, -1.2] },
+  gathering: { position: [0.4, 2.3, 19.2], target: [0, 5.2, -8] },
+  proskomedia: { position: [-2.2, 2.1, -11.6], target: [-6.2, 1.5, -14.6] },
+  opening: { position: [0.2, 1.75, 7.5], target: [0, 2.2, -14.5] },
+  "litany-of-peace": { position: [3.4, 1.8, 0.4], target: [-0.6, 1.7, -6.8] },
+  antiphons: { position: [-2.4, 2.6, 9.2], target: [7.2, 3.6, 6] },
+  "little-entrance": { position: [1.2, 1.65, 1.5], target: [-4.0, 1.1, 2.4] },
+  trisagion: { position: [0.15, 2.15, -1.6], target: [0, 3.4, -9.2] },
+  epistle: { position: [3.6, 1.8, -1.2], target: [0.3, 1.6, -5.4] },
+  gospel: { position: [4.2, 1.85, -2.2], target: [0.2, 1.7, -5.2] },
+  homily: { position: [3.2, 1.85, 0.6], target: [0, 1.7, -5.4] },
+  "before-the-gifts": { position: [1.1, 1.9, 3.4], target: [0, 2, -8] },
+  cherubic: { position: [6.2, 4.2, 8.4], target: [0, 2.4, -9] },
+  "great-entrance": { position: [1.6, 1.55, 3.4], target: [-3.5, 1.15, 2.6] },
+  creed: { position: [0.3, 2.1, 9.5], target: [0, 2.6, -12] },
+  anaphora: { position: [0.5, 2.3, 2.2], target: [0, 1.8, -15] },
+  epiklesis: { position: [2.6, 3.4, 5.2], target: [0, 1.6, -14.2] },
+  theotokos: { position: [5.4, 2.8, 1.2], target: [-1.2, 3.6, -9.2] },
+  "our-father": { position: [0, 2.1, 8.6], target: [0, 2.2, -13] },
+  "holy-things": { position: [2.8, 2.3, -11.2], target: [0, 1.7, -15.2] },
+  communion: { position: [5.6, 2.4, -2.4], target: [0.3, 1.5, -6.2] },
+  thanksgiving: { position: [0.3, 1.9, 4.2], target: [0, 2.2, -9] },
+  dismissal: { position: [0.2, 2.4, 12.5], target: [0, 1.7, -5.4] },
 };
 
 const stagingByStep: Record<StagedId, Staging> = {
   gathering: stage({
-    priest: { position: [0.4, world.sanctuaryFloor, -4.4], facing: 0, stance: "stand" },
+    priest: { position: [0.6, world.sanctuaryFloor, -11.6], facing: 0, stance: "stand" },
     deacon: deaconAtProthesis,
     reader: readerAside,
     faithful: "sit",
@@ -141,7 +141,7 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   opening: stage({
     priest: priestAtAltar,
-    deacon: { position: [0.7, world.sanctuaryFloor, -4.6], facing: 0, stance: "stand" },
+    deacon: { position: [1.2, world.sanctuaryFloor, -12.2], facing: 0, stance: "stand" },
     reader: readerAside,
     faithful: "stand",
     communicants: 0,
@@ -155,14 +155,14 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   antiphons: stage({
     priest: priestAtAltar,
-    deacon: { position: [-0.8, world.sanctuaryFloor, -4.2], facing: 0, stance: "stand" },
+    deacon: { position: [-1.4, world.sanctuaryFloor, -12.4], facing: 0, stance: "stand" },
     reader: readerAside,
     faithful: "sit",
     communicants: 0,
   }),
   "little-entrance": stage({
-    priest: { position: [0.55, world.sanctuaryFloor, -3.55], facing: Math.PI, stance: "stand" },
-    deacon: { position: [-0.7, world.sanctuaryFloor, -4.7], facing: 0, stance: "stand" },
+    priest: { position: [0.9, world.sanctuaryFloor, -10.6], facing: Math.PI, stance: "stand" },
+    deacon: { position: [-1.1, world.sanctuaryFloor, -12.4], facing: 0, stance: "stand" },
     reader: readerAside,
     faithful: "stand",
     communicants: 0,
@@ -176,13 +176,13 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   epistle: stage({
     priest: priestAtAltar,
-    deacon: { position: [-0.85, world.soleaFloor, -2.15], facing: 0, stance: "stand" },
+    deacon: { position: [-1.3, world.soleaFloor, -6.6], facing: 0, stance: "stand" },
     reader: readerAtAmbon,
     faithful: "sit",
     communicants: 0,
   }),
   gospel: stage({
-    priest: { position: [0.4, world.sanctuaryFloor, -3.7], facing: Math.PI, stance: "stand" },
+    priest: { position: [0.7, world.sanctuaryFloor, -10.8], facing: Math.PI, stance: "stand" },
     deacon: deaconFacingPeople,
     reader: readerAside,
     faithful: "stand",
@@ -190,7 +190,7 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   homily: stage({
     priest: priestAtAmbon,
-    deacon: { position: [0.85, world.soleaFloor, -2.15], facing: Math.PI, stance: "stand" },
+    deacon: { position: [1.15, world.soleaFloor, -5.15], facing: Math.PI, stance: "stand" },
     reader: readerAside,
     faithful: "sit",
     communicants: 0,
@@ -204,14 +204,14 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   cherubic: stage({
     priest: priestAtAltar,
-    deacon: { position: [-2.2, world.sanctuaryFloor, -4.9], facing: Math.PI / 2, stance: "stand" },
+    deacon: { position: [-4.2, world.sanctuaryFloor, -13.2], facing: Math.PI / 2, stance: "stand" },
     reader: readerAside,
     faithful: "stand",
     communicants: 0,
   }),
   "great-entrance": stage({
-    priest: { position: [-2.95, world.sanctuaryFloor, -5.75], facing: Math.PI / 2, stance: "stand" },
-    deacon: { position: [-3.15, world.sanctuaryFloor, -5.55], facing: 0, stance: "stand" },
+    priest: { position: [-5.7, world.sanctuaryFloor, -14.6], facing: Math.PI / 2, stance: "stand" },
+    deacon: { position: [-6.4, world.sanctuaryFloor, -14.2], facing: 0, stance: "stand" },
     reader: readerAside,
     faithful: "stand",
     communicants: 0,
@@ -232,7 +232,7 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   epiklesis: stage({
     priest: priestAtAltar,
-    deacon: { position: [0.95, world.sanctuaryFloor, -5.05], facing: 0, stance: "bow" },
+    deacon: { position: [1.5, world.sanctuaryFloor, -13.4], facing: 0, stance: "bow" },
     reader: { ...readerAside, stance: "bow" },
     faithful: "bow",
     communicants: 0,
@@ -252,21 +252,21 @@ const stagingByStep: Record<StagedId, Staging> = {
     communicants: 0,
   }),
   "holy-things": stage({
-    priest: { position: [0, world.sanctuaryFloor, -5.15], facing: Math.PI, stance: "stand" },
+    priest: { position: [0, world.sanctuaryFloor, -13.5], facing: Math.PI, stance: "stand" },
     deacon: deaconByAltar,
     reader: { ...readerAside, stance: "stand" },
     faithful: "stand",
     communicants: 0,
   }),
   communion: stage({
-    priest: { position: [0.15, world.soleaFloor, -2.05], facing: Math.PI, stance: "stand" },
-    deacon: { position: [0.85, world.soleaFloor, -2.15], facing: Math.PI, stance: "stand" },
+    priest: { position: [0.2, world.soleaFloor, -6.3], facing: Math.PI, stance: "stand" },
+    deacon: { position: [1.2, world.soleaFloor, -6.5], facing: Math.PI, stance: "stand" },
     reader: { ...readerAside, stance: "stand" },
     faithful: "stand",
     communicants: 4,
   }),
   thanksgiving: stage({
-    priest: { position: [0, world.sanctuaryFloor, -3.45], facing: Math.PI, stance: "stand" },
+    priest: { position: [0, world.sanctuaryFloor, -10.4], facing: Math.PI, stance: "stand" },
     deacon: deaconByAltar,
     reader: readerAside,
     faithful: "stand",
@@ -274,7 +274,7 @@ const stagingByStep: Record<StagedId, Staging> = {
   }),
   dismissal: stage({
     priest: priestAtAmbon,
-    deacon: { position: [0.9, world.soleaFloor, -2.05], facing: Math.PI, stance: "stand" },
+    deacon: { position: [1.35, world.soleaFloor, -6.4], facing: Math.PI, stance: "stand" },
     reader: { ...readerAside, stance: "stand" },
     faithful: "stand",
     communicants: 0,
