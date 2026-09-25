@@ -1,12 +1,94 @@
 # QA punch list — Divine Liturgy walkthrough
 
-Tested as a first-time user on current `main` (`61757d1`, “MakeHuman people, candlelit nave, and clergy framing”). No app code was changed.
+## Verified pass 5
+
+Independent retest of draft pass 5, branch `cursor/liturgy-pass-5-339c` at `390a88e` (“Open the sanctuary doors and replace the repeated bald cast”). No app code was changed. The “Fixed in pass 5” column later in this file is the developer’s claim. The tables in this section are what a second walk actually showed.
+
+**Verdict: not ready to ship live.**
+
+The altar steps, the phone layout, and the console are in much better shape than `main`. A parish still should not get this build. The official build command fails, so the container cannot be produced, and the congregation still floats and intersects the pews in the shots a learner watches.
+
+### Still P0
+
+1. **`npm run build` fails**, so this cannot be deployed the way the image is built. `tsc --noEmit` stops on `vite.config.ts(1,26): error TS2307: Cannot find module 'node:fs/promises' or its corresponding type declarations.` The Dockerfile runs `npm run build`. On `main` that command succeeded. This is a regression. The pictures below are from `npx vite build` and `vite preview`, which skip the typecheck.
+2. **The congregation still does not sit in the church.** Clothes and faces vary, and the old single bald pair is gone, but feet hang above the floor in the gathering, the antiphons, the Trisagion, Communion, and the dismissal. Bodies pass through pews, railings, and each other. That is the picture on the steps a first-time user actually stares at.
+
+### How this retest was run
+
+- Checked out `cursor/liturgy-pass-5-339c`. `npm run build` failed as above. `npx vite build` produced `dist/assets/index-DAozHQCk.js`. Preview at `http://127.0.0.1:4173/`.
+- Playwright, headed Chromium, WebGL 2 via ANGLE SwiftShader (`Vulkan 1.3.0 (SwiftShader Device)`). Canvas about 1160×815.
+- Follow liturgy: Next through all 22 steps, then Previous back through all 22. Home landed on Gathering. End landed on Dismissal. Previous disabled on step 1, Next disabled on step 22. Every title on the way back matched.
+- Free look: WASD hint on desktop, E on an icon, Icon tour, Head bob. Phone at 390×844 with the joystick.
+- High, Medium, and Low on the anaphora.
+- Holy Things was walked again on Medium after the High pair presented one frozen frame (about 0.6 fps). The second pass is `pass5-holy-open.png` and `pass5-holy-shut.png`.
+
+SwiftShader frame rate, ~1160×815: High about 0.57 fps, Medium about 0.9–1.8, Low about 1.5. Low is readable and only a little faster. New shots are `qa/screenshots/pass5-*.png`. The original `qa/screenshots/*.png` files are the first walk and were left in place.
+
+### Verified pass 5 — every punch-list item
+
+| Item | Verified pass 5 | What this walk showed |
+| --- | --- | --- |
+| 1 Sanctuary visibility (P0-1) | partly fixed | Proskomedia, Cherubic Hymn, Creed, anaphora, epiklesis, and Holy Things no longer stare at a shut screen. High and Low anaphora are inside beside the gifts (`pass5-step-15.png`, `pass5-quality-anaphora-high.png`, `pass5-quality-anaphora-low.png`). The diskos and chalice often look suspended, and the Medium anaphora frame lost the altar entirely (`pass5-quality-anaphora-medium.png`). |
+| 2 Deacon doors (P0-2) | partly fixed | The north leaf opens for both entrances. The Gospel and the vessels are in the doorway, and the procession no longer walks through a painted archangel. Bodies still intersect the door frame. Candles do not go before the book or the gifts. The Great Entrance stays in the doorway (`pass5-step-06-later.png`, `pass5-step-13-later.png`). |
+| 3 People (P0-3) | partly fixed | Still P0 for a live parish. Suits, dresses, work clothes, and different faces are in the pews. The priest has a beard, a kamilavka, and a bell-shaped phelonion. Several heads still have no hair. Feet float. Bodies clip pews, the kliros rail, and each other. Children read as short adults. Walking up to the priest barely moved the camera (`pass5-people-priest-close.png` and `pass5-people-priest-side.png` are almost the same frame). `pass5-step-01.png`, `pass5-people-nave-close.png`, `pass5-step-20.png`. |
+| 4 Wrong subject (P1-1) | partly fixed | Gathering is the narthex and nave. Antiphons are the kliros. Trisagion and the Our Father show the people facing the altar. At the kliros the singers face away and float above the loft (`pass5-step-05.png`). The sign of the cross at the Trisagion is not readable (`pass5-step-07.png`). |
+| 5 Holy Things (top 5) | fixed | One step, two beats. Gifts lifted with the royal doors open (`pass5-holy-open.png`), then the doors and the curtain shut while the nave waits (`pass5-holy-shut.png`). The first High pair, `pass5-step-19.png` and `pass5-step-19-clergy.png`, was the same presented frame and is not the evidence. |
+| 6 Epiklesis kneel (P1-2) | fixed | The nave is kneeling. The royal doors are open and the gifts are visible in the distance (`pass5-step-16.png`). A few figures on the side stay standing. |
+| 7 Entrances (top 7) | partly fixed | The camera is on the open north door, behind the carrier, for both entrances. The Gospel is in the deacon’s hands. The chalice and diskos are in the doorway. Neither procession reads as candles, a crossing of the nave, and vessels set on the altar. The deacon’s body clips the frame (`pass5-step-06-later.png`, `pass5-step-13-later.png`). |
+| 8 Phone (P1-6) | fixed | At 390×844 the church is the first screen (picture from y=15, title down at y=1723). Quality, mode buttons, joystick hint, joystick, and cast key do not cover each other. The hint says “Drag to look. Move with the joystick. Home and End change the step.” One joystick. `pass5-mobile-freelook.png`, `pass5-mobile-top.png`, `pass5-mobile-after-joystick.png`. |
+| 9 Low quality (P1-7) | partly fixed | Low anaphora stays a warm interior with the priest and the gifts, and the icons are lit (`pass5-quality-anaphora-low.png`). It is the same kind of picture as High, not the old crushed brown field. Medium’s anaphora frame is a different, emptier nave with the doors closed (`pass5-quality-anaphora-medium.png`). All three settings were still a slideshow here. |
+| 10 First-run UI (P2-1) | fixed | Step 1 opens with the “what you see” line visible and the disclosure open (`detailsOpen: true`). Follow liturgy says “Arrow keys, Home, End”. Free look on the desktop says WASD, and the pager then says “Home and End change the step”. `pass5-ui-first.png`. |
+| P1-3 Communion and dismissal | partly fixed | Communion has open doors, a line, and a child (`pass5-step-20.png`). The chalice does not read, and the line floats. Dismissal brings people toward the ambon and the narthex (`pass5-step-22.png`). The hand cross and the antidoron do not read, and several people stand in the pews. |
+| P1-4 Readings and homily | partly fixed | Doors are open. The Epistle reader, the deacon with the Gospel, and the homily priest are at the ambon with a seated or standing nave (`pass5-step-08.png`, `pass5-step-09.png`, `pass5-step-10.png`). Candles beside the Gospel are not a clear part of the picture, and the reader’s feet float. |
+| P1-5 Free look and the dome tour | partly fixed | E opened the St. Nicholas note (`pass5-free-press-e.png`). The tour opened Exaltation of the Cross, the Deesis, the Dormition, and Christ Pantocrator. The last stop is in the nave looking up; the frame reads as a cross more than the Pantocrator face (`pass5-tour-4.png`). The eye sticks against the priest at arm’s length. |
+| P2-2 Pointer lock and head bob | fixed | Head bob starts off (`aria-pressed` false). This walk recorded no page errors and no pointer-lock exceptions. |
+| P2-3 Legend and step 3 | partly fixed | Step 3 is closer, with the royal doors and curtain open, the priest at the altar, and a server with a candle (`pass5-step-03.png`). The priest is still small and his feet do not meet the floor. The priest’s cloth reads burgundy and gold and the deacon’s reads cream and gold, which matches the cast key’s intent. |
+| P2-4 THREE.Clock | fixed | Console warnings: none. Page errors: none. Failed network requests: none. |
+
+### Verified pass 5 — doors, curtain, and camera
+
+This column scores the door state and the camera subject. Floating and clipping are scored once, under People.
+
+| Step | Verified pass 5 | What this walk showed |
+| --- | --- | --- |
+| 1 Gathering | fixed | Narthex and nave, people, lamps, shut screen in the distance. `pass5-step-01.png` |
+| 2 Proskomedia | fixed | Inside at the north table. Diskos, chalice, and prosphora are on the table. Doors and curtain stay shut. `pass5-step-02.png` |
+| 3 Blessed is the kingdom | fixed | Royal doors and curtain open. Priest at the altar, server with a candle. `pass5-step-03.png` |
+| 4 Litany of Peace | fixed | Deacon on the solea in front of open doors. `pass5-step-04.png` |
+| 5 Antiphons | partly fixed | The kliros is the subject and the iconostas is in front of the nave. Singers face away from the nave and hang above the loft. `pass5-step-05.png` |
+| 6 Little Entrance | partly fixed | North door open. Deacon with the Gospel in the doorway. His body clips the frame. No candles before the book. `pass5-step-06-later.png` |
+| 7 Trisagion | fixed | Nave facing the altar through open doors. The sign of the cross is not a readable gesture. `pass5-step-07.png` |
+| 8 Epistle | fixed | Reader at the ambon with a book, doors open, people sitting. `pass5-step-08.png` |
+| 9 Gospel | partly fixed | Deacon at the ambon facing the people, doors open. Candles attending the book are not obvious. `pass5-step-09.png` |
+| 10 Homily | fixed | Priest at the ambon facing a seated nave. `pass5-step-10.png` |
+| 11 Litanies before the gifts | partly fixed | Deacon on the solea, doors open, nave behind him. No one is shown leaving toward the narthex. `pass5-step-11.png` |
+| 12 Cherubic Hymn | fixed | Inside at the prothesis: priest, deacon, censer, gifts. Open doors in the background. `pass5-step-12.png` |
+| 13 Great Entrance | partly fixed | North door open. Deacon and priest with chalice and diskos still in the doorway. Bodies clip the frame. No candles. `pass5-step-13-later.png` |
+| 14 Creed | fixed | Nave standing toward open royal doors. `pass5-step-14.png` |
+| 15 Anaphora | fixed | Inside beside the holy table. Priest, diskos, and chalice. `pass5-step-15.png` |
+| 16 Epiklesis | fixed | Nave kneeling. Gifts visible through open doors. `pass5-step-16.png` |
+| 17 Theotokos | fixed | Altar in front, Theotokos and the apse icons behind. `pass5-step-17.png` |
+| 18 Our Father | fixed | People in the nave facing the altar. `pass5-step-18.png` |
+| 19 Holy Things | fixed | Elevation with the doors open, then doors and curtain shut. `pass5-holy-open.png`, `pass5-holy-shut.png` |
+| 20 Communion | partly fixed | Open doors, a line, and a child. The chalice is not readable. `pass5-step-20.png` |
+| 21 Thanksgiving | partly fixed | Priest in the open doorway, north door open. The blessing and the vessels returning to the prothesis are not a clear second picture. `pass5-step-21.png` |
+| 22 Dismissal | partly fixed | People move toward the ambon and the narthex. The hand cross and the antidoron are not readable. `pass5-step-22.png` |
+
+### New issues
+
+- **Build break (P0, regressed).** `npm run build` → `TS2307` on `node:fs/promises` in `vite.config.ts`. `tsconfig.json` includes that file and the project has no Node types. The Dockerfile runs `npm run build`, so a Cloud Run image of this branch does not build. `main` typechecked.
+- **Medium quality drops the anaphora camera (P1).** After switching to Medium, the frame is an empty stretch of nave with the doors closed. High and Low stay on the holy table. `pass5-quality-anaphora-medium.png`.
+- **Hairless heads inside the new cast (folded into People).** Several women in the pews have a smooth scalp. The priest’s beard and kamilavka do read. `pass5-people-nave-close.png`.
+
+---
+
+Tested as a first-time user on current `main` (`61757d1`, “MakeHuman people, candlelit nave, and clergy framing”). No app code was changed. The sections below are that first walk. They are unchanged on purpose.
 
 **Verdict:** the lesson text is careful, and Next / Previous / Home / End really do walk all 22 steps. The picture does not. For the proskomedia, the Cherubic Hymn, the Creed, the anaphora, the epiklesis, and “Holy Things,” the camera sits on the iconostas. The royal doors and the red curtain are shut, or only cracked, so the altar, the gifts, and the priest’s prayer are not what you see. The congregation is one bald man and one bald woman in tube clothes, repeated down the pews. On a phone the controls cover the church. I would not show this build to a parish as a finished walkthrough.
 
-## Fixed in pass 5
+## Developer's claim — “Fixed in pass 5”
 
-The findings above are unchanged. This column and the table below were added after pass 5. `public/` is about 14 MB.
+The paragraph just above is the first-walk verdict from `main`. This column and the table below were added by the pass 5 developer. They are the claim. The independent result is the **Verified pass 5** section at the top. `public/` is about 14 MB.
 
 | Item | Fixed in pass 5 |
 | --- | --- |
