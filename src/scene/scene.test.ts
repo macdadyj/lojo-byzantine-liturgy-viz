@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { steps } from "../liturgy/steps";
 import { spaceList } from "../liturgy/spaces";
-import { resolveWalk } from "./collide";
+import { clampLookPitchAt, lookPitchMin, minEyeHeight, resolveWalk, standingEye } from "./collide";
+import { beatAfter, holyCloseMs, noteHolyStep, pinHolyBeat, publishHolyClock, resetHolyBeat, getHolyBeat } from "./holyBeat";
 import { censingFor, gestureFor } from "./gestures";
 import { pointBehind, pointOnPath } from "./path";
 import { closestPair, communionLine, dismissalLine, faithfulPlace } from "./crowdLayout";
@@ -123,6 +124,37 @@ describe("3D liturgy staging", () => {
     expect(Math.abs(wideNorth.z - world.iconZ)).toBeLessThan(0.5);
     const column = resolveWalk(world.columnX, 4.2, shut);
     expect(Math.hypot(column.x - world.columnX, column.z - 4.2)).toBeGreaterThan(0.7);
+  });
+
+  it("keeps the Holy Things close when the step is noted again", () => {
+    resetHolyBeat();
+    noteHolyStep("holy-things", 1000);
+    noteHolyStep("holy-things", 9000);
+    expect(beatAfter(1000 + 400)).toBe("elevation");
+    expect(beatAfter(1000 + holyCloseMs)).toBe("clergy");
+    publishHolyClock(1000 + 400);
+    expect(getHolyBeat()).toBe("elevation");
+    publishHolyClock(1000 + 4500);
+    expect(getHolyBeat()).toBe("clergy");
+    pinHolyBeat("elevation");
+    expect(beatAfter(1000 + 9000)).toBe("elevation");
+    pinHolyBeat("clergy");
+    expect(beatAfter(1000 + 100)).toBe("clergy");
+    noteHolyStep("communion", 12000);
+    expect(beatAfter(12000)).toBe("off");
+    noteHolyStep("holy-things", 13000);
+    expect(beatAfter(13000)).toBe("elevation");
+    resetHolyBeat();
+  });
+
+  it("keeps a free look above the pews", () => {
+    expect(clampLookPitchAt(-1.2, 0, 8)).toBe(lookPitchMin);
+    expect(clampLookPitchAt(1.15, 0, 8)).toBeLessThanOrEqual(0.85);
+    expect(clampLookPitchAt(-1.2, -2.2, 4.6)).toBe(-0.48);
+    expect(clampLookPitchAt(-0.62, 0.4, 7.4)).toBeCloseTo(-0.62);
+    expect(standingEye(0)).toBeGreaterThan(minEyeHeight);
+    expect(standingEye(0)).toBeGreaterThan(0.5);
+    expect(standingEye(-1)).toBe(minEyeHeight);
   });
 
   it("marks the cross and the censer on the steps that call for them", () => {

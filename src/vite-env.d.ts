@@ -13,6 +13,12 @@ interface LiturgyBridge {
   measureSoles?: () => { x: number; z: number; sole: number; floor: number; gap: number; hip: number }[];
   measureDoors?: () => { curtain: number | null; curtainWorld: number | null; royal: number | null };
   receiving?: boolean;
+  holy?: () => {
+    enteredAt: number | null;
+    pin: "elevation" | "clergy" | null;
+    beat: "off" | "elevation" | "clergy";
+    elapsed: number | null;
+  };
   marchT?: number;
   walkTo?: (x: number, z: number, yaw: number, pitch?: number) => void;
 }

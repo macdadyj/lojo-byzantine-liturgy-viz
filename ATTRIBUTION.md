@@ -2,7 +2,7 @@
 
 ## Figures
 
-The people in the church are CC0 modular characters by Quaternius. The faithful use the suit, casual, and hoodie bodies, recolored to muted Sunday clothes with matte cloth and skin. Women also wear a headscarf and a skirt modeled in this project. Work helmets, hi-vis vests, crowns, and costume outfits from the pack are not shown. Children and teenagers are shorter; a child has a slightly larger head. The priest and deacon start from the same rig; the phelonion, sticharion, epitrachelion, orarion, beard, and kamilavka are modeled in this project and skinned to that skeleton.
+The people in the church are CC0 modular characters by Quaternius. The faithful use the suit, casual, and hoodie bodies. Cloth is recolored to muted Sunday colors, with a shirt, shoes, and a weave normal so a jacket is not one flat swatch. Skin uses a warm sheen. Heads are scaled down toward adult proportions. Women also wear a headscarf and a skirt modeled in this project. Work helmets, hi-vis vests, crowns, and costume outfits from the pack are not shown. Children and teenagers are shorter. The priest and deacon start from the same rig; the phelonion, sticharion, epitrachelion, orarion, beard, and kamilavka are modeled in this project and skinned to that skeleton. Idle playback is offset per person so the nave is not one synchronized loop.
 
 - Files in use: `public/models/cast/` (`m-suit`, `m-casual`, `m-hoodie`, `w-suit`, `w-formal`, `w-casual`, `priest`, `deacon`, and `anims`). The pack’s worker, farmer, king, and medieval files are still in the folder and are not placed in the nave.
 - Men: Ultimate Modular Men, CC0 — https://quaternius.com/packs/ultimatemodularcharacters.html

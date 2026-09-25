@@ -5,17 +5,22 @@ import {
   AnimationClip,
   AnimationMixer,
   BoxGeometry,
+  CanvasTexture,
+  Color,
   CylinderGeometry,
+  Group,
+  LinearSRGBColorSpace,
   LoopRepeat,
   Matrix4,
   Mesh,
+  MeshPhysicalMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
   Quaternion,
+  RepeatWrapping,
   SkinnedMesh,
   SphereGeometry,
-  Color,
-  Group,
+  Vector2,
   Vector3,
   type Material,
   type Object3D,
@@ -37,7 +42,7 @@ type ClipName = "idle" | "walk" | "sit" | "kneel";
 /** Sunday clothes only: jackets, sweaters, dresses. No work gear, crowns, or costume pieces. */
 const castNames = ["m-suit", "m-casual", "m-hoodie", "w-suit", "w-formal", "w-casual"] as const;
 
-const clothPalette = ["#3c465c", "#4a4038", "#2f3d36", "#5a4550", "#3a4048", "#5c4a3c", "#243044", "#4e493f"];
+const clothPalette = ["#4a5160", "#5c534c", "#3e4842", "#6a5d62", "#4d5156", "#6b5e52", "#3a4250", "#5a564e"];
 
 export type CastName = (typeof castNames)[number];
 
@@ -235,7 +240,7 @@ function Person({
     const dressed = file.startsWith("w-") ? sundayLayers(clone, tint) : [];
     const added = attachProps(clone, { carry, censing: censing && quality !== "low", elevated });
     const head = clone.getObjectByName("Head");
-    if (head && age === "child") head.scale.setScalar(1.08);
+    if (head) head.scale.setScalar(headScaleFor(age));
     return () => {
       for (const material of created) material.dispose();
       const dressMaterial = dressed[0] instanceof Mesh ? dressed[0].material : null;
@@ -266,8 +271,12 @@ function Person({
     action.reset();
     action.setLoop(LoopRepeat, Infinity);
     action.play();
-    mixer.update(walking ? 0.2 : 0.05 + phase * 0.4);
-  }, [clip, mixer, phase, walking]);
+    if (!walking && clip.duration > 0) {
+      action.time = phase * clip.duration;
+      action.timeScale = 0.7 + (Math.abs(tint) % 5) * 0.07 + phase * 0.28;
+    }
+    mixer.update(0.001);
+  }, [clip, mixer, phase, tint, walking]);
 
   useLayoutEffect(() => {
     const id = nextBlockerId();
@@ -339,53 +348,197 @@ function prepareClips(animations: AnimationClip[]): Map<ClipName, AnimationClip>
   return map;
 }
 
+type SurfaceKind = "skin" | "hair" | "eye" | "shirt" | "shoe" | "accent" | "cloth";
+
+function surfaceKind(label: string): SurfaceKind {
+  if (label.includes("skin")) return "skin";
+  if (label.includes("hair") || label.includes("eyebrow") || label.includes("brow")) return "hair";
+  if (label.includes("eye")) return "eye";
+  if (label.includes("white")) return "shirt";
+  if (label === "black") return "shoe";
+  if (label.includes("gold") || label.includes("metal")) return "accent";
+  return "cloth";
+}
+
+function headScaleFor(age: Age): number {
+  switch (age) {
+    case "child":
+      return 0.98;
+    case "teen":
+      return 0.94;
+    case "adult":
+      return 0.9;
+    case "elder":
+      return 0.92;
+    default: {
+      const exhaustive: never = age;
+      return exhaustive;
+    }
+  }
+}
+
 function tintFigure(root: Object3D, tint: number, age: Age, sunday: boolean): Material[] {
   const created: Material[] = [];
   const skin = new Color(skinTints[Math.abs(tint) % skinTints.length] ?? "#c68642");
   const hair = new Color(hairTints[Math.abs(tint + 3) % hairTints.length] ?? "#2a2118");
-  const cloth = new Color(clothPalette[Math.abs(tint) % clothPalette.length] ?? "#3c465c");
+  const cloth = new Color(clothPalette[Math.abs(tint) % clothPalette.length] ?? "#4a5160");
+  cloth.lerp(new Color("#6f6a63"), 0.2);
   if (age === "elder") hair.lerp(new Color("#d9d3c7"), 0.72);
+  const weave = sunday ? clothWeave() : null;
   root.traverse((child) => {
     if (!(child instanceof Mesh)) return;
     const source = child.material;
     const list = Array.isArray(source) ? source : [source];
     let changed = false;
-    const next = list.map((material) => {
+    const next = list.map((material, index) => {
       if (!(material instanceof MeshStandardMaterial)) return material;
       const label = material.name.toLowerCase();
-      const touchesSkin = label.includes("skin");
-      const touchesHair = label.includes("hair") || label.includes("eyebrow") || label.includes("brow");
-      const keep = touchesSkin || touchesHair || label.includes("eye");
+      const kind = surfaceKind(label);
+      const keep = kind === "skin" || kind === "hair" || kind === "eye";
       if (!sunday && !keep) return material;
-      const copy = material.clone();
-      copy.metalness = 0;
-      copy.roughness = touchesSkin ? 0.58 : 0.82;
-      copy.emissive.set(0x000000);
-      copy.emissiveIntensity = 0;
-      if (touchesSkin) copy.color.multiply(skin);
-      else if (touchesHair) copy.color.multiply(hair);
-      else if (sunday) {
-        copy.color.copy(cloth);
-        copy.map = null;
-        copy.normalMap = null;
-        copy.roughnessMap = null;
-        copy.metalnessMap = null;
-        copy.emissiveMap = null;
-        copy.vertexColors = false;
-      }
-      created.push(copy);
+      const painted = paintSurface(child, material, index, kind, skin, hair, cloth, weave);
+      created.push(painted);
       changed = true;
-      return copy;
+      return painted;
     });
     if (changed) child.material = Array.isArray(source) ? next : (next[0] ?? source);
   });
   return created;
 }
 
+function paintSurface(
+  mesh: Mesh,
+  material: MeshStandardMaterial,
+  index: number,
+  kind: SurfaceKind,
+  skin: Color,
+  hair: Color,
+  cloth: Color,
+  weave: ClothWeave | null,
+): Material {
+  const key = `litBase${index}`;
+  const stored = mesh.userData[key] as Color | undefined;
+  const base = stored ? stored.clone() : material.color.clone();
+  if (!stored) mesh.userData[key] = material.color.clone();
+  switch (kind) {
+    case "skin":
+      return new MeshPhysicalMaterial({
+        name: material.name,
+        color: base.multiply(skin),
+        map: material.map,
+        roughness: 0.48,
+        metalness: 0,
+        sheen: 0.42,
+        sheenRoughness: 0.48,
+        sheenColor: new Color("#e8b39a"),
+        emissive: new Color("#8c3d32"),
+        emissiveIntensity: 0.07,
+      });
+    case "hair":
+      return new MeshPhysicalMaterial({
+        name: material.name,
+        color: base.multiply(hair),
+        map: material.map,
+        roughness: 0.62,
+        metalness: 0.04,
+        sheen: 0.35,
+        sheenRoughness: 0.4,
+        sheenColor: new Color("#4a3428"),
+      });
+    case "eye": {
+      const copy = material.clone();
+      copy.roughness = 0.22;
+      copy.metalness = 0;
+      return copy;
+    }
+    case "shirt":
+      return clothMaterial(material.name, new Color("#cfc6ba"), weave, 0.92);
+    case "shoe":
+      return clothMaterial(material.name, new Color("#2a2724"), null, 0.58);
+    case "accent":
+      return new MeshStandardMaterial({
+        name: material.name,
+        color: "#8a7a5c",
+        roughness: 0.48,
+        metalness: 0.28,
+      });
+    case "cloth":
+      return clothMaterial(material.name, cloth, weave, 0.88);
+    default: {
+      const exhaustive: never = kind;
+      return exhaustive;
+    }
+  }
+}
+
+type ClothWeave = { normal: CanvasTexture; rough: CanvasTexture };
+
+let weaveMaps: ClothWeave | null = null;
+
+function clothWeave(): ClothWeave | null {
+  if (weaveMaps) return weaveMaps;
+  if (typeof document === "undefined") return null;
+  const size = 96;
+  const normalCanvas = document.createElement("canvas");
+  normalCanvas.width = size;
+  normalCanvas.height = size;
+  const normalCtx = normalCanvas.getContext("2d");
+  const roughCanvas = document.createElement("canvas");
+  roughCanvas.width = size;
+  roughCanvas.height = size;
+  const roughCtx = roughCanvas.getContext("2d");
+  if (!normalCtx || !roughCtx) return null;
+  const normalImage = normalCtx.createImageData(size, size);
+  const roughImage = roughCtx.createImageData(size, size);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const warp = x % 4 < 2;
+      const weft = y % 4 < 2;
+      const pixel = (y * size + x) * 4;
+      normalImage.data[pixel] = 128 + (warp ? 14 : -10);
+      normalImage.data[pixel + 1] = 128 + (weft ? 10 : -12);
+      normalImage.data[pixel + 2] = 246;
+      normalImage.data[pixel + 3] = 255;
+      const shade = warp === weft ? 214 : 168;
+      roughImage.data[pixel] = shade;
+      roughImage.data[pixel + 1] = shade;
+      roughImage.data[pixel + 2] = shade;
+      roughImage.data[pixel + 3] = 255;
+    }
+  }
+  normalCtx.putImageData(normalImage, 0, 0);
+  roughCtx.putImageData(roughImage, 0, 0);
+  const normal = new CanvasTexture(normalCanvas);
+  const rough = new CanvasTexture(roughCanvas);
+  for (const texture of [normal, rough]) {
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.repeat.set(3.5, 3.5);
+    texture.colorSpace = LinearSRGBColorSpace;
+    texture.needsUpdate = true;
+  }
+  weaveMaps = { normal, rough };
+  return weaveMaps;
+}
+
+function clothMaterial(name: string, color: Color, weave: ClothWeave | null, roughness: number): MeshStandardMaterial {
+  const material = new MeshStandardMaterial({
+    name,
+    color,
+    roughness,
+    metalness: 0,
+    normalMap: weave?.normal ?? null,
+    roughnessMap: weave?.rough ?? null,
+  });
+  if (weave) material.normalScale = new Vector2(1.6, 1.6);
+  return material;
+}
+
 function sundayLayers(clone: Object3D, tint: number): Object3D[] {
   const added: Object3D[] = [];
-  const color = clothPalette[Math.abs(tint + 2) % clothPalette.length] ?? "#3a4048";
-  const cloth = new MeshStandardMaterial({ color, roughness: 0.86, metalness: 0 });
+  const color = new Color(clothPalette[Math.abs(tint + 2) % clothPalette.length] ?? "#4d5156");
+  color.lerp(new Color("#6f6a63"), 0.2);
+  const cloth = clothMaterial("sunday", color, clothWeave(), 0.9);
   const head = clone.getObjectByName("Head");
   if (head) {
     const scarf = new Mesh(new SphereGeometry(0.13, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), cloth);

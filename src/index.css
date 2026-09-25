@@ -669,6 +669,13 @@ button:disabled {
   }
 }
 
+.beat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
 .legend,
 .where-list,
 .roles,

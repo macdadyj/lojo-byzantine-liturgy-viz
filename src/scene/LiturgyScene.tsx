@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
 import type { Group } from "three";
 import type { SpaceId } from "../liturgy/spaces";
@@ -13,6 +13,7 @@ import { Clergy, Crowd, type Carry, type CrowdSpot } from "./People";
 import { cantorSpot, choirLine, communionLine, dismissalLine, pewBanks, pewRows } from "./crowdLayout";
 import { pointBehind, type Vec3 } from "./path";
 import { dprFor, type Quality } from "./quality";
+import { holyDebug, publishHolyClock, useHolyBeat } from "./holyBeat";
 import { cameraFor, doorsFor, stagingFor, type Actor, type Stance } from "./staging";
 import { Walker } from "./Walker";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
@@ -92,30 +93,13 @@ export function LiturgyScene({
   reducedMotion,
 }: LiturgySceneProps) {
   const pose = cameraFor(step.id);
-  const [clergyReceiving, setClergyReceiving] = useState(false);
-  useEffect(() => {
-    if (step.id !== "holy-things") {
-      setClergyReceiving(false);
-      return;
-    }
-    const started = performance.now();
-    setClergyReceiving(false);
-    const timer = window.setInterval(() => {
-      if (performance.now() - started < 1800) return;
-      setClergyReceiving(true);
-      window.clearInterval(timer);
-    }, 250);
-    if (import.meta.env.DEV) {
-      const bridge = window.__liturgy ?? {};
-      bridge.receiving = false;
-      window.__liturgy = bridge;
-    }
-    return () => window.clearInterval(timer);
-  }, [step.id]);
+  const beat = useHolyBeat(step.id);
+  const clergyReceiving = beat === "clergy";
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const bridge = window.__liturgy ?? {};
     bridge.receiving = clergyReceiving;
+    bridge.holy = () => holyDebug();
     window.__liturgy = bridge;
   }, [clergyReceiving]);
   const doors = doorsFor(step.id, clergyReceiving);
@@ -148,9 +132,18 @@ export function LiturgyScene({
       </Suspense>
       <QualityEffects quality={quality} />
       <FpsProbe onFps={onFps} />
+      <HolyBeatPump />
       <IconPicker enabled={mode === "free"} onPick={onInspect} />
     </Canvas>
   );
+}
+
+/** Paints the clergy close on the frame the clock elapses, even if React props are still open. */
+function HolyBeatPump() {
+  useFrame(() => {
+    publishHolyClock(performance.now());
+  });
+  return null;
 }
 
 function FollowCamera({
