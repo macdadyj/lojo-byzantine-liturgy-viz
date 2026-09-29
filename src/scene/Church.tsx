@@ -11,7 +11,6 @@ import {
   Vector3,
   type Group,
   type Object3D,
-  type PointLight,
 } from "three";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -27,6 +26,7 @@ import type { Quality } from "./quality";
 import { giltTexture, marbleTexture } from "./surfaces";
 import type { SpaceId } from "../liturgy/spaces";
 import { clerestoryZ, domeZ, floorPatches, spaceLabels, world } from "./world";
+import { candleStandSpots, chandelierSpots, lampadaSpots, sandTraySpots } from "./lighting/practicals";
 
 type ChurchProps = {
   doors: DoorState;
@@ -81,9 +81,9 @@ export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace
       <pointLight position={[-6.4, 2.4, -14.2]} color="#ffc99a" intensity={quality === "low" ? 4.5 : 2.2} distance={7} decay={2} />
       <pointLight position={[7.2, 5.35, 6.1]} color="#ffd2a8" intensity={quality === "low" ? 8 : 4.2} distance={9} decay={2} />
       {showArt ? <Frescoes /> : null}
-      <Lamps flicker={quality !== "low"} quality={quality} />
-      <CandleStands quality={quality} />
-      <DevotionalProps quality={quality} />
+      <Lamps />
+      <CandleStands />
+      <DevotionalProps />
       <Labels activeSpaces={activeSpaces} showLabels={showLabels} />
       {floorPatches.map((patch) => (
         <mesh
@@ -502,37 +502,17 @@ function Candlestick({ position }: { position: [number, number, number] }) {
   );
 }
 
-function Lamps({ flicker, quality }: { flicker: boolean; quality: Quality }) {
-  const spots: [number, number, number][] = [
-    [0, 7.4, 11],
-    [0, 7.6, 4.5],
-    [0, 7.2, -4.2],
-    [0, 5.8, -13.4],
-  ];
+function Lamps() {
   return (
     <group>
-      {spots.map((position, index) => (
-        <Chandelier
-          key={position.join(",")}
-          position={position}
-          flicker={flicker}
-          light={quality !== "low" || index < 2}
-        />
+      {chandelierSpots.map((position) => (
+        <Chandelier key={position.join(",")} position={position} />
       ))}
     </group>
   );
 }
 
-function Chandelier({
-  position,
-  flicker,
-  light,
-}: {
-  position: [number, number, number];
-  flicker: boolean;
-  light: boolean;
-}) {
-  const lamp = useRef<PointLight>(null);
+function Chandelier({ position }: { position: [number, number, number] }) {
   const bulbs = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
     const mesh = bulbs.current;
@@ -544,12 +524,6 @@ function Chandelier({
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
   }, []);
-  useFrame((state) => {
-    const bulb = lamp.current;
-    if (!bulb || !flicker) return;
-    const time = state.clock.elapsedTime + position[2];
-    bulb.intensity = 1.7 + Math.sin(time * 8.2) * 0.18 + Math.sin(time * 14.5) * 0.08;
-  });
   return (
     <group position={position}>
       <mesh position={[0, 0.55, 0]}>
@@ -568,21 +542,14 @@ function Chandelier({
         <sphereGeometry args={[0.04, 8, 8]} />
         <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={2.4} />
       </instancedMesh>
-      {light ? <pointLight ref={lamp} color="#ffc48a" intensity={2.1} distance={14} decay={2} /> : null}
     </group>
   );
 }
 
-function CandleStands({ quality }: { quality: Quality }) {
-  const spots: [number, number, number][] = [
-    [-1.5, 0, -6.4],
-    [1.5, 0, -6.4],
-    [0, 0, 2.4],
-    [-3.2, 0, 18.6],
-  ];
+function CandleStands() {
   return (
     <group>
-      {spots.map((position) => (
+      {candleStandSpots.map((position) => (
         <group key={position.join(",")} position={position}>
           <mesh position={[0, 0.45, 0]}>
             <cylinderGeometry args={[0.16, 0.2, 0.9, 10]} />
@@ -594,9 +561,6 @@ function CandleStands({ quality }: { quality: Quality }) {
               <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={2.2} />
             </mesh>
           ))}
-          {quality === "low" ? null : (
-            <pointLight color="#ffc48a" intensity={0.55} distance={3.2} decay={2} position={[0, 1.1, 0]} />
-          )}
         </group>
       ))}
     </group>
@@ -610,25 +574,12 @@ const taperLayout: [number, number, number][] = Array.from({ length: 24 }, (_, i
   return [(column - 3.5) * 0.055, height / 2, (row - 1) * 0.07];
 });
 
-function DevotionalProps({ quality }: { quality: Quality }) {
-  const trays: [number, number, number][] = [
-    [0.85, 0, 1.15],
-    [-0.85, 0, 1.15],
-    [1.15, 0, -6.15],
-    [-1.15, 0, -6.15],
-    [-2.3, 0, 20.2],
-  ];
-  const lamps: [number, number, number][] = [
-    [-2.35, 3.55, world.iconZ + 0.72],
-    [2.35, 3.55, world.iconZ + 0.72],
-    [-4.7, 3.4, world.iconZ + 0.72],
-    [4.7, 3.4, world.iconZ + 0.72],
-  ];
+function DevotionalProps() {
   return (
     <group>
-      <SandTrays trays={trays} />
-      {lamps.map((position, index) => (
-        <Lampada key={position.join(",")} position={position} light={quality !== "low" && index < 2} />
+      <SandTrays trays={sandTraySpots} />
+      {lampadaSpots.map((position) => (
+        <Lampada key={position.join(",")} position={position} />
       ))}
       <group position={[7.85, 3.22, 6.1]}>
         <mesh position={[0, 0.55, 0]}>
@@ -703,7 +654,7 @@ function SandTrays({ trays }: { trays: [number, number, number][] }) {
   );
 }
 
-function Lampada({ position, light }: { position: [number, number, number]; light: boolean }) {
+function Lampada({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       <mesh>
@@ -718,7 +669,6 @@ function Lampada({ position, light }: { position: [number, number, number]; ligh
         <sphereGeometry args={[0.022, 6, 6]} />
         <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={1.8} />
       </mesh>
-      {light ? <pointLight position={[0, -0.4, 0]} color="#ffc48a" intensity={0.4} distance={2.6} decay={2} /> : null}
     </group>
   );
 }

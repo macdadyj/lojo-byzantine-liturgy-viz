@@ -4,8 +4,8 @@ import type { Quality } from "./quality";
 
 type Rig = {
   background: string;
-  fogNear: number;
-  fogFar: number;
+  /** Exponential-squared fog, so the far end of the nave softens gradually rather than at a wall. */
+  fogDensity: number;
   sky: string;
   ground: string;
   hemi: number;
@@ -30,8 +30,7 @@ export function rigFor(preset: LightingPreset, quality: Quality, shadows: boolea
     case "liturgy":
       return {
         background: pooled ? "#4a3626" : "#8d7358",
-        fogNear: pooled ? 16 : 22,
-        fogFar: pooled ? 58 : 70,
+        fogDensity: pooled ? 0.021 : 0.016,
         sky: "#f0d2a4",
         ground: "#4a382c",
         hemi: pooled ? 0.5 : quality === "low" ? 0.7 : 0.46,
@@ -45,8 +44,7 @@ export function rigFor(preset: LightingPreset, quality: Quality, shadows: boolea
     case "morning":
       return {
         background: "#8f7b62",
-        fogNear: 22,
-        fogFar: 70,
+        fogDensity: 0.016,
         sky: "#e6ecf4",
         ground: "#5a4636",
         hemi: pooled ? 0.62 : 0.55,
@@ -60,8 +58,7 @@ export function rigFor(preset: LightingPreset, quality: Quality, shadows: boolea
     case "evening":
       return {
         background: "#2a1d14",
-        fogNear: 12,
-        fogFar: 42,
+        fogDensity: 0.03,
         sky: "#c89868",
         ground: "#2a1e16",
         hemi: 0.2,
@@ -75,8 +72,7 @@ export function rigFor(preset: LightingPreset, quality: Quality, shadows: boolea
     case "flat":
       return {
         background: "#9a9a9a",
-        fogNear: 200,
-        fogFar: 400,
+        fogDensity: 0,
         sky: "#ffffff",
         ground: "#9a9a9a",
         hemi: 1.1,
@@ -100,7 +96,7 @@ export function Lighting({ preset, quality, shadows }: { preset: LightingPreset;
   return (
     <>
       <color attach="background" args={[rig.background]} />
-      <fog attach="fog" args={[rig.background, rig.fogNear, rig.fogFar]} />
+      <fogExp2 attach="fog" args={[rig.background, rig.fogDensity]} />
       <hemisphereLight args={[rig.sky, rig.ground, rig.hemi]} />
       <ambientLight intensity={rig.ambient} color="#f3e0c4" />
       <Daylight

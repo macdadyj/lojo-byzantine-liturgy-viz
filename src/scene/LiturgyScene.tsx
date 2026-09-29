@@ -7,6 +7,7 @@ import type { LiturgyStep, RouteId } from "../liturgy/types";
 import { Church } from "./Church";
 import { colors } from "./colors";
 import { FpsProbe, IconPicker, QualityEffects, StageLook } from "./Effects";
+import { cameraFocus } from "./cameraFocus";
 import { censingFor, gestureFor } from "./gestures";
 import type { IconCard } from "./iconCards";
 import { Clergy, type Carry, type ClergyRole } from "./figures/Clergy";
@@ -126,7 +127,7 @@ export function LiturgyScene({
         {systems.incense && quality !== "low" ? <IncenseHaze count={quality === "high" ? 28 : 16} /> : null}
         <ReadySignal />
       </Suspense>
-      {systems.post ? <QualityEffects quality={quality} /> : null}
+      {systems.post ? <QualityEffects quality={quality} focus={mode === "follow"} /> : null}
       <FpsProbe onFps={onFps} />
       <HolyBeatPump />
       <IconPicker enabled={mode === "free"} onPick={onInspect} />
@@ -217,6 +218,7 @@ function FollowCamera({
       camera.position.set(pose.position[0], pose.position[1], pose.position[2]);
       look.set(pose.target[0], pose.target[1], pose.target[2]);
       camera.lookAt(look);
+      cameraFocus.copy(look);
     };
     const move = previous && enabled ? planMove(previous, pose, reducedMotion) : "snap";
     if (move !== "dip") veil.cancel();
@@ -256,6 +258,7 @@ function FollowCamera({
         camera.position.lerpVectors(moving.from, goalPos, eased);
         look.lerpVectors(moving.fromLook, goalTarget, eased);
         camera.lookAt(look);
+        cameraFocus.copy(look);
         if (moving.t >= 1) glide.current = null;
         return;
       }
@@ -265,6 +268,7 @@ function FollowCamera({
     camera.position.lerp(goalPos, blend);
     look.lerp(goalTarget, blend);
     camera.lookAt(look);
+    cameraFocus.copy(look);
   });
 
   return null;
