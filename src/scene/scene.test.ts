@@ -9,6 +9,7 @@ import { closestPair, communionLine, dismissalLine, faithfulPlace } from "./crow
 import { floorTopAt } from "./floors";
 import { nextQuality } from "./quality";
 import { cameraFor, doorsFor, isStagedId, stagedStepIds, stagingFor } from "./staging";
+import { easeGlide, planMove } from "./cameraMove";
 import { floorPatches, greatEntrancePath, littleEntrancePath, world } from "./world";
 
 describe("3D liturgy staging", () => {
@@ -169,5 +170,38 @@ describe("3D liturgy staging", () => {
     expect(nextQuality("medium", 18)).toBe("low");
     expect(nextQuality("low", 60)).toBe("medium");
     expect(nextQuality("medium", 40)).toBe("medium");
+  });
+});
+
+describe("follow camera moves", () => {
+  it("snaps under reduced motion and when nothing moves", () => {
+    const pose = cameraFor("gathering");
+    expect(planMove(pose, cameraFor("gospel"), true)).toBe("snap");
+    expect(planMove(pose, pose, false)).toBe("snap");
+  });
+
+  it("never glides through the iconostas", () => {
+    for (const from of steps) {
+      for (const to of steps) {
+        const a = cameraFor(from.id);
+        const b = cameraFor(to.id);
+        if (planMove(a, b, false) !== "glide") continue;
+        expect(Math.sign(a.position[2] - world.iconZ)).toBe(Math.sign(b.position[2] - world.iconZ));
+      }
+    }
+  });
+
+  it("glides between some neighbouring steps and dips on long cuts", () => {
+    const moves = steps.slice(1).map((step, index) => planMove(cameraFor(steps[index]?.id ?? step.id), cameraFor(step.id), false));
+    expect(moves).toContain("glide");
+    const far = { position: [0, 1.7, 15] as [number, number, number], target: [0, 1.5, 0] as [number, number, number] };
+    expect(planMove(far, { position: [0, 1.7, -14], target: [0, 1.4, -16] }, false)).toBe("dip");
+  });
+
+  it("eases from rest to rest", () => {
+    expect(easeGlide(0)).toBe(0);
+    expect(easeGlide(1)).toBe(1);
+    expect(easeGlide(0.5)).toBeCloseTo(0.5);
+    expect(easeGlide(0.01)).toBeLessThan(0.001);
   });
 });

@@ -15,7 +15,8 @@ import { cantorSpot, choirLine, communionLine, dismissalLine } from "./crowdLayo
 import { pointBehind, type Vec3 } from "./path";
 import { dprFor, type Quality } from "./quality";
 import { holyDebug, publishHolyClock, useHolyBeat } from "./holyBeat";
-import { cameraFor, doorsFor, stagingFor, type Actor, type Stance } from "./staging";
+import { cameraFor, doorsFor, stagingFor, type Actor, type CameraPose, type Stance } from "./staging";
+import { dipInMs, dipOutMs, easeGlide, glideSeconds, planMove } from "./cameraMove";
 import { Walker } from "./Walker";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
 import { Lighting } from "./Lighting";
@@ -152,11 +153,14 @@ function FollowCamera({
   reducedMotion: boolean;
   quality: Quality;
 }) {
-  const { camera, scene } = useThree();
+  const { camera, scene, gl } = useThree();
   const goalPos = useMemo(() => new Vector3(), []);
   const goalTarget = useMemo(() => new Vector3(), []);
   const look = useMemo(() => new Vector3(), []);
   const poseKey = `${quality}:${pose.position.join(",")}:${pose.target.join(",")}`;
+  const shown = useRef<CameraPose | null>(null);
+  const glide = useRef<{ from: Vector3; fromLook: Vector3; t: number } | null>(null);
+  const veil = useDipVeil(gl.domElement);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -167,6 +171,7 @@ function FollowCamera({
     bridge.clearCamera = () => {
       debugCamera = null;
     };
+    bridge.cameraAt = () => camera.position.toArray().map((value) => Number(value.toFixed(2)));
     bridge.measureDoors = () => {
       let curtain: number | null = null;
       let curtainWorld: number | null = null;
@@ -200,16 +205,41 @@ function FollowCamera({
       return rows;
     };
     window.__liturgy = bridge;
-  }, [scene]);
+  }, [camera, scene]);
 
+  // Only a new pose starts a move; mode and reduced motion are read at that moment.
   useLayoutEffect(() => {
     if (debugCamera || processionFocus.active) return;
-    camera.position.set(pose.position[0], pose.position[1], pose.position[2]);
-    look.set(pose.target[0], pose.target[1], pose.target[2]);
-    camera.lookAt(look);
+    const previous = shown.current;
+    shown.current = { position: [...pose.position], target: [...pose.target] };
+    const cut = () => {
+      glide.current = null;
+      camera.position.set(pose.position[0], pose.position[1], pose.position[2]);
+      look.set(pose.target[0], pose.target[1], pose.target[2]);
+      camera.lookAt(look);
+    };
+    const move = previous && enabled ? planMove(previous, pose, reducedMotion) : "snap";
+    if (move !== "dip") veil.cancel();
+    switch (move) {
+      case "snap":
+        cut();
+        return;
+      case "glide":
+        glide.current = { from: camera.position.clone(), fromLook: look.clone(), t: 0 };
+        return;
+      case "dip":
+        glide.current = null;
+        veil.dip(cut);
+        return;
+      default: {
+        const exhaustive: never = move;
+        return exhaustive;
+      }
+    }
   }, [camera, look, pose, poseKey]);
 
   useFrame((_, delta) => {
+    veil.step(delta);
     if (!enabled) return;
     if (debugCamera) {
       goalPos.set(debugCamera.position[0], debugCamera.position[1], debugCamera.position[2]);
@@ -219,6 +249,16 @@ function FollowCamera({
     } else {
       goalPos.set(pose.position[0], pose.position[1], pose.position[2]);
       goalTarget.set(pose.target[0], pose.target[1], pose.target[2]);
+      const moving = glide.current;
+      if (moving) {
+        moving.t = Math.min(1, moving.t + delta / glideSeconds);
+        const eased = easeGlide(moving.t);
+        camera.position.lerpVectors(moving.from, goalPos, eased);
+        look.lerpVectors(moving.fromLook, goalTarget, eased);
+        camera.lookAt(look);
+        if (moving.t >= 1) glide.current = null;
+        return;
+      }
     }
     const distance = camera.position.distanceTo(goalPos);
     const blend = reducedMotion || distance > 4 ? 1 : 1 - Math.exp(-delta * 8);
@@ -228,6 +268,57 @@ function FollowCamera({
   });
 
   return null;
+}
+
+/** Longest frame the veil advances by, so even a slow device shows a few frames of the fade. */
+const veilStepMs = 100;
+
+/**
+ * A dark veil over the canvas for dip-to-dark cuts, advanced by the render loop so the cut lands on a dark
+ * frame. `dip` fades out, runs `cut` while dark, then fades in.
+ */
+function useDipVeil(canvas: HTMLCanvasElement) {
+  const element = useMemo(() => {
+    const veil = document.createElement("div");
+    veil.setAttribute("aria-hidden", "true");
+    veil.dataset.veil = "dip";
+    Object.assign(veil.style, { position: "absolute", inset: "0", background: "#0b0806", opacity: "0", pointerEvents: "none" });
+    return veil;
+  }, []);
+  const state = useRef<{ phase: "out" | "in"; ms: number; cut: () => void } | null>(null);
+  useEffect(() => {
+    canvas.parentElement?.appendChild(element);
+    return () => element.remove();
+  }, [canvas, element]);
+  return useMemo(
+    () => ({
+      cancel() {
+        state.current = null;
+        element.style.opacity = "0";
+      },
+      dip(cut: () => void) {
+        const fading = state.current;
+        state.current = { phase: "out", ms: fading?.phase === "in" ? dipOutMs * (1 - fading.ms / dipInMs) : 0, cut };
+      },
+      step(delta: number) {
+        const dip = state.current;
+        if (!dip) return;
+        dip.ms += Math.min(delta * 1000, veilStepMs);
+        if (dip.phase === "out") {
+          element.style.opacity = String(Math.min(1, dip.ms / dipOutMs));
+          if (dip.ms >= dipOutMs) {
+            dip.cut();
+            state.current = { phase: "in", ms: 0, cut: dip.cut };
+          }
+          return;
+        }
+        const left = 1 - dip.ms / dipInMs;
+        element.style.opacity = String(Math.max(0, left * left));
+        if (left <= 0) state.current = null;
+      },
+    }),
+    [element],
+  );
 }
 
 function frameProcession(goalPos: Vector3, goalTarget: Vector3) {

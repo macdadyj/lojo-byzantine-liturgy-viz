@@ -76,3 +76,24 @@ Cost: on high, the sun's shadow map draws the crowd a second time (triangles rou
 Every new surface is a procedural canvas painting drawn once and shared; per-surface repeats are clones
 that share the image, so there are no new downloads and no new assets to license. Draw calls rose by
 about 10.
+
+## Pass 4: camera movement
+
+Before this pass every step change was a hard cut: the follow camera jumped to the new pose on the
+same frame.
+
+- Steps whose poses are close (7 m or less) and in the same room now glide: position and aim ease
+  along a straight line over 1.25 s with zero velocity at both ends. "Same room" means the line does
+  not cross the iconostas and does not sweep sideways across the pews at seated eye height.
+- Longer changes dip to dark: the view fades out (170 ms), cuts while dark, and fades back in
+  (420 ms). The veil is advanced by the render loop, not by CSS, so the cut always lands on a dark
+  frame; each frame advances it by at most 100 ms, so even a slow phone shows the fade.
+- Going through the 22 steps in order gives 7 glides (opening to litany; epistle to gospel to
+  homily to before-the-gifts; holy things to communion to thanksgiving to dismissal) and 14 dips.
+- Reduced motion and the lab (`snap`) still cut instantly, so screenshots stay deterministic.
+- First-person walking eases in and out over about 0.2 s instead of starting and stopping dead.
+  The pitch limit and collision are unchanged.
+- Unit tests cover the move planner: no glide ever crosses the iconostas, reduced motion snaps, and
+  the easing starts and ends at rest. A dev-only `__liturgy.cameraAt()` probe reads the camera
+  position; headless sampling showed the glide passing through intermediate positions and the veil
+  darkening around the cut.

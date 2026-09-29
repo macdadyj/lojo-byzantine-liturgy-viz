@@ -22,6 +22,7 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
   const pitch = useRef(0);
   const spot = useRef({ x: 0, z: 8 });
   const bobPhase = useRef(0);
+  const velocity = useRef({ forward: 0, strafe: 0 });
   const dragging = useRef(false);
   const goalToken = useRef(0);
   const goalLeft = useRef(0);
@@ -100,6 +101,7 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointermove", onMove);
       keys.current = { forward: false, back: false, left: false, right: false };
+      velocity.current = { forward: 0, strafe: 0 };
     };
   }, [camera, enabled, gl]);
 
@@ -126,6 +128,12 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
       if (keys.current.left) strafe -= 1;
       forward += walkStick.y;
       strafe += walkStick.x;
+      // Ease into and out of a walk (about 0.2 s) instead of starting and stopping dead.
+      const ease = 1 - Math.exp(-delta * 11);
+      velocity.current.forward += (forward - velocity.current.forward) * ease;
+      velocity.current.strafe += (strafe - velocity.current.strafe) * ease;
+      forward = velocity.current.forward;
+      strafe = velocity.current.strafe;
       const speed = 2.35 * delta;
       const sin = Math.sin(yaw.current);
       const cos = Math.cos(yaw.current);

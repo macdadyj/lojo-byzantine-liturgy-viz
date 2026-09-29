@@ -10,6 +10,7 @@ interface LiturgyBridge {
   setStep?: (index: number) => void;
   setCamera?: (position: [number, number, number], target: [number, number, number]) => void;
   clearCamera?: () => void;
+  cameraAt?: () => number[];
   measureSoles?: () => { x: number; z: number; sole: number; floor: number; gap: number; hip: number }[];
   measureDoors?: () => { curtain: number | null; curtainWorld: number | null; royal: number | null };
   receiving?: boolean;
