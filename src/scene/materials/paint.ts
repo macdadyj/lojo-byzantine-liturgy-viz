@@ -418,3 +418,45 @@ export function carvedPanelTexture(): Texture {
     }
   });
 }
+
+/**
+ * Column shaft marble: warm Proconnesian white with soft grey veins running up the shaft. Seamless
+ * around the column (each vein is drawn again one width over), one repeat per ~3.5 m of height.
+ */
+export function columnMarbleTexture(): Texture {
+  return canvasTexture("column-marble", 512, (ctx, s) => {
+    const random = mulberry32(61);
+    const ground = ctx.createLinearGradient(0, 0, s, 0);
+    ground.addColorStop(0, "#e4dccd");
+    ground.addColorStop(0.5, "#ece5d8");
+    ground.addColorStop(1, "#e4dccd");
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 70; i += 1) {
+      ctx.globalAlpha = 0.05 + random() * 0.05;
+      ctx.fillStyle = random() > 0.6 ? "#b8ab98" : "#fbf7ef";
+      const x = random() * s;
+      const y = random() * s;
+      const r = 10 + random() * 50;
+      for (const shift of [-s, 0, s]) {
+        ctx.beginPath();
+        ctx.ellipse(x + shift, y, r * 0.5, r * 1.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    for (let i = 0; i < 9; i += 1) {
+      const x0 = random() * s;
+      const drift = (random() - 0.5) * s * 0.5;
+      ctx.globalAlpha = 0.18 + random() * 0.22;
+      ctx.strokeStyle = i % 3 === 0 ? "#6f6a66" : "#9a938a";
+      ctx.lineWidth = 0.8 + random() * 2.2;
+      for (const shift of [-s, 0, s]) {
+        ctx.beginPath();
+        ctx.moveTo(x0 + shift, 0);
+        ctx.bezierCurveTo(x0 + shift + drift * 0.3, s * 0.35, x0 + shift + drift * 0.8, s * 0.65, x0 + shift + drift, s);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+  });
+}

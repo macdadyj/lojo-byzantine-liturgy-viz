@@ -13,6 +13,8 @@ npx playwright install chromium   # once, for shots and perf
 | `npm run lab` | Dev server, opens `/lab` |
 | `npm run shots` | Screenshots of every step and camera bookmark, desktop and phone |
 | `npm run shots:diff` | Compares the last two runs and writes an HTML contact sheet |
+| `npm run shots:keep` | Copies chosen shots from a run into `docs/iterations/<pass>/` as JPEG |
+| `npm run peek` | One-off captures from any camera position, for close inspection |
 | `npm run perf` | Production build, then load time and FPS against budgets |
 | `npm run check` | Type check, unit tests, production build (the gate before a commit) |
 
@@ -94,6 +96,24 @@ Writes `qa/screenshots/<head>/compare.html`: one row per shot with before, after
 map (changed pixels in red), sorted by how much changed. A checkbox hides unchanged shots.
 The console lists the ten largest changes. `--fail-above=2` exits non-zero if any shot changed more
 than 2% (useful for a refactor that should not change the picture).
+
+## Keeping shots: `npm run shots:keep`
+
+`npm run shots:keep -- --to=pass3-architecture --only=desktop/step-01,phone/cam-iconostas [--run=<run>]`
+copies the matching shots of the newest run (or `--run`) into `docs/iterations/<to>/` as JPEG, so
+the iteration log can show them without committing whole runs.
+
+## Close looks: `npm run peek`
+
+Captures arbitrary camera poses without adding a bookmark:
+
+```bash
+npm run peek -- --step=communion --pos=2.6,1.5,-3.8 --target=0,1.1,-3.8 --name=comm-side --quality=medium
+npm run peek -- --views='[{"name":"dome","step":"gathering","pos":[0.4,1.7,7.4],"target":[0,12,-1.15]}]'
+```
+
+Images go to `qa/peek/<name>.png` (ignored by git) with draw calls and triangles printed. `--viewport=phone`
+and `--params=people=0` work as in the lab URL. The clock is frozen at 4 s, as in `shots`.
 
 ## Performance: `npm run perf`
 

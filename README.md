@@ -19,6 +19,8 @@ npm run build
 npm run preview
 ```
 
+For working on the 3D scene there is a test lab (`/lab`, `npm run shots`, `npm run shots:diff`, `npm run perf`, `npm run peek`); see [docs/TEST_LAB.md](docs/TEST_LAB.md). Visual passes and their before-and-after screenshots are in [docs/ITERATION_LOG.md](docs/ITERATION_LOG.md). Asset licenses are summarized in [CREDITS.md](CREDITS.md).
+
 `npm run build` writes a relative-path bundle (`base: "./"`) into `dist/`. Those relative paths work at the Cloud Run root URL: the page loads `./assets/…`, which the browser requests as `/assets/…`.
 
 ## Cloud Run

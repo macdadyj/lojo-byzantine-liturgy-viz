@@ -116,3 +116,16 @@ same frame.
 - The small drum icons hung about 0.3 m inside the drum wall and overlapped the windows, so from
   the nave you saw the gold backs of their frames. They now sit flush on the wall between the
   windows (`peek-dome.jpg`).
+
+## Pass 6: columns, credits, and documentation
+
+- The column shafts used the generic marble tiled 7 times around and 11 times up, which read as
+  grey tree bark. They now use a warm Proconnesian marble with soft grey veins running up the
+  shaft, seamless around the column (`peek-columns.jpg`).
+- `CREDITS.md` summarizes every asset and license. It points to `ATTRIBUTION.md` for file-by-file
+  sources, records that this branch downloaded nothing, and lists the dev-only tooling licenses.
+- `docs/TEST_LAB.md` documents `shots:keep` and `peek`; the README links the lab, this log, and
+  the credits.
+- Looked at and left alone: on one women's figure, a cropped top meets the trousers in a jagged
+  hem line at the waistband. It is inside the CC0 model; recolouring it by bone did not help,
+  and at normal viewing distance it is a few pixels.

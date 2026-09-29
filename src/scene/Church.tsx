@@ -21,7 +21,7 @@ import { Frescoes } from "./Frescoes";
 import { ByzantineCross } from "./Figures";
 import { SacredArt } from "./Iconostas";
 import { Pews } from "./architecture/Pews";
-import { floorRoughTexture, floorTileTexture, starVaultTexture, tiled, wallTexture } from "./materials/paint";
+import { columnMarbleTexture, floorRoughTexture, floorTileTexture, starVaultTexture, tiled, wallTexture } from "./materials/paint";
 import { paintAltarFrontal } from "./icons";
 import type { Quality } from "./quality";
 import { giltTexture, marbleTexture } from "./surfaces";
@@ -161,7 +161,7 @@ function Columns() {
             </mesh>
             <mesh position={[0, 3.9, 0]}>
               <cylinderGeometry args={[0.28, 0.32, 7.1, 12]} />
-              <meshStandardMaterial map={marbleTexture()} color="#cfc4b2" roughness={0.72} metalness={0.02} />
+              <meshStandardMaterial map={tiled(columnMarbleTexture(), 1, 2)} color="#efe6d6" roughness={0.42} metalness={0.02} />
             </mesh>
             <mesh position={[0, 7.35, 0]}>
               <torusGeometry args={[0.34, 0.07, 8, 14]} />
