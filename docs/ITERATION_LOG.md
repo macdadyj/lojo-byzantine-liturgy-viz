@@ -201,3 +201,12 @@ in the material shader, and GTAO, bloom, depth of field and ACES on top.
 
 Not done: Sael's narrower lens (30° against our 42°) would mean recomposing every step's view,
 and the step panel was left as it is so its working behavior is untouched.
+
+Also fixed in this round: when the curtain was drawn at "Holy things" it shrank to a bar in the
+middle of the open royal doors, right in front of the priest elevating the gifts. It is now drawn
+aside to the north jamb (`desktop-step-19-holy-things.jpg`); for the clergy's communion the doors
+and curtain are shut as before (`desktop-step-23-holy-things-clergy.jpg`).
+
+Kept shots for passes 7 and 8 are in `docs/iterations/sael/`. `npm run check` (typecheck, 44
+tests, build) and `npm run perf` pass: desktop medium 446 calls, phone low 195 calls at 6.2 fps
+(software budget 4.5), desktop high 314 calls, 1509 KB of JS.
