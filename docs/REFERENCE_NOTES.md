@@ -77,10 +77,10 @@ This is the part that matters most for us, and it is simpler than it looks.
 | --- | --- | --- |
 | Procedural primitive people, one instanced draw, vertex-shader animation | Yes (our own code on three.js, MIT) | Replace the Quaternius GLB cast entirely with our own procedural figures built the same way, including vestments. |
 | Per-instance palettes, blob shadows | Yes | Keep and extend (skin, hair, top, bottom, headscarf, vestment colors). |
-| Fake practical lights in a material chunk | Yes | Candles, lampadas and chandeliers light people and walls through a shared uniform array. |
-| GTAO + bloom + depth of field + ACES | Yes. We use the equivalent MIT effects in `postprocessing` (pmndrs), which we already ship: N8AO, Bloom, DepthOfField. | Tune to his settings: half-res AO, high bloom threshold, focus on the subject of each step. |
+| Fake practical lights in a material chunk | Yes | Done (`src/scene/lighting/practicals.ts`): 17 candles, sand trays, lampadas and chandeliers are a constant list added to the diffuse light of every lit material. They replaced 10 real point lights, so the shaders never recompile when the tier changes. |
+| GTAO + bloom + depth of field + ACES | Yes. N8AO and Bloom from `postprocessing` (pmndrs, MIT), which we already ship. | Half-res AO, bloom threshold 0.95, ACES at 1.1, exponential fog. The library's DepthOfField softened the whole frame in our composer, so, like Sael, we wrote a small one-pass depth of field (`src/scene/focusBlur.ts`) that holds the guided camera's look-at point sharp. |
 | Rounded bevels, flat-color materials | Yes | Rounded pews and furniture; keep icons as the only photographic images, because they are the content. |
-| Narrow camera, glass UI | Yes (Inter is SIL OFL; we keep our self-hosted fonts) | Narrower follow-camera lens; darker glass panels and pill controls in the step panel. |
+| Narrow camera, glass UI | Yes (Inter is SIL OFL; we keep our self-hosted fonts) | Not done yet. Every step's view is composed for the current 42° lens, and the step panel is already a dark translucent panel; both are left as they are so the working step panel and views are not disturbed. |
 | SD 2.5 generated art, ElevenLabs audio | Paid services | Not used. Icons stay public-domain photographs of real icons; there is no audio. |
 | React | Different from his stack | We keep React Three Fiber: it is a thin layer over the same three.js objects, every technique above works unchanged inside it, and rewriting the app would put the working doors, step panel and walking at risk for no visual gain. |
 

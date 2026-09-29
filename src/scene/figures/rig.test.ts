@@ -38,6 +38,12 @@ describe("figure rig", () => {
     expect(kneeling.head.y).toBeLessThan(solvePose("adult", "stand").head.y - 0.25);
   });
 
+  it.each(["candle", "censer"] as const)("holds the %s out in the right hand, where the prop is drawn", (pose) => {
+    const skeleton = solvePose("adult", pose);
+    expect(skeleton.hand.right.z).toBeLessThan(-0.15);
+    expect(skeleton.hand.right.y).toBeGreaterThan(skeleton.hand.left.y + 0.1);
+  });
+
   it("makes the Byzantine sign of the cross: forehead, breast, right shoulder, then left", () => {
     const skeleton = solvePose("adult", "cross");
     const [, forehead, breast, right, left] = crossKeys.map((key) => crossHand("adult", key));

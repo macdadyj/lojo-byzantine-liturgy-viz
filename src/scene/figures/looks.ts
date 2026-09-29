@@ -29,7 +29,7 @@ export type Person = {
 
 const skinTones = ["#f3d5c0", "#ebc3a4", "#e0b08e", "#d19f7c", "#bb8762", "#9c6a48", "#7a4e33", "#5c3a26"];
 const hairColors = ["#2a1f18", "#3a2a1f", "#4f3625", "#6e4f35", "#9a7a52", "#c4a574", "#1a1512", "#5a3a2a"];
-const elderHair = ["#a39e96", "#c8c3ba", "#dcd8d0", "#8a847c"];
+const elderHair = ["#a39e96", "#b3ada3", "#8a847c", "#6f6a63"];
 const jackets = ["#262c3d", "#33363c", "#4a3a2e", "#2f3d33", "#5b5e63", "#3d4b68", "#1f2226", "#6a5a4a"];
 const blouses = ["#5c2632", "#8a6d4d", "#d9d0c1", "#6c4b5c", "#3d4b68", "#7a6a58", "#2f4a5a", "#a2583f", "#4d6b55", "#8c7a9a"];
 const trousers = ["#1f2129", "#2b2c30", "#3b3129", "#4b4e54", "#2c3444"];

@@ -137,8 +137,8 @@ const poses: Record<FigurePose, PoseDef> = {
   kneel: pose({ head: 0.1, legs: [kneeling, kneeling], arms: [praying, praying] }),
   carry: pose({ arms: [carrying, carrying] }),
   elevate: pose({ head: -0.15, arms: [lifting, lifting] }),
-  candle: pose({ arms: [holdingCandle, hanging] }),
-  censer: pose({ arms: [holdingCenser, hanging] }),
+  candle: pose({ arms: [hanging, holdingCandle] }),
+  censer: pose({ arms: [hanging, holdingCenser] }),
 };
 
 export function armsSwing(name: FigurePose): boolean {
