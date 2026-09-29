@@ -7,6 +7,7 @@ import type { DoorState } from "./staging";
 import { Frescoes } from "./Frescoes";
 import { ByzantineCross } from "./Figures";
 import { SacredArt } from "./Iconostas";
+import { Pews } from "./architecture/Pews";
 import { paintAltarFrontal } from "./icons";
 import type { Quality } from "./quality";
 import { giltTexture, marbleTexture } from "./surfaces";
@@ -37,7 +38,7 @@ export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace
       <Clerestory />
       <Gallery />
       <Floors />
-      <Pews />
+      <Pews shadows={quality !== "low"} />
       <Furnishings />
       <SacredArt doors={doors} quality={quality} showArt={showArt} />
       {quality === "high" ? <WindowRays /> : null}
@@ -313,34 +314,6 @@ function Floors() {
       <mesh position={[0, 0.05, 4.2]} userData={{ floor: true }}>
         <boxGeometry args={[1.7, 0.02, 24]} />
         <meshStandardMaterial color={colors.runner} roughness={0.8} />
-      </mesh>
-    </group>
-  );
-}
-
-function Pews() {
-  const rows = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
-  const banks = [-7.15, -2.2, 2.2, 7.15];
-  return (
-    <group>
-      {rows.map((z) =>
-        banks.map((x) => <Pew key={`${x}-${z}`} position={[x, z]} wide={Math.abs(x) < 4} />),
-      )}
-    </group>
-  );
-}
-
-function Pew({ position, wide }: { position: [number, number]; wide: boolean }) {
-  const width = wide ? 2.4 : 2.1;
-  return (
-    <group position={[position[0], 0, position[1]]}>
-      <mesh position={[0, 0.42, 0]}>
-        <boxGeometry args={[width, 0.08, 0.48]} />
-        <meshStandardMaterial color={colors.wood} roughness={0.68} />
-      </mesh>
-      <mesh position={[0, 0.78, 0.22]}>
-        <boxGeometry args={[width, 0.62, 0.08]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.7} />
       </mesh>
     </group>
   );

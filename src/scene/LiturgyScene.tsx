@@ -9,8 +9,9 @@ import { colors } from "./colors";
 import { FpsProbe, IconPicker, QualityEffects, StageLook } from "./Effects";
 import { censingFor, gestureFor } from "./gestures";
 import type { IconCard } from "./iconCards";
-import { Clergy, Crowd, type Carry, type CrowdSpot } from "./People";
-import { cantorSpot, choirLine, communionLine, dismissalLine, pewBanks, pewRows } from "./crowdLayout";
+import { Clergy, type Carry, type ClergyRole } from "./People";
+import { Congregants, Faithful } from "./crowd/Faithful";
+import { cantorSpot, choirLine, communionLine, dismissalLine } from "./crowdLayout";
 import { pointBehind, type Vec3 } from "./path";
 import { dprFor, type Quality } from "./quality";
 import { holyDebug, publishHolyClock, useHolyBeat } from "./holyBeat";
@@ -49,38 +50,10 @@ const processionFocus = {
   fz: -1,
 };
 
-const roster = [
-  { age: "adult", cast: 0 },
-  { age: "elder", cast: 10 },
-  { age: "child", cast: 1 },
-  { age: "teen", cast: 6 },
-  { age: "adult", cast: 7 },
-  { age: "teen", cast: 8 },
-  { age: "child", cast: 9 },
-  { age: "elder", cast: 5 },
-  { age: "adult", cast: 2 },
-  { age: "adult", cast: 3 },
-  { age: "adult", cast: 4 },
-] as const;
-
-function faithfulSpot(position: Vec3, rotationY: number, index: number): CrowdSpot {
-  const person = roster[index % roster.length] ?? roster[0];
-  return {
-    position,
-    rotationY,
-    cast: person.cast,
-    age: person.age,
-    phase: (index % 9) / 9,
-  };
-}
-
-const pewPeople: CrowdSpot[] = pewRows.flatMap((z, row) =>
-  pewBanks.map((x, column) => faithfulSpot([x, 0, z], 0, row * 4 + column)),
-);
-
-const choirPeople: CrowdSpot[] = choirLine.map((position, index) => faithfulSpot(position, Math.PI / 2, index + 3));
-
-const cantor: CrowdSpot = faithfulSpot(cantorSpot, Math.PI / 2, 4);
+const choirSpots = choirLine.map((position) => ({ position, rotationY: Math.PI / 2 }));
+const cantorSpots = [{ position: cantorSpot, rotationY: Math.PI / 2 }];
+const communionSpots = communionLine.map((position) => ({ position, rotationY: 0 }));
+const dismissalSpots = dismissalLine.map((position) => ({ position, rotationY: 0 }));
 
 export function LiturgyScene({
   step,
@@ -142,6 +115,8 @@ export function LiturgyScene({
             quality={quality}
             elevated={step.id === "holy-things" && !clergyReceiving}
             incense={systems.incense}
+            seed={lab.seed}
+            shadows={systems.shadows && quality !== "low"}
           />
         ) : null}
         <ReadySignal />
@@ -266,12 +241,16 @@ function Cast({
   quality,
   elevated,
   incense,
+  seed,
+  shadows,
 }: {
   step: LiturgyStep;
   reducedMotion: boolean;
   quality: Quality;
   elevated: boolean;
   incense: boolean;
+  seed: number;
+  shadows: boolean;
 }) {
   const staging = stagingFor(step.id);
   const route = step.route;
@@ -281,6 +260,10 @@ function Cast({
   const censing = incense && censingFor(step.id);
   if (!route) processionFocus.active = false;
   const carry = priestCarry(step.id, elevated);
+  const lineSpots = useMemo(
+    () => (step.id === "dismissal" ? dismissalSpots : communionSpots).slice(0, staging.communicants),
+    [staging.communicants, step.id],
+  );
 
   return (
     <group>
@@ -307,10 +290,10 @@ function Cast({
       {step.id === "gospel" ? (
         <>
           <Placed actor={{ position: [-0.95, world.soleaFloor, -5.15], facing: Math.PI, stance: "stand" }}>
-            <Clergy role="reader" stance="stand" carry="candle" quality={quality} />
+            <Clergy role="server" stance="stand" carry="candle" quality={quality} />
           </Placed>
           <Placed actor={{ position: [1.45, world.soleaFloor, -5.2], facing: Math.PI, stance: "stand" }}>
-            <Clergy role="reader" stance="stand" carry="candle" quality={quality} />
+            <Clergy role="server" stance="stand" carry="candle" quality={quality} />
           </Placed>
         </>
       ) : null}
@@ -320,24 +303,31 @@ function Cast({
         <Clergy role="reader" stance={staging.reader.stance} gesture={gesture} quality={quality} />
       </Placed>
       <Placed actor={{ position: [-1.7, world.sanctuaryFloor, -14.7], facing: 0, stance: "stand" }}>
-        <Clergy role="reader" stance="stand" quality={quality} />
+        <Clergy role="server" stance="stand" quality={quality} />
       </Placed>
       <Placed actor={{ position: [2.7, world.sanctuaryFloor, -14.3], facing: 0, stance: "stand" }}>
-        <Clergy role="reader" stance="stand" quality={quality} />
+        <Clergy role="server" stance="stand" quality={quality} />
       </Placed>
-      <Crowd spots={pewPeople.slice(staging.communicants)} stance={staging.faithful} gesture={gesture} quality={quality} />
+      <Faithful
+        stance={staging.faithful}
+        gesture={gesture}
+        quality={quality}
+        seed={seed}
+        skip={staging.communicants}
+        shadows={shadows}
+      />
       <Approaching active={step.id === "dismissal"}>
-        <Crowd
-          spots={(step.id === "dismissal" ? dismissalLine : communionLine)
-            .slice(0, staging.communicants)
-            .map((position, index) => faithfulSpot(position, 0, index + 2))}
+        <Congregants
+          spots={lineSpots}
+          pose={step.id === "communion" ? "chest" : undefined}
           stance="stand"
           gesture={gesture}
-          quality={quality}
+          seed={seed + 101}
+          shadows={shadows}
         />
       </Approaching>
-      <Crowd spots={choirPeople} stance={choirStance} gesture={gesture} quality={quality} />
-      <Crowd spots={[cantor]} stance="stand" gesture={gesture} quality={quality} />
+      <Congregants spots={choirSpots} stance={choirStance} gesture={gesture} seed={seed + 202} shadows={shadows} />
+      <Congregants spots={cantorSpots} stance="stand" gesture={gesture} seed={seed + 303} shadows={shadows} />
     </group>
   );
 }
@@ -501,8 +491,8 @@ function Procession({
   const gospel = route === "little-entrance";
   return (
     <group>
-      <PathWalker points={points} march={march} back={0} reducedMotion={reducedMotion} carry="candle" role="reader" quality={quality} />
-      <PathWalker points={points} march={march} back={1.05} reducedMotion={reducedMotion} carry="candle" role="reader" quality={quality} />
+      <PathWalker points={points} march={march} back={0} reducedMotion={reducedMotion} carry="candle" role="server" quality={quality} />
+      <PathWalker points={points} march={march} back={1.05} reducedMotion={reducedMotion} carry="candle" role="server" quality={quality} />
       <PathWalker
         points={points}
         march={march}
@@ -543,7 +533,7 @@ function PathWalker({
   back: number;
   lead?: boolean;
   reducedMotion: boolean;
-  role: "priest" | "deacon" | "reader";
+  role: ClergyRole;
   carry?: Carry;
   quality: Quality;
   censing?: boolean;

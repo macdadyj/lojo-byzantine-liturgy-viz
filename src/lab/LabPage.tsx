@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { steps } from "../liturgy/steps";
 import { LiturgyScene } from "../scene/LiturgyScene";
-import { cameraFor } from "../scene/staging";
+import { cameraFor, type CameraPose } from "../scene/staging";
 import { pinHolyBeat } from "../scene/holyBeat";
 import type { Quality } from "../scene/quality";
 import { bookmarkById, bookmarks } from "./bookmarks";
@@ -23,6 +23,8 @@ const qualities: Quality[] = ["high", "medium", "low"];
 export type ShotRequest = {
   step?: string;
   bookmark?: string | null;
+  /** Explicit camera, for poking at a spot that has no bookmark yet. */
+  pose?: CameraPose | null;
   quality?: Quality;
   lighting?: LightingPreset;
   systems?: Partial<Systems>;
@@ -121,6 +123,7 @@ export function LabPage() {
           const mark = request.bookmark ? bookmarkById(request.bookmark) : undefined;
           setLab({ camera: mark ? mark.pose : null });
         }
+        if (request.pose !== undefined) setLab({ camera: request.pose });
         const target = request.step ? steps.findIndex((item) => item.id === request.step) : stepRef.current;
         if (target >= 0) setIndex(target);
         await waitFrames(2);

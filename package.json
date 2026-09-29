@@ -14,7 +14,8 @@
     "shots": "node scripts/shots.mjs",
     "shots:diff": "node scripts/shots-diff.mjs",
     "perf": "node scripts/perf.mjs",
-    "shots:keep": "node scripts/shots-keep.mjs"
+    "shots:keep": "node scripts/shots-keep.mjs",
+    "peek": "node scripts/peek.mjs"
   },
   "dependencies": {
     "@fontsource/newsreader": "^5.2.8",

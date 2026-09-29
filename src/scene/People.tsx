@@ -11,12 +11,10 @@ import {
   Group,
   LinearSRGBColorSpace,
   LoopRepeat,
-  Matrix4,
   Mesh,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
-  Quaternion,
   RepeatWrapping,
   SkinnedMesh,
   SphereGeometry,
@@ -27,37 +25,31 @@ import {
 } from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { nextBlockerId, releaseBlocker, trackBlocker } from "./collide";
+import { poseLegs } from "./crowd/pose";
+import { vestFigure, type Vestment } from "./crowd/vestments";
 import type { Gesture } from "./gestures";
-import { faithfulPlace } from "./crowdLayout";
 import { raycastFloor } from "./floors";
-import type { Vec3 } from "./path";
 import type { Quality } from "./quality";
 import type { Stance } from "./staging";
 
-export type ClergyRole = "priest" | "deacon" | "reader";
+export type ClergyRole = "priest" | "deacon" | "server" | "reader";
 export type Carry = "none" | "gospel" | "gifts" | "candle" | "cross";
 export type Age = "child" | "teen" | "adult" | "elder";
 type ClipName = "idle" | "walk" | "sit" | "kneel";
 
-/** Sunday clothes only: jackets, sweaters, dresses. No work gear, crowns, or costume pieces. */
-const castNames = ["m-suit", "m-casual", "m-hoodie", "w-suit", "w-formal", "w-casual"] as const;
 
 const clothPalette = ["#4a5160", "#5c534c", "#3e4842", "#6a5d62", "#4d5156", "#6b5e52", "#3a4250", "#5a564e"];
-
-export type CastName = (typeof castNames)[number];
 
 function modelUrl(file: string): string {
   return `${import.meta.env.BASE_URL}models/cast/${file}.glb`;
 }
 
 const animUrl = modelUrl("anims");
-const priestUrl = modelUrl("priest");
-const deaconUrl = modelUrl("deacon");
+type FigureFile = "priest" | "m-suit";
 
-for (const name of castNames) useGLTF.preload(modelUrl(name));
 useGLTF.preload(animUrl);
-useGLTF.preload(priestUrl);
-useGLTF.preload(deaconUrl);
+useGLTF.preload(modelUrl("priest"));
+useGLTF.preload(modelUrl("m-suit"));
 
 const skinTints = ["#e0ac69", "#c68642", "#8d5524", "#f1c27d", "#6b4423", "#a56b43", "#d9a066", "#4a3128"];
 const hairTints = ["#2a2118", "#1a120e", "#4a3424", "#6b5344", "#111111", "#c8c2b4", "#3a2418", "#241610"];
@@ -77,19 +69,6 @@ const scratch = new Vector3();
 const parentPoint = new Vector3();
 const footPoint = new Vector3();
 const scalePoint = new Vector3();
-const aimDir = new Vector3();
-const basisX = new Vector3();
-const basisZ = new Vector3();
-const axisX = new Vector3(1, 0, 0);
-const axisY = new Vector3(0, 1, 0);
-const axisZ = new Vector3(0, 0, 1);
-const worldDown = new Vector3(0, -1, 0);
-const forwardDir = new Vector3();
-const thighDir = new Vector3();
-const shinDir = new Vector3();
-const quatA = new Quaternion();
-const quatB = new Quaternion();
-const basis = new Matrix4();
 
 export function ageScale(age: Age): number {
   switch (age) {
@@ -127,10 +106,10 @@ export function Clergy({
   quality?: Quality;
   elevated?: boolean;
 }) {
-  const file: CastName | "priest" | "deacon" = role === "priest" ? "priest" : role === "deacon" ? "deacon" : "m-suit";
   return (
     <Person
-      file={file}
+      file={role === "priest" ? "priest" : "m-suit"}
+      vestment={role === "reader" ? undefined : role}
       stance={stance}
       walking={walking}
       carry={carry}
@@ -139,61 +118,9 @@ export function Clergy({
       quality={quality}
       important
       age="adult"
-      tint={role === "priest" ? 4 : 1}
+      tint={role === "priest" ? 4 : role === "server" ? 2 : 1}
       elevated={elevated}
     />
-  );
-}
-
-export type CrowdSpot = {
-  position: Vec3;
-  rotationY: number;
-  cast: number;
-  age: Age;
-  phase: number;
-};
-
-export function Crowd({
-  spots,
-  stance,
-  gesture = "none",
-  quality = "medium",
-}: {
-  spots: readonly CrowdSpot[];
-  stance: Stance;
-  gesture?: Gesture;
-  quality?: Quality;
-}) {
-  if (spots.length === 0) return null;
-  const limit = quality === "high" ? spots.length : quality === "medium" ? Math.min(spots.length, 14) : Math.min(spots.length, 8);
-  const shown = spots.slice(0, limit);
-  return (
-    <group>
-      {shown.map((spot) => {
-        const file = castNames[spot.cast % castNames.length] ?? "m-suit";
-        const short = spot.age === "child" || spot.age === "teen";
-        const personStance = stance === "sit" && short ? "stand" : stance;
-        const placed = spot.position[1] === 0 ? faithfulPlace(spot.position[0], spot.position[2], personStance) : spot.position;
-        return (
-          <group
-            key={`${spot.position.join(",")}-${spot.cast}`}
-            position={placed}
-            rotation={[0, spot.rotationY, 0]}
-            scale={ageScale(spot.age)}
-          >
-            <Person
-              file={file}
-              stance={personStance}
-              age={spot.age}
-              phase={spot.phase}
-              gesture={gesture}
-              quality={quality}
-              tint={spot.cast}
-            />
-          </group>
-        );
-      })}
-    </group>
   );
 }
 
@@ -210,8 +137,9 @@ function Person({
   important = false,
   tint = 0,
   elevated = false,
+  vestment,
 }: {
-  file: CastName | "priest" | "deacon";
+  file: FigureFile;
   stance: Stance;
   walking?: boolean;
   carry?: Carry;
@@ -223,6 +151,7 @@ function Person({
   important?: boolean;
   tint?: number;
   elevated?: boolean;
+  vestment?: Vestment;
 }) {
   const body = useGLTF(modelUrl(file));
   const anim = useGLTF(animUrl);
@@ -236,19 +165,17 @@ function Person({
   const blocker = useRef(0);
 
   useLayoutEffect(() => {
-    const created = tintFigure(clone, tint, age, file !== "priest" && file !== "deacon");
-    const dressed = file.startsWith("w-") ? sundayLayers(clone, tint) : [];
+    const created = tintFigure(clone, tint, age, vestment === undefined);
+    const vested = vestment ? vestFigure(clone, vestment) : [];
     const added = attachProps(clone, { carry, censing: censing && quality !== "low", elevated });
     const head = clone.getObjectByName("Head");
     if (head) head.scale.setScalar(headScaleFor(age));
     return () => {
       for (const material of created) material.dispose();
-      const dressMaterial = dressed[0] instanceof Mesh ? dressed[0].material : null;
-      for (const object of dressed) {
+      for (const object of vested) {
         object.removeFromParent();
         if (object instanceof Mesh) object.geometry.dispose();
       }
-      if (dressMaterial instanceof MeshStandardMaterial) dressMaterial.dispose();
       for (const object of added) {
         object.traverse((child) => {
           if (child instanceof Mesh) {
@@ -262,7 +189,7 @@ function Person({
         object.removeFromParent();
       }
     };
-  }, [age, carry, censing, clone, elevated, file, quality, tint]);
+  }, [age, carry, censing, clone, elevated, quality, tint, vestment]);
 
   useLayoutEffect(() => {
     if (!clip) return;
@@ -299,7 +226,7 @@ function Person({
     } else {
       mixer.update(walking ? delta : delta * 0.55);
     }
-    if (!walking) poseLegs(clone, group, stance);
+    if (!walking) poseLegs(clone, group, stance === "sit" ? "sit" : stance === "kneel" ? "kneel" : "stand");
     plantFeet(group, clone, state.scene);
     if (far) return;
     const time = state.clock.elapsedTime + phase * 6;
@@ -534,31 +461,6 @@ function clothMaterial(name: string, color: Color, weave: ClothWeave | null, rou
   return material;
 }
 
-function sundayLayers(clone: Object3D, tint: number): Object3D[] {
-  const added: Object3D[] = [];
-  const color = new Color(clothPalette[Math.abs(tint + 2) % clothPalette.length] ?? "#4d5156");
-  color.lerp(new Color("#6f6a63"), 0.2);
-  const cloth = clothMaterial("sunday", color, clothWeave(), 0.9);
-  const head = clone.getObjectByName("Head");
-  if (head) {
-    const scarf = new Mesh(new SphereGeometry(0.13, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), cloth);
-    scarf.scale.set(1.15, 0.72, 1.2);
-    scarf.position.set(0, 0.06, 0.01);
-    const tail = new Mesh(new BoxGeometry(0.16, 0.28, 0.04), cloth);
-    tail.position.set(0, -0.08, -0.1);
-    head.add(scarf, tail);
-    added.push(scarf, tail);
-  }
-  const hips = clone.getObjectByName("Hips");
-  if (hips) {
-    const skirt = new Mesh(new CylinderGeometry(0.2, 0.34, 0.52, 14, 1, true), cloth);
-    skirt.position.set(0, -0.22, 0.02);
-    hips.add(skirt);
-    added.push(skirt);
-  }
-  return added;
-}
-
 function attachProps(
   clone: Object3D,
   options: { carry: Carry; censing: boolean; elevated: boolean },
@@ -710,79 +612,6 @@ function applyCross(clone: Object3D, t: number): void {
   upper.rotation.z += 1.15 * lift;
   upper.rotation.x += -1.05 * lift;
   lower.rotation.z += 0.85 * lift;
-}
-
-function poseLegs(clone: Object3D, facingRoot: Object3D, stance: Stance): void {
-  switch (stance) {
-    case "stand":
-    case "bow":
-      return;
-    case "sit": {
-      facingRoot.updateWorldMatrix(true, false);
-      facingRoot.getWorldQuaternion(quatA);
-      forwardDir.set(0, 0, 1).applyQuaternion(quatA).normalize();
-      thighDir.set(forwardDir.x, -0.05, forwardDir.z).normalize();
-      clone.updateMatrixWorld(true);
-      for (const side of ["L", "R"] as const) {
-        const upper = clone.getObjectByName(`UpperLeg${side}`);
-        const lower = clone.getObjectByName(`LowerLeg${side}`);
-        if (upper) aimLocalY(upper, thighDir);
-        if (lower) aimLocalY(lower, worldDown);
-        placeFoot(clone, side, 0.46);
-      }
-      return;
-    }
-    case "kneel": {
-      const body = clone.getObjectByName("Body");
-      if (body) body.position.y = 0.36;
-      clone.updateMatrixWorld(true);
-      facingRoot.getWorldQuaternion(quatA);
-      forwardDir.set(0, 0, 1).applyQuaternion(quatA).normalize();
-      thighDir.set(0, -0.92, 0).addScaledVector(forwardDir, 0.35);
-      shinDir.set(0, -0.08, 0).addScaledVector(forwardDir, -1);
-      for (const side of ["L", "R"] as const) {
-        const upper = clone.getObjectByName(`UpperLeg${side}`);
-        const lower = clone.getObjectByName(`LowerLeg${side}`);
-        if (upper) aimLocalY(upper, thighDir);
-        if (lower) aimLocalY(lower, shinDir);
-        placeFoot(clone, side, 0.42);
-      }
-      return;
-    }
-    default: {
-      const exhaustive: never = stance;
-      return exhaustive;
-    }
-  }
-}
-
-function aimLocalY(bone: Object3D, direction: Vector3): void {
-  const parent = bone.parent;
-  if (!parent) return;
-  parent.updateWorldMatrix(true, false);
-  parent.getWorldQuaternion(quatA);
-  const y = footPoint.copy(direction).normalize();
-  const helper = Math.abs(y.y) > 0.85 ? axisX : axisY;
-  const x = basisX.crossVectors(helper, y);
-  if (x.lengthSq() < 1e-8) x.crossVectors(axisZ, y);
-  x.normalize();
-  const z = basisZ.crossVectors(x, y).normalize();
-  quatB.setFromRotationMatrix(basis.makeBasis(x, y, z));
-  bone.quaternion.copy(quatA.invert()).multiply(quatB);
-  bone.updateMatrixWorld(true);
-}
-
-function placeFoot(clone: Object3D, side: "L" | "R", length: number): void {
-  const lower = clone.getObjectByName(`LowerLeg${side}`);
-  const foot = clone.getObjectByName(`Foot${side}`);
-  if (!lower || !foot?.parent) return;
-  lower.updateMatrixWorld(true);
-  lower.getWorldQuaternion(quatB);
-  const shin = aimDir.set(0, 1, 0).applyQuaternion(quatB);
-  lower.getWorldPosition(footPoint);
-  footPoint.addScaledVector(shin, length);
-  foot.parent.worldToLocal(footPoint);
-  foot.position.copy(footPoint);
 }
 
 function footVertexIndices(mesh: SkinnedMesh): number[] {
