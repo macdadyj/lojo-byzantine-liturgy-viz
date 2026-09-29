@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CanvasTexture, Mesh, MeshBasicMaterial, SRGBColorSpace, Vector3, type Group, type Object3D, type PointLight } from "three";
+import { CanvasTexture, ExtrudeGeometry, Mesh, MeshBasicMaterial, Shape, SRGBColorSpace, Vector3, type Group, type Object3D, type PointLight } from "three";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { colors } from "./colors";
@@ -8,6 +8,7 @@ import { Frescoes } from "./Frescoes";
 import { ByzantineCross } from "./Figures";
 import { SacredArt } from "./Iconostas";
 import { Pews } from "./architecture/Pews";
+import { floorRoughTexture, floorTileTexture, starVaultTexture, tiled, wallTexture } from "./materials/paint";
 import { paintAltarFrontal } from "./icons";
 import type { Quality } from "./quality";
 import { giltTexture, marbleTexture } from "./surfaces";
@@ -55,6 +56,7 @@ export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace
         <Vault />
         <Dome />
         <Clerestory />
+        <Arcade />
       </group>
       <Columns />
       <Gallery />
@@ -114,7 +116,7 @@ function Shell() {
       <Wall position={[outer, height / 2, centerZ]} args={[world.wall, height, span]} />
       <Wall position={[-6.2, height / 2, world.narthexWest]} args={[outer * 2 - 8.4, height, world.wall]} />
       <Wall position={[6.2, height / 2, world.narthexWest]} args={[outer * 2 - 8.4, height, world.wall]} />
-      <Wall position={[0, height - 1.3, world.narthexWest]} args={[4.4, 2.6, world.wall]} />
+      <Wall position={[0, height - 1.3, world.narthexWest]} args={[4.4, 2.6, world.wall]} painted={false} />
       <mesh position={[0, 2.2, world.narthexWest - 0.05]}>
         <boxGeometry args={[3.2, 4.2, 0.12]} />
         <meshStandardMaterial color="#6a5138" roughness={0.7} />
@@ -123,11 +125,13 @@ function Shell() {
   );
 }
 
-function Wall({ position, args }: { position: [number, number, number]; args: [number, number, number] }) {
+/** Full-height walls carry the painted dado and frieze, one pattern repeat about every 5 m. */
+function Wall({ position, args, painted = true }: { position: [number, number, number]; args: [number, number, number]; painted?: boolean }) {
+  const map = painted ? tiled(wallTexture(), Math.max(1, Math.round(Math.max(args[0], args[2]) / 5)), 1) : null;
   return (
     <mesh position={position}>
       <boxGeometry args={args} />
-      <meshStandardMaterial color={colors.plaster} roughness={0.9} />
+      <meshStandardMaterial map={map} color={painted ? "#f2e6d2" : colors.plaster} roughness={0.9} />
     </mesh>
   );
 }
@@ -157,18 +161,65 @@ function Columns() {
           </group>
         )),
       )}
-      {[-1, 1].map((side) =>
-        columnZ.slice(0, -1).map((z, index) => {
-          const next = columnZ[index + 1] ?? z;
-          const mid = (z + next) / 2;
-          return (
-            <mesh key={`arch-${side}-${z}`} position={[side * world.columnX, 7.55, mid]}>
-              <boxGeometry args={[0.42, 0.32, next - z]} />
+    </group>
+  );
+}
+
+const archTop = 0.78;
+const archRise = 0.5;
+const capitalTop = 7.74;
+
+/** Segmental arch between two capitals, extruded through the arcade wall's thickness. */
+function archGeometry(span: number, depth: number): ExtrudeGeometry {
+  const half = span / 2;
+  const clear = half - 0.36;
+  const radius = (clear * clear + archRise * archRise) / (2 * archRise);
+  const centerY = archRise - radius;
+  const start = Math.atan2(-centerY, -clear);
+  const end = Math.atan2(-centerY, clear);
+  const shape = new Shape();
+  shape.moveTo(-half, 0);
+  shape.lineTo(-clear, 0);
+  shape.absarc(0, centerY, radius, start, end, true);
+  shape.lineTo(half, 0);
+  shape.lineTo(half, archTop);
+  shape.lineTo(-half, archTop);
+  shape.closePath();
+  const geometry = new ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 18 });
+  geometry.translate(0, 0, -depth / 2);
+  return geometry;
+}
+
+/** Arcade over the columns: arches, a plaster wall up to the vault springing, and a gilt string course. */
+function Arcade() {
+  const geometries = useMemo(
+    () => columnZ.slice(0, -1).map((z, index) => ({ z, span: (columnZ[index + 1] ?? z) - z, geometry: archGeometry((columnZ[index + 1] ?? z) - z, 0.42) })),
+    [],
+  );
+  useEffect(() => () => geometries.forEach((arch) => arch.geometry.dispose()), [geometries]);
+  const first = columnZ[0] ?? 0;
+  const last = columnZ[columnZ.length - 1] ?? 0;
+  const wallBottom = capitalTop + archTop;
+  const wallHeight = 9.2 - wallBottom;
+  return (
+    <group>
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * world.columnX, 0, 0]}>
+          {geometries.map((arch) => (
+            <mesh key={arch.z} geometry={arch.geometry} position={[0, capitalTop, arch.z + arch.span / 2]} rotation={[0, Math.PI / 2, 0]}>
               <meshStandardMaterial color={colors.plasterDeep} roughness={0.86} />
             </mesh>
-          );
-        }),
-      )}
+          ))}
+          <mesh position={[0, wallBottom + wallHeight / 2, (first + last) / 2]}>
+            <boxGeometry args={[0.42, wallHeight, last - first + 0.7]} />
+            <meshStandardMaterial color={colors.plaster} roughness={0.9} />
+          </mesh>
+          <mesh position={[0, wallBottom + 0.05, (first + last) / 2]}>
+            <boxGeometry args={[0.5, 0.1, last - first + 0.7]} />
+            <meshStandardMaterial map={giltTexture()} color={colors.gold} metalness={0.6} roughness={0.35} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -177,13 +228,15 @@ function Vault() {
   return (
     <group>
       <mesh position={[0, 9.15, 9.4]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[5.15, 5.15, 14.5, 28, 1, true, Math.PI / 2, Math.PI]} />
+        <cylinderGeometry args={[5.15, 5.15, 14.5, 36, 1, true, Math.PI / 2, Math.PI]} />
         <meshStandardMaterial
-          color="#8d6844"
-          roughness={0.92}
+          map={tiled(starVaultTexture(), 5, 5)}
+          emissiveMap={tiled(starVaultTexture(), 5, 5)}
+          color="#d8dcef"
+          roughness={0.8}
           side={2}
-          emissive="#5c3e28"
-          emissiveIntensity={0.04}
+          emissive="#ffffff"
+          emissiveIntensity={0.1}
         />
       </mesh>
       <mesh position={[0, 8.4, -6.4]} rotation={[Math.PI / 2, 0, 0]}>
@@ -223,6 +276,16 @@ function Dome() {
         <cylinderGeometry args={[3.5, 4.7, 2.4, 24, 1, true]} />
         <meshStandardMaterial color={colors.plaster} roughness={0.86} side={2} emissive="#5c3e28" emissiveIntensity={0.04} />
       </mesh>
+      {[
+        [4.7, 9.22],
+        [3.5, 11.6],
+        [3.36, 13.15],
+      ].map(([radius, y]) => (
+        <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[radius, 0.07, 6, 48]} />
+          <meshStandardMaterial map={giltTexture()} color={colors.gold} metalness={0.7} roughness={0.3} />
+        </mesh>
+      ))}
       <mesh position={[0, 12.3, 0]}>
         <cylinderGeometry args={[3.35, 3.5, 1.7, 24, 1, true]} />
         <meshStandardMaterial color="#efe6d4" roughness={0.8} side={2} />
@@ -303,19 +366,31 @@ function Floors() {
     <group>
       <mesh position={[0, -0.04, 6.2]} userData={{ floor: true }}>
         <boxGeometry args={[world.halfWidth * 2, 0.12, 33]} />
-        <meshStandardMaterial map={marbleTexture()} color="#c4b49c" roughness={0.62} metalness={0.02} />
+        <meshStandardMaterial
+          map={tiled(floorTileTexture(), 12, 17)}
+          roughnessMap={tiled(floorRoughTexture(), 12, 17)}
+          color="#eee4d4"
+          roughness={0.7}
+          metalness={0.02}
+        />
       </mesh>
       <mesh position={[0, 0.08, 19.6]} userData={{ floor: true }}>
         <boxGeometry args={[world.halfWidth * 2, 0.1, 6.2]} />
-        <meshStandardMaterial color={colors.floorDark} roughness={0.92} />
+        <meshStandardMaterial map={tiled(floorTileTexture(), 12, 3)} color="#b8a48c" roughness={0.85} />
       </mesh>
       <mesh position={[0, 0.1, -7.2]} userData={{ floor: true }}>
         <boxGeometry args={[16, 0.2, 3.4]} />
-        <meshStandardMaterial color="#a88b68" roughness={0.84} />
+        <meshStandardMaterial map={marbleTexture()} color="#d6c6ac" roughness={0.6} metalness={0.02} />
       </mesh>
       <mesh position={[0, 0.21, -13.9]} userData={{ floor: true }}>
         <boxGeometry args={[world.halfWidth * 2, 0.42, 9.4]} />
-        <meshStandardMaterial map={marbleTexture()} color="#b7a58c" roughness={0.58} metalness={0.02} />
+        <meshStandardMaterial
+          map={tiled(floorTileTexture(), 10, 4)}
+          roughnessMap={tiled(floorRoughTexture(), 10, 4)}
+          color="#f4ead8"
+          roughness={0.62}
+          metalness={0.02}
+        />
       </mesh>
       <mesh position={[0, 0.16, -5.6]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1.7, 28, 0, Math.PI]} />

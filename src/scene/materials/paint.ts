@@ -302,3 +302,119 @@ export function smokeTexture(): Texture {
     }
   });
 }
+
+const tiledCache = new Map<string, Texture>();
+
+/** A shared painting at its own repeat. Clones share the canvas, so the image is uploaded once. */
+export function tiled(texture: Texture, repeatU: number, repeatV: number): Texture {
+  const key = `${texture.uuid}:${repeatU.toFixed(3)}:${repeatV.toFixed(3)}`;
+  const hit = tiledCache.get(key);
+  if (hit) return hit;
+  const copy = texture.clone();
+  copy.repeat.set(repeatU, repeatV);
+  tiledCache.set(key, copy);
+  return copy;
+}
+
+/**
+ * Carved iconostas panel: dark walnut with a gilt vine scroll (grapevine and leaves, the
+ * Eucharistic vine common on Carpatho-Rusyn screens), framed by a gilt bead. One scroll per repeat.
+ */
+export function carvedPanelTexture(): Texture {
+  return canvasTexture("carved-panel", 512, (ctx, s) => {
+    const random = mulberry32(19);
+    const ground = ctx.createLinearGradient(0, 0, s, s);
+    ground.addColorStop(0, "#3c2416");
+    ground.addColorStop(1, "#2e1b10");
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 90; i += 1) {
+      ctx.globalAlpha = 0.05;
+      ctx.fillStyle = random() > 0.5 ? "#5a3a24" : "#1a0e08";
+      ctx.fillRect(0, random() * s, s, 1 + random() * 3);
+    }
+    ctx.globalAlpha = 1;
+    const bead = s * 0.045;
+    ctx.strokeStyle = "#c99a45";
+    ctx.lineWidth = bead * 0.5;
+    ctx.strokeRect(bead, bead, s - bead * 2, s - bead * 2);
+    ctx.strokeStyle = "#8a6128";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bead * 1.9, bead * 1.9, s - bead * 3.8, s - bead * 3.8);
+    const gold = (shade: number) => `hsl(40, ${58 + shade * 10}%, ${46 + shade * 16}%)`;
+    const vine = (phase: number) => {
+      ctx.beginPath();
+      for (let x = 0; x <= s; x += 4) {
+        const y = s / 2 + Math.sin((x / s) * Math.PI * 2 + phase) * s * 0.22;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    };
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#5a3a16";
+    ctx.lineWidth = 11;
+    vine(0);
+    ctx.strokeStyle = gold(0.4);
+    ctx.lineWidth = 7;
+    vine(0);
+    ctx.strokeStyle = gold(1);
+    ctx.lineWidth = 2;
+    vine(-0.04);
+    for (let k = 0; k < 4; k += 1) {
+      const x = (k + 0.5) * (s / 4);
+      const y = s / 2 + Math.sin((x / s) * Math.PI * 2) * s * 0.22;
+      const up = k % 2 === 0 ? -1 : 1;
+      const cx = x + s * 0.04;
+      const cy = y + up * s * 0.13;
+      ctx.strokeStyle = gold(0.3);
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + s * 0.06, y + up * s * 0.05, cx, cy);
+      ctx.stroke();
+      if (k % 2 === 0) {
+        // Grape cluster.
+        for (let g = 0; g < 10; g += 1) {
+          const row = Math.floor(Math.sqrt(g * 2));
+          const gx = cx + (g - row * row * 0.5 - row * 0.5) * s * 0.018;
+          const gy = cy + up * row * s * 0.022;
+          const grape = ctx.createRadialGradient(gx - 2, gy - 2, 1, gx, gy, s * 0.014);
+          grape.addColorStop(0, "#f4dc92");
+          grape.addColorStop(1, "#8a5e22");
+          ctx.fillStyle = grape;
+          ctx.beginPath();
+          ctx.arc(gx, gy, s * 0.013, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else {
+        // Five-lobed vine leaf.
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(up * 0.4);
+        const leaf = ctx.createRadialGradient(0, 0, 2, 0, 0, s * 0.07);
+        leaf.addColorStop(0, "#f0cf7a");
+        leaf.addColorStop(1, "#9a6c28");
+        ctx.fillStyle = leaf;
+        ctx.beginPath();
+        for (let i = 0; i <= 40; i += 1) {
+          const a = (i / 40) * Math.PI * 2;
+          const r = s * 0.05 * (0.72 + 0.28 * Math.abs(Math.cos(a * 2.5)));
+          ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#6a4418";
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 5; i += 1) {
+          const a = (i / 5) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * s * 0.04, Math.sin(a) * s * 0.04);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+  });
+}

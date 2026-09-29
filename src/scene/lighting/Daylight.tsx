@@ -90,7 +90,7 @@ function SunMask() {
 
 let beamFade: CanvasTexture | null = null;
 
-/** Brightest at the window, fading to nothing by the floor, soft at the sides. */
+/** Swells just inside the window, fades to nothing by the floor, soft at the sides. */
 function beamTexture(): CanvasTexture | null {
   if (beamFade) return beamFade;
   if (typeof document === "undefined") return null;
@@ -100,7 +100,8 @@ function beamTexture(): CanvasTexture | null {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   const along = ctx.createLinearGradient(0, 0, 0, 128);
-  along.addColorStop(0, "rgba(255,255,255,1)");
+  along.addColorStop(0, "rgba(255,255,255,0)");
+  along.addColorStop(0.1, "rgba(255,255,255,1)");
   along.addColorStop(0.55, "rgba(255,255,255,0.45)");
   along.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = along;
@@ -117,7 +118,7 @@ function beamTexture(): CanvasTexture | null {
   return beamFade;
 }
 
-/** A light shaft: the window rectangle swept along the sun ray down to the floor, as two crossed ribbons. */
+/** A light shaft (clerestory only; drum shafts read as solid slabs from below): the window rectangle swept along the sun ray down to the floor, as two crossed ribbons. */
 function beamGeometry(corners: Vector3[], toward: Vector3, floorY: number): BufferGeometry {
   const positions: number[] = [];
   const uvs: number[] = [];
@@ -161,20 +162,6 @@ function SunBeams({ direction, color, opacity }: { direction: Vec3; color: strin
         ];
         parts.push(beamGeometry(corners, toward, 0.1));
       }
-    }
-    for (let index = 0; index < drumWindows; index += 1) {
-      const angle = (index / drumWindows) * Math.PI * 2;
-      const facing = new Vector3(Math.cos(angle), 0, Math.sin(angle));
-      if (facing.dot(new Vector3(direction[0], 0, direction[2]).normalize()) < 0.35) continue;
-      const centre = new Vector3(Math.cos(angle) * 3.42, 12.3, domeZ + Math.sin(angle) * 3.42);
-      const side = new Vector3(-facing.z, 0, facing.x).multiplyScalar(0.275);
-      const corners = [
-        centre.clone().add(side).setY(12.3 + 0.57),
-        centre.clone().sub(side).setY(12.3 + 0.57),
-        centre.clone().sub(side).setY(12.3 - 0.57),
-        centre.clone().add(side).setY(12.3 - 0.57),
-      ];
-      parts.push(beamGeometry(corners, toward, 0.3));
     }
     const merged = parts.length > 0 ? mergeGeometries(parts) : null;
     for (const part of parts) part.dispose();

@@ -85,8 +85,8 @@ function poseArms(clone: Object3D, pose: BakePose): void {
       // Forearms stay nearly level so the hands land on the opposite collarbone, not above the shoulder.
       const over = side === "R" ? 0.06 : 0;
       if (upper) aimLocalY(upper, new Vector3(0.05 * inward, -0.85, 0.5 + over));
-      if (lower) aimLocalY(lower, new Vector3(0.7 * inward, 0.35, 0.35 + over));
-      if (wrist) aimLocalY(wrist, new Vector3(0.6 * inward, 0.35, -0.7));
+      if (lower) aimLocalY(lower, new Vector3(0.6 * inward, 0.35, 0.45 + over));
+      if (wrist) aimLocalY(wrist, new Vector3(0.45 * inward, 0.3, -0.85));
     } else {
       // Hands clasped low in front.
       if (upper) aimLocalY(upper, new Vector3(0.12 * inward, -0.97, 0.2));

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { DataTexture, PlaneGeometry, SRGBColorSpace, type Group, type Texture } from "three";
+import { BoxGeometry, CylinderGeometry, DataTexture, PlaneGeometry, SRGBColorSpace, type BufferGeometry, type Group, type Texture } from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { ByzantineCross } from "./Figures";
@@ -7,7 +8,8 @@ import { colors } from "./colors";
 import { iconCards, type IconCard } from "./iconCards";
 import { holyClosesDoors } from "./holyBeat";
 import type { Quality } from "./quality";
-import { giltTexture } from "./surfaces";
+import { carvedPanelTexture, tiled } from "./materials/paint";
+import { giltTexture, marbleTexture } from "./surfaces";
 import type { DoorState } from "./staging";
 import { world } from "./world";
 
@@ -94,6 +96,31 @@ function Iconostas({ doors, maps, quality }: { doors: DoorState; maps: IconMaps;
   );
 }
 
+/** Gilt colonnettes at every jamb of the lower tier: royal doors, between icons, and both deacon doors. */
+const colonnetteX = [1.12, 3.55, 5.9, 9.0];
+const colonnetteBottom = 0.5;
+const colonnetteTop = 3.95;
+
+function colonnettesGeometry(): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const shaft = colonnetteTop - colonnetteBottom - 0.3;
+  for (const x of colonnetteX.flatMap((value) => [-value, value])) {
+    const base = new BoxGeometry(0.22, 0.14, 0.2);
+    base.translate(x, colonnetteBottom + 0.07, 0);
+    const column = new CylinderGeometry(0.065, 0.075, shaft, 10, 1);
+    column.translate(x, colonnetteBottom + 0.14 + shaft / 2, 0);
+    const ring = new CylinderGeometry(0.085, 0.085, 0.05, 10, 1);
+    ring.translate(x, colonnetteBottom + 0.14 + shaft * 0.34, 0);
+    const capital = new CylinderGeometry(0.13, 0.075, 0.16, 10, 1);
+    capital.translate(x, colonnetteTop - 0.08, 0);
+    parts.push(...[base, column, ring, capital].map((part) => part.toNonIndexed()));
+  }
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!merged) throw new Error("colonnette merge failed");
+  return merged;
+}
+
 function Screen() {
   // Three openings: royal doors in the center, deacon doors to the north and south.
   const half = world.deaconOpeningHalf;
@@ -106,26 +133,55 @@ function Screen() {
     [(outer + 9.2) / 2, 1.9, 9.2 - outer, 3.56],
     [0, 6.05, 18.4, 4.5],
   ];
+  const colonnettes = useMemo(colonnettesGeometry, []);
+  useLayoutEffect(() => () => colonnettes.dispose(), [colonnettes]);
+  const gilt = <meshStandardMaterial map={giltTexture()} color={colors.gold} metalness={0.78} roughness={0.28} />;
   return (
     <group>
       {panels.map(([x, y, width, height]) => (
         <mesh key={`${x}-${y}`} position={[x, y, -0.08]}>
           <boxGeometry args={[width, height, 0.18]} />
-          <meshStandardMaterial color={colors.woodDark} roughness={0.78} />
+          <meshStandardMaterial
+            map={tiled(carvedPanelTexture(), Math.max(1, Math.round(width / 1.1)), Math.max(1, Math.round(height / 1.1)))}
+            color="#ffffff"
+            roughness={0.6}
+            metalness={0.18}
+          />
         </mesh>
       ))}
-      <mesh position={[0, 4.35, 0.02]}>
-        <boxGeometry args={[18.6, 0.12, 0.28]} />
-        <meshStandardMaterial map={giltTexture()} color={colors.gold} metalness={0.78} roughness={0.28} />
+      {[-1, 1].flatMap((side) => [
+        <mesh key={`plinth-${side}-a`} position={[side * (inner + 1) / 2, 0.25, 0.02]}>
+          <boxGeometry args={[inner - 1, 0.5, 0.3]} />
+          <meshStandardMaterial map={marbleTexture()} color="#9a6a5a" roughness={0.45} metalness={0.05} />
+        </mesh>,
+        <mesh key={`plinth-${side}-b`} position={[side * (outer + 9.2) / 2, 0.25, 0.02]}>
+          <boxGeometry args={[9.2 - outer, 0.5, 0.3]} />
+          <meshStandardMaterial map={marbleTexture()} color="#9a6a5a" roughness={0.45} metalness={0.05} />
+        </mesh>,
+      ])}
+      <mesh geometry={colonnettes} position={[0, 0, 0.12]}>
+        {gilt}
       </mesh>
-      <mesh position={[0, 8.35, 0.02]}>
-        <boxGeometry args={[12.4, 0.1, 0.26]} />
-        <meshStandardMaterial map={giltTexture()} color={colors.gold} metalness={0.78} roughness={0.28} />
+      <mesh position={[0, 4.12, 0.1]}>
+        <boxGeometry args={[18.6, 0.16, 0.36]} />
+        {gilt}
       </mesh>
-      {[-5.6, -3.5, 3.5, 5.6].map((x) => (
-        <mesh key={x} position={[x, 4.2, 0.08]}>
-          <boxGeometry args={[0.08, 7.6, 0.16]} />
-          <meshStandardMaterial map={giltTexture()} color={colors.gold} metalness={0.74} roughness={0.3} />
+      <mesh position={[0, 4.35, 0.06]}>
+        <boxGeometry args={[18.8, 0.3, 0.3]} />
+        <meshStandardMaterial map={tiled(carvedPanelTexture(), 34, 1)} color="#ffffff" roughness={0.5} metalness={0.25} />
+      </mesh>
+      <mesh position={[0, 4.56, 0.12]}>
+        <boxGeometry args={[19, 0.12, 0.44]} />
+        {gilt}
+      </mesh>
+      <mesh position={[0, 8.35, 0.04]}>
+        <boxGeometry args={[12.4, 0.2, 0.34]} />
+        {gilt}
+      </mesh>
+      {[-4.6, -1.6, 1.6, 4.6].map((x) => (
+        <mesh key={x} position={[x, 7.65, 0.06]}>
+          <boxGeometry args={[0.12, 1.3, 0.16]} />
+          {gilt}
         </mesh>
       ))}
     </group>
@@ -250,7 +306,7 @@ function DeaconLeaf({
     <group ref={hinge} position={[side * (world.deaconDoorX + world.deaconOpeningHalf), 0, 0.14]}>
       <mesh position={[panelX, 1.85, 0]}>
         <boxGeometry args={[width, 3.35, 0.07]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.55} />
+        <meshStandardMaterial map={tiled(carvedPanelTexture(), 2, 3)} color="#ffffff" roughness={0.55} metalness={0.18} />
       </mesh>
       <mesh position={[panelX, 1.88, 0.04]}>
         <planeGeometry args={[width - 0.16, 2.7]} />
@@ -305,7 +361,7 @@ function RoyalLeaf({
     <group ref={hinge} position={[side * 0.92, 0, 0.12]}>
       <mesh position={[panelX, 1.85, 0]}>
         <boxGeometry args={[0.84, 3.55, 0.07]} />
-        <meshStandardMaterial color={colors.woodDark} roughness={0.55} />
+        <meshStandardMaterial map={tiled(carvedPanelTexture(), 1, 4)} color="#ffffff" roughness={0.55} metalness={0.18} />
       </mesh>
       <mesh position={[panelX, 1.88, 0.04]} geometry={geometry}>
         <IconSurface map={map} quality={quality} />
