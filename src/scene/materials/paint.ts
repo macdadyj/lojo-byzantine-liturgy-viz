@@ -231,60 +231,6 @@ export function blobTexture(): Texture {
   );
 }
 
-/** Woven gold damask for Sunday vestments: a small repeating flower-cross on a warm gold ground. */
-export function brocadeTexture(ground = "#c49a45", figure = "#8e6424"): Texture {
-  return canvasTexture(`brocade:${ground}:${figure}`, 256, (ctx, s) => {
-    ctx.fillStyle = ground;
-    ctx.fillRect(0, 0, s, s);
-    const random = mulberry32(31);
-    for (let y = 0; y < s; y += 2) {
-      ctx.globalAlpha = 0.05 + random() * 0.05;
-      ctx.fillStyle = y % 4 === 0 ? "#ffffff" : "#000000";
-      ctx.fillRect(0, y, s, 1);
-    }
-    ctx.globalAlpha = 1;
-    const cell = s / 4;
-    for (let row = 0; row < 4; row += 1) {
-      for (let col = 0; col < 4; col += 1) {
-        const x = col * cell + (row % 2 ? cell / 2 : 0) + cell / 2;
-        const y = row * cell + cell / 2;
-        ctx.fillStyle = figure;
-        for (let petal = 0; petal < 4; petal += 1) {
-          const angle = (petal * Math.PI) / 2;
-          ctx.beginPath();
-          ctx.ellipse(x + Math.cos(angle) * cell * 0.17, y + Math.sin(angle) * cell * 0.17, cell * 0.15, cell * 0.07, angle, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.fillStyle = "#f1d58a";
-        ctx.beginPath();
-        ctx.arc(x, y, cell * 0.06, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 0.5;
-        ctx.fillStyle = figure;
-        ctx.fillRect(x + cell / 2 - 1.5, y - cell * 0.1, 3, cell * 0.2);
-        ctx.globalAlpha = 1;
-      }
-    }
-  });
-}
-
-/** Galloon band for orarion, epitrachelion and phelonion hems: gold with crimson crosses along V. */
-export function orphreyTexture(): Texture {
-  return canvasTexture("orphrey", 128, (ctx, s) => {
-    ctx.fillStyle = "#d2a94c";
-    ctx.fillRect(0, 0, s, s);
-    ctx.fillStyle = "#7a1e22";
-    ctx.fillRect(0, 0, s * 0.1, s);
-    ctx.fillRect(s * 0.9, 0, s * 0.1, s);
-    const arm = s * 0.1;
-    ctx.fillRect(s / 2 - arm / 2, s * 0.2, arm, s * 0.6);
-    ctx.fillRect(s * 0.28, s * 0.4, s * 0.44, arm);
-    ctx.fillStyle = "#f3dc97";
-    ctx.fillRect(s * 0.12, 0, 2, s);
-    ctx.fillRect(s * 0.88 - 2, 0, 2, s);
-  });
-}
-
 /** Wispy smoke sprite for incense haze. */
 export function smokeTexture(): Texture {
   return canvasTexture("smoke", 256, (ctx, s) => {

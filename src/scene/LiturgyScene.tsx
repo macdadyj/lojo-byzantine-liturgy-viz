@@ -9,8 +9,8 @@ import { colors } from "./colors";
 import { FpsProbe, IconPicker, QualityEffects, StageLook } from "./Effects";
 import { censingFor, gestureFor } from "./gestures";
 import type { IconCard } from "./iconCards";
-import { Clergy, type Carry, type ClergyRole } from "./People";
-import { Congregants, Faithful } from "./crowd/Faithful";
+import { Clergy, type Carry, type ClergyRole } from "./figures/Clergy";
+import { Congregants, Faithful } from "./figures/Crowd";
 import { cantorSpot, choirLine, communionLine, dismissalLine } from "./crowdLayout";
 import { pointBehind, type Vec3 } from "./path";
 import { dprFor, type Quality } from "./quality";
@@ -418,10 +418,11 @@ function Cast({
           gesture={gesture}
           seed={seed + 101}
           shadows={shadows}
+          quality={quality}
         />
       </Approaching>
-      <Congregants spots={choirSpots} stance={choirStance} gesture={gesture} seed={seed + 202} shadows={shadows} />
-      <Congregants spots={cantorSpots} stance="stand" gesture={gesture} seed={seed + 303} shadows={shadows} />
+      <Congregants spots={choirSpots} stance={choirStance} gesture={gesture} seed={seed + 202} shadows={shadows} quality={quality} />
+      <Congregants spots={cantorSpots} stance="stand" gesture={gesture} seed={seed + 303} shadows={shadows} quality={quality} />
     </group>
   );
 }

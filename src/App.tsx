@@ -57,7 +57,7 @@ export function App() {
               the parish and the liturgical books.
             </p>
             <p>
-              The church is a teaching model of a large nave. The people are CC0 modular characters by Quaternius, with vestments modeled for this lesson and credited in ATTRIBUTION.md. As you face
+              The church is a teaching model of a large nave. The people and their vestments are simple shapes built in code for this lesson; the icons are credited in ATTRIBUTION.md. As you face
               the iconostas, the Theotokos is at the left
               of the Royal Doors and Christ is at the right. The Royal Doors show the Ustyug
               Annunciation, the Mystical Supper is above them, and the patron on the north is St.
