@@ -1,5 +1,66 @@
 # QA punch list — Divine Liturgy walkthrough
 
+## Verified lab and sael quality
+
+Independent check of draft PR #16, branch `cursor/lab-and-sael-quality-2e14` at `3ad5fdb` (“Keep the sael-style pass screenshots in docs/iterations/sael”). No app code was changed. Nothing was deployed.
+
+**Verdict: SHIP.**
+
+No P0. The new instanced figures stand, sit, and kneel on the floor in Sunday clothes, with headscarves and grey hair on the elders. Vestments read as a gold phelonion with a cross, a deacon’s orarion, and a server’s white sticharion. Holy Things opens on the elevation and then shuts the royal doors and the curtain. The altar gifts stay visible. First-person walking, the step panel, and the info bar work. The low tier meets the project’s software frame-rate budget.
+
+The pictures are a stylized explainer in the same family as sael.net: primitive people, warm candle light in the materials, and a soft depth of field. They are not as refined as that site’s tightest portraits. That gap is polish.
+
+### Still P0
+
+None.
+
+### P1 / P2
+
+1. **Heads are still large and simple (P2).** Close up, a person is a capsule body and a sphere head, which is the look this pass is built for. Hair, headscarves, and grey elders keep them from reading as skulls or workers in hard hats. A parish would understand them. They are plainer than the people on sael.net. `lab-sael/desktop/cam-pews-close.png`, `lab-sael/desktop/cam-kneeling.png`.
+
+2. **The altar bookmark is tight on the priest’s back (P2).** At the anaphora and on the altar camera, the gold phelonion fills the middle of the holy table. The chalice and the diskos are still readable on either side of him, and the elevation shot shows the gifts lifted above the table. The view is inside the sanctuary. `lab-sael/desktop/cam-altar.png`, `lab-sael/desktop/step-15-anaphora.png`, `lab-sael/desktop/step-19-holy-things.png`.
+
+3. **A repeated Three.js warning on load (P2).** A fresh production load logs `THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed` sixteen times. There were no page errors and no failed requests, in that walk or in the screenshot runs.
+
+4. **Software WebGL is a slideshow on desktop (P2, budget still met).** This machine has no GPU. `npm run perf` passed the software budgets: bundle 1509 KB, desktop Medium gathering 0.6 fps, desktop High anaphora 0.6 fps, phone Low gathering 7.4 fps (budget 4.5) with 195 draw calls. The GPU budgets (45 / 45 / 30 fps) were not measured. In the live app, Auto started on Medium and stepped down to Low while SwiftShader was struggling. Head bob starts off.
+
+### Build, check, and perf
+
+- `npm ci` then `npm run check` (both `tsc --noEmit` projects, Vitest, and `vite build`) succeeded. 4 files, 44 tests passed. The production bundle is `dist/assets/index-BiPLWS6G.js` (about 1545 KB, gzip about 471 KB).
+- `npm run perf` exited 0. Numbers are in the punch list above.
+- Docker was not part of this request and was not run.
+
+### How this check was run
+
+- Production preview of that build, plus the lab shooter (`npm run shots -- --prod`) on software WebGL (ANGLE SwiftShader).
+- Every liturgy step at desktop 1280×800, High, and phone 390×844, Medium, including the Holy Things clergy beat. Camera bookmarks for the pews, kneeling, clergy, altar, procession, kliros, and the royal doors.
+- The real app, not only `/lab`: Next through all 22 steps, the Elevation and Clergy communion chips, Free look with WASD and a hard look down, then the phone width. Console, page errors, and failed requests were collected on a second load.
+
+Shots are in `qa/screenshots/lab-sael/`.
+
+### Verified — this round’s checks
+
+| Item | Result | What this walk showed |
+| --- | --- | --- |
+| People grounded and varied | holds | Pew close-up and the kneeling bookmark show shoes and knees on the tile, with a contact shadow under the sole. Clothes vary. Women wear headscarves. Elders have short grey hair. No hard hats. `cam-pews-close.png`, `cam-kneeling.png`, `cam-kliros.png`. |
+| Odd shapes | holds | Kneeling is one knee down and the torso upright. Sitting is in the pew. Standing clergy have two arms, a candle or a book, and a hem to the floor. Heads are large on purpose (P2 above). |
+| Vestments | holds | Priest: gold bell-shaped phelonion, cross on the back, pale sticharion. Deacon: gold vestment and a long orarion with small crosses. Server: white sticharion and a candle. `cam-clergy-close.png`, `cam-royal-doors.png`. |
+| Holy Things doors and curtain | holds | Lab elevation: royal doors open, curtain drawn to the side, gifts lifted. Lab clergy beat: doors and a dark red curtain cover the sanctuary, nave waiting. The door region of those two frames differs by a wide margin. In the live app, Next from the Our Father shows Elevation at about 340 ms and Clergy communion at about 2.2 s. Clicking Elevation opens the doors again. The picture after the automatic switch matches the Clergy communion click. `step-19-holy-things.png`, `step-23-holy-things-clergy.png`, `app/ui-holy-elevation.png`, `app/ui-holy-clergy.png`. |
+| Altar view | holds | The gifts are on the holy table and visible beside the priest. See the P2 note for how close the camera sits. |
+| Entrances | holds | Little Entrance: Gospel book, candles, north door. Great Entrance: chalice and diskos clear of the north door, on the way across the solea. Procession bookmark agrees. `step-06-little-entrance.png`, `step-13-great-entrance.png`, `cam-procession.png`. |
+| Other steps | holds | Proskomedia is the north table with the doors and curtain shut. Opening is the priest at the open doors. Antiphons and the kliros bookmark are the singers. Litany is the deacon on the solea. Epistle is the reader. Gospel and homily are the ambon. Epiklesis and the Theotokos are the nave kneeling. Communion is an open-door line with a child and the chalice. Thanksgiving uses the north door. Dismissal is the hand cross and antidoron toward the narthex. |
+| First-person walking | holds | Free look hint is WASD on desktop and the joystick on a narrow screen. Holding W changed about 23% of the frame. A longer walk during Proskomedia reached the table of preparation. A hard look down shows shoes and the floor, and stays above the space under the pew. Head bob is off. `app/ui-freelook-walk.png`, `app/ui-freelook-down.png`, `app/ui-walk-longer.png`. |
+| Info bar and step panel | holds | All 22 titles, kickers, role chips, where chips, and see-lines advanced with Next and Previous. Step 1 opens “What the faithful hear.” Holy Things shows the two beat chips. Phone shows the church, the quality buttons, Free look, the joystick, and the step text. `app/ui-gathering.png`, `app/ui-phone.png`, `app/ui-phone-free.png`. |
+| Console | holds, with the P2 warning | No page errors. No failed requests. The toNonIndexed warning is the punch-list item above. |
+| Low-tier frame rate | holds | Phone Low is 7.4 fps on software WebGL, above the 4.5 budget. Draw calls stay under 900 (195 on that run, and under 550 on the desktop shots). |
+| Versus sael.net | holds, with the P2 gap | Warm lamps, a shallow focus, and a crowd of code-built people. The liturgy reads. The remaining difference is how plain the heads and the church props are, which is the first P2. |
+
+### Phone
+
+All 23 lab frames (22 steps and the clergy beat) are in `qa/screenshots/lab-sael/phone/`. The church is the picture. Communion, the Great Entrance, and both Holy Things beats keep the same subjects as desktop. The live phone chrome uses the joystick hint and does not mention WASD.
+
+---
+
 ## Verified pass 8
 
 Independent retest of draft PR #14, branch `cursor/liturgy-pass-8-339c` at `357bef6` (“Keep the Holy Things close on one clock and render the faithful with more lifelike materials”). No app code was changed. The “Fixed in pass 8” section below is the developer’s claim. This section is the walk. Pass 7’s verdict was SHIP, with the Holy Things close still open and the models still simple.
