@@ -144,3 +144,60 @@ The selection in `docs/iterations/final/`:
 
 `npm run check` (typecheck, 24 tests, build) and `npm run perf` pass: desktop medium 563 calls,
 phone low 239 calls, desktop high 421 calls, 1578 KB of JS against a 2000 KB budget.
+
+## Direction change: build it the way sael.net is built
+
+Jon lifted the tie to the Quaternius characters and asked for the look and technique of Ryan
+Sael's scenes. What his scenes are made of is written up in `docs/REFERENCE_NOTES.md`. In short:
+plain three.js, no downloaded models or textures, people built from primitives and drawn as one
+instanced mesh per crowd with the limbs swung in the vertex shader, fake candle and lamp lights
+in the material shader, and GTAO, bloom, depth of field and ACES on top.
+
+## Pass 7: procedural people
+
+- Every person (congregation, choir, reader, servers, deacon, priest) is now built in code from
+  spheres, capsules, cylinders and boxes (`src/scene/figures/`). A small rig (`rig.ts`) turns a
+  pose (stand, sit, kneel, bow, pray, arms crossed for communion, the sign of the cross, carry,
+  elevate, candle, censer) into joints; `shapes.ts` hangs the shapes on them and merges one
+  geometry per look and pose. Each vertex carries the palette slot and the joint it turns about.
+- One instanced draw per look and pose. Per-instance colors (skin, hair, top, bottom, accent) are
+  packed into one attribute; the vertex shader swings legs and arms for walking and runs the
+  Byzantine sign of the cross (forehead, breast, right shoulder, left shoulder).
+- Vestments are shaped in the same code: the Greek-cut phelonion (a bell cut up at the front),
+  the sticharion, the epitrachelion with its fringe, the epimanikia, the orarion over the deacon's
+  left shoulder lying on the robe front and back, and the servers' pale sticharia with a cross on
+  the back.
+- `public/models/` (11 MB of CC0 GLBs) and the old baking code are gone; ATTRIBUTION.md and
+  CREDITS.md say the people are made in this project.
+- Fixed along the way: the man's shirt and tie read as a "Π" (now a white V with a narrow tie);
+  trouser legs looked like stilts with gaps at the knee (thicker, overlapping); the orarion stood
+  off the body like a board; the candle and censer poses raised the left hand while the props hang
+  from the right, so servers' candles floated at the hip (a test now guards this); elders with
+  white hair and beards read as skulls (greyer hair).
+
+## Pass 8: the look
+
+- Practical lights (`src/scene/lighting/practicals.ts`): 17 candles, sand trays, lampadas and
+  chandeliers are a constant list added to the diffuse light of every lit material, the way
+  Sael's scenes light people with lamps they never pay for. They replace 10 real point lights.
+  Short-reach candles are grouped, and a pixel only visits a group whose box contains it.
+- Depth of field (`src/scene/focusBlur.ts`): the library effect softened the whole frame in our
+  composer, so this is our own one-pass gather blur. The guided camera's look-at point stays
+  sharp, the far room softens gradually, and the lens blur is off in free walking. An exaggerated
+  test render confirmed it works before it was toned down.
+- Exponential fog, ACES exposure 1.1 (was 1.0), bloom threshold 0.95 so only flames, windows and
+  bright gilt glow.
+- Performance: the first version of the practicals dropped the software-rendered phone-low tier
+  from about 6.7 to 2.2 fps. Moving the loop to world space, grouping the candles, and compiling it
+  only with the shadow-mapped rig (the low tier has none and lights the room evenly) brought it
+  back to 6.2 to 6.7 fps.
+
+| Scene | Pass 6 | Now |
+| --- | --- | --- |
+| desktop medium, gathering | 563 calls | 446 calls |
+| phone low, gathering | 239 calls | 195 calls |
+| desktop high, anaphora | 421 calls | 314 calls |
+| JS bundle | 1578 KB | 1509 KB |
+
+Not done: Sael's narrower lens (30° against our 42°) would mean recomposing every step's view,
+and the step panel was left as it is so its working behavior is untouched.

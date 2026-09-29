@@ -229,6 +229,13 @@ function curtainShown(open: boolean): boolean {
   return open && !holyClosesDoors();
 }
 
+const curtainWidth = 1.65;
+
+/** The curtain is drawn aside to the north jamb, not gathered in the middle of the doorway. */
+function gatherNorth(cloth: Group): void {
+  cloth.position.x = -(curtainWidth / 2) * (1 - cloth.scale.x);
+}
+
 function Curtain({ open }: { open: boolean }) {
   const veil = useRef<Group>(null);
   useLayoutEffect(() => {
@@ -236,6 +243,7 @@ function Curtain({ open }: { open: boolean }) {
     if (!cloth) return;
     cloth.userData.doorKind = "curtain";
     cloth.scale.x = curtainShown(open) ? 0.06 : 1;
+    gatherNorth(cloth);
   }, [open]);
   useFrame((_, delta) => {
     const cloth = veil.current;
@@ -244,14 +252,16 @@ function Curtain({ open }: { open: boolean }) {
     const goal = shown ? 0.06 : 1;
     if (!shown) {
       cloth.scale.x = 1;
+      gatherNorth(cloth);
       return;
     }
     cloth.scale.x += (goal - cloth.scale.x) * (1 - Math.exp(-delta * 3));
+    gatherNorth(cloth);
   });
   return (
     <group ref={veil} position={[0, 1.9, -0.48]}>
       <mesh>
-        <planeGeometry args={[1.65, 3.4]} />
+        <planeGeometry args={[curtainWidth, 3.4]} />
         <meshStandardMaterial color="#6e1c28" roughness={0.78} side={2} />
       </mesh>
       <mesh position={[0, 0, 0.02]}>
