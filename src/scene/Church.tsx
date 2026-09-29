@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CanvasTexture, SRGBColorSpace, Vector3, type PointLight } from "three";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CanvasTexture, Mesh, MeshBasicMaterial, SRGBColorSpace, Vector3, type Group, type Object3D, type PointLight } from "three";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { colors } from "./colors";
@@ -12,7 +12,7 @@ import { paintAltarFrontal } from "./icons";
 import type { Quality } from "./quality";
 import { giltTexture, marbleTexture } from "./surfaces";
 import type { SpaceId } from "../liturgy/spaces";
-import { floorPatches, spaceLabels, world } from "./world";
+import { clerestoryZ, domeZ, floorPatches, spaceLabels, world } from "./world";
 
 type ChurchProps = {
   doors: DoorState;
@@ -25,23 +25,43 @@ type ChurchProps = {
 };
 
 const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
-const domeZ = -1.15;
+const castScale = new Vector3();
 
 export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace, showArt = true }: ChurchProps) {
+  const root = useRef<Group>(null);
+  useLayoutEffect(() => {
+    const group = root.current;
+    if (!group) return;
+    group.traverse((object) => {
+      if (!(object instanceof Mesh)) return;
+      const material = Array.isArray(object.material) ? object.material[0] : object.material;
+      if (!material || material.transparent || material instanceof MeshBasicMaterial) return;
+      object.receiveShadow = true;
+      let shell = false;
+      for (let node: Object3D | null = object; node; node = node.parent) if (node.userData.shell) shell = true;
+      // Small props (tapers, lamp bulbs, frames) cost a shadow draw each and cast nothing visible.
+      object.getWorldScale(castScale);
+      const geometry = object.geometry;
+      if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+      const radius = (geometry.boundingSphere?.radius ?? 0) * Math.max(castScale.x, castScale.y, castScale.z);
+      object.castShadow = !shell && radius > 0.45;
+    });
+  });
   return (
-    <group>
-      <Ground />
-      <Shell />
+    <group ref={root}>
+      <group userData={{ shell: true }}>
+        <Ground />
+        <Shell />
+        <Vault />
+        <Dome />
+        <Clerestory />
+      </group>
       <Columns />
-      <Vault />
-      <Dome />
-      <Clerestory />
       <Gallery />
       <Floors />
       <Pews shadows={quality !== "low"} />
       <Furnishings />
       <SacredArt doors={doors} quality={quality} showArt={showArt} />
-      {quality === "high" ? <WindowRays /> : null}
       <pointLight position={[0.1, 2.7, -14.6]} color="#ffc99a" intensity={quality === "low" ? 7 : 3.4} distance={10} decay={2} />
       <pointLight position={[-6.4, 2.4, -14.2]} color="#ffc99a" intensity={quality === "low" ? 4.5 : 2.2} distance={7} decay={2} />
       <pointLight position={[7.2, 5.35, 6.1]} color="#ffd2a8" intensity={quality === "low" ? 8 : 4.2} distance={9} decay={2} />
@@ -49,7 +69,6 @@ export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace
       <Lamps flicker={quality !== "low"} quality={quality} />
       <CandleStands quality={quality} />
       <DevotionalProps quality={quality} />
-      <Shafts quality={quality} />
       <Labels activeSpaces={activeSpaces} showLabels={showLabels} />
       {floorPatches.map((patch) => (
         <mesh
@@ -236,23 +255,14 @@ function Dome() {
 }
 
 function Clerestory() {
-  const zs = [-6.2, -1.2, 3.4, 8.2, 12.6];
   return (
     <group>
-      {zs.map((z) => (
+      {clerestoryZ.map((z) => (
         <group key={z}>
           <HighWindow x={-world.halfWidth + 0.02} z={z} />
           <HighWindow x={world.halfWidth - 0.02} z={z} />
         </group>
       ))}
-      <mesh position={[-6.2, 7.2, 6]} rotation={[0.35, 0, 0.15]}>
-        <boxGeometry args={[1.2, 9, 0.08]} />
-        <meshBasicMaterial color="#fff6e4" transparent opacity={0.07} depthWrite={false} />
-      </mesh>
-      <mesh position={[5.4, 7.4, 2]} rotation={[0.2, 0, -0.2]}>
-        <boxGeometry args={[1.1, 9.5, 0.08]} />
-        <meshBasicMaterial color="#fff6e4" transparent opacity={0.07} depthWrite={false} />
-      </mesh>
     </group>
   );
 }
@@ -381,24 +391,6 @@ function Furnishings() {
           <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
         </mesh>
       </group>
-    </group>
-  );
-}
-
-function WindowRays() {
-  const shafts: [number, number, number][] = [
-    [-6.2, 8.6, 2.4],
-    [5.8, 8.8, 7.2],
-    [0.4, 9.4, -1.2],
-  ];
-  return (
-    <group>
-      {shafts.map((position) => (
-        <mesh key={position.join(",")} position={position} rotation={[0.55, 0, 0]}>
-          <coneGeometry args={[1.35, 7.5, 8, 1, true]} />
-          <meshBasicMaterial color="#ffe0b8" transparent opacity={0.05} depthWrite={false} side={2} />
-        </mesh>
-      ))}
     </group>
   );
 }
@@ -607,29 +599,6 @@ function Lampada({ position, light }: { position: [number, number, number]; ligh
         <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={1.8} />
       </mesh>
       {light ? <pointLight position={[0, -0.4, 0]} color="#ffc48a" intensity={0.4} distance={2.6} decay={2} /> : null}
-    </group>
-  );
-}
-
-function Shafts({ quality }: { quality: Quality }) {
-  if (quality === "low") return null;
-  const beams: [number, number, number][] = [
-    [-2.2, 11.2, domeZ],
-    [2.2, 11.2, domeZ],
-    [0, 11.4, domeZ + 2.4],
-  ];
-  return (
-    <group>
-      {beams.map((position) => (
-        <mesh key={position.join(",")} position={position} rotation={[Math.PI, 0, 0]}>
-          <coneGeometry args={[0.7, 7.5, 8, 1, true]} />
-          <meshBasicMaterial color="#fff3d4" transparent opacity={quality === "high" ? 0.055 : 0.03} depthWrite={false} side={2} />
-        </mesh>
-      ))}
-      <mesh position={[0, 2.2, -13.2]}>
-        <sphereGeometry args={[2.4, 12, 10]} />
-        <meshBasicMaterial color="#efe6d4" transparent opacity={0.035} depthWrite={false} />
-      </mesh>
     </group>
   );
 }

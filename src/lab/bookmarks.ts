@@ -17,7 +17,7 @@ export const bookmarks: readonly Bookmark[] = [
   { id: "dome", label: "Dome and drum", step: "creed", pose: { position: [0, 1.7, 5.5], target: [0, 11.5, -1.2] } },
   { id: "pews-close", label: "Faithful in the pews", step: "gathering", pose: { position: [4.6, 1.45, 0.4], target: [1.2, 0.9, 6.5] } },
   { id: "kneeling", label: "Faithful kneeling", step: "epiklesis", pose: { position: [-4.2, 1.5, 0.2], target: [-2.2, 0.6, 5.8] } },
-  { id: "clergy-close", label: "Priest and deacon, close", step: "opening", pose: { position: [1.4, 1.62, -11.2], target: [0.3, 1.35, -13.8] } },
+  { id: "clergy-close", label: "Priest and deacon, close", step: "opening", pose: { position: [2.7, 1.62, -10.3], target: [0.2, 1.3, -13.6] } },
   { id: "procession", label: "Great Entrance in the nave", step: "great-entrance", pose: { position: [0.8, 1.7, 5.5], target: [-3.4, 1.2, -1] } },
   { id: "kliros", label: "Kliros and choir", step: "antiphons", pose: { position: [2.6, 5.2, 0.6], target: [8.4, 4.1, 6.2] } },
 ];

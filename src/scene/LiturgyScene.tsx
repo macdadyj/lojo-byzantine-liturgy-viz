@@ -19,6 +19,7 @@ import { cameraFor, doorsFor, stagingFor, type Actor, type Stance } from "./stag
 import { Walker } from "./Walker";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
 import { Lighting } from "./Lighting";
+import { IncenseHaze } from "./lighting/IncenseHaze";
 import { useLab } from "../lab/labState";
 import { LabClock, ReadySignal, StatsProbe } from "../lab/SceneProbes";
 
@@ -81,15 +82,17 @@ export function LiturgyScene({
   const doors = doorsFor(step.id, clergyReceiving);
   const lab = useLab();
   const { systems } = lab;
+  const shadowMaps = systems.shadows && quality !== "low";
   return (
     <Canvas
       dpr={dprFor(quality)}
+      shadows={shadowMaps ? "percentage" : false}
       camera={{ fov: 42, position: (lab.camera ?? pose).position, near: 0.15, far: 140 }}
       gl={{ antialias: quality !== "low", powerPreference: "high-performance", preserveDrawingBuffer: lab.freezeAt !== null }}
     >
       <LabClock freezeAt={lab.freezeAt} />
       <StatsProbe />
-      <Lighting preset={lab.lighting} quality={quality} />
+      <Lighting preset={lab.lighting} quality={quality} shadows={shadowMaps} />
       <StageLook quality={quality} />
       <FollowCamera
         pose={lab.camera ?? pose}
@@ -116,9 +119,10 @@ export function LiturgyScene({
             elevated={step.id === "holy-things" && !clergyReceiving}
             incense={systems.incense}
             seed={lab.seed}
-            shadows={systems.shadows && quality !== "low"}
+            shadows={shadowMaps && quality === "high"}
           />
         ) : null}
+        {systems.incense && quality !== "low" ? <IncenseHaze count={quality === "high" ? 28 : 16} /> : null}
         <ReadySignal />
       </Suspense>
       {systems.post ? <QualityEffects quality={quality} /> : null}
@@ -297,7 +301,6 @@ function Cast({
           </Placed>
         </>
       ) : null}
-      {step.id === "communion" ? <ReadableChalice /> : null}
       {step.id === "dismissal" ? <BlessingCross /> : null}
       <Placed actor={staging.reader}>
         <Clergy role="reader" stance={staging.reader.stance} gesture={gesture} quality={quality} />
@@ -346,33 +349,6 @@ function Approaching({ active, children }: { active: boolean; children: ReactNod
     group.position.z = shift;
   });
   return <group ref={ref}>{children}</group>;
-}
-
-function ReadableChalice() {
-  return (
-    <group position={[0.42, 1.18, -5.55]}>
-      <mesh>
-        <cylinderGeometry args={[0.09, 0.1, 0.04, 16]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.25} />
-      </mesh>
-      <mesh position={[0, 0.12, 0]}>
-        <cylinderGeometry args={[0.02, 0.024, 0.18, 12]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.25} />
-      </mesh>
-      <mesh position={[0, 0.28, 0]}>
-        <cylinderGeometry args={[0.16, 0.06, 0.18, 16]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.75} roughness={0.22} />
-      </mesh>
-      <mesh position={[0.2, 0.22, 0.04]} rotation={[0, 0, Math.PI / 2.5]}>
-        <cylinderGeometry args={[0.008, 0.008, 0.28, 8]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
-      </mesh>
-      <mesh position={[0.32, 0.28, 0.04]}>
-        <sphereGeometry args={[0.035, 10, 8]} />
-        <meshStandardMaterial color={colors.gold} metalness={0.7} roughness={0.28} />
-      </mesh>
-    </group>
-  );
 }
 
 function BlessingCross() {

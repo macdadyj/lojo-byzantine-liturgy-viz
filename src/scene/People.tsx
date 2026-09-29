@@ -15,6 +15,7 @@ import {
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
+  Quaternion,
   RepeatWrapping,
   SkinnedMesh,
   SphereGeometry,
@@ -25,7 +26,7 @@ import {
 } from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { nextBlockerId, releaseBlocker, trackBlocker } from "./collide";
-import { poseLegs } from "./crowd/pose";
+import { aimLocalY, poseLegs } from "./crowd/pose";
 import { vestFigure, type Vestment } from "./crowd/vestments";
 import type { Gesture } from "./gestures";
 import { raycastFloor } from "./floors";
@@ -166,6 +167,10 @@ function Person({
 
   useLayoutEffect(() => {
     const created = tintFigure(clone, tint, age, vestment === undefined);
+    clone.traverse((child) => {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    });
     const vested = vestment ? vestFigure(clone, vestment) : [];
     const added = attachProps(clone, { carry, censing: censing && quality !== "low", elevated });
     const head = clone.getObjectByName("Head");
@@ -604,14 +609,53 @@ function makeCenser(): Group {
   return group;
 }
 
+/**
+ * Right-hand arm directions in figure space (the figure faces +Z; +X is toward its centre for the right arm)
+ * for the Byzantine sign of the cross: forehead, breast, right shoulder, then left shoulder.
+ */
+const crossKeys: { at: number; upper: Vector3; lower: Vector3 }[] = [
+  { at: 0.12, upper: new Vector3(0.3, -0.6, 0.72), lower: new Vector3(0.32, 0.94, -0.12) },
+  { at: 0.26, upper: new Vector3(0.12, -0.88, 0.45), lower: new Vector3(0.45, 0.72, 0.15) },
+  { at: 0.4, upper: new Vector3(0.1, -0.45, 0.89), lower: new Vector3(0.05, 0.6, -0.8) },
+  { at: 0.54, upper: new Vector3(0.28, -0.72, 0.62), lower: new Vector3(0.88, 0.45, -0.12) },
+];
+const crossQuat = new Quaternion();
+const crossRest = new Quaternion();
+const crossUpper = new Vector3();
+const crossLower = new Vector3();
+
 function applyCross(clone: Object3D, t: number): void {
   const upper = clone.getObjectByName("UpperArmR");
   const lower = clone.getObjectByName("LowerArmR");
   if (!upper || !lower) return;
-  const lift = Math.sin(Math.min(1, t * 1.35) * Math.PI);
-  upper.rotation.z += 1.15 * lift;
-  upper.rotation.x += -1.05 * lift;
-  lower.rotation.z += 0.85 * lift;
+  const lift = t < 0.12 ? t / 0.12 : t < 0.54 ? 1 : t < 0.7 ? 1 - (t - 0.54) / 0.16 : 0;
+  if (lift <= 0) return;
+  const first = crossKeys[0];
+  if (!first) return;
+  let from = first;
+  let to = first;
+  for (const key of crossKeys) {
+    if (key.at <= t) from = key;
+    if (key.at > t) {
+      to = key;
+      break;
+    }
+    to = key;
+  }
+  const span = to.at - from.at;
+  const mix = span > 0 ? Math.min(1, Math.max(0, (t - from.at) / span)) : 0;
+  clone.getWorldQuaternion(crossQuat);
+  crossUpper.copy(from.upper).lerp(to.upper, mix).applyQuaternion(crossQuat);
+  crossLower.copy(from.lower).lerp(to.lower, mix).applyQuaternion(crossQuat);
+  for (const [bone, direction] of [
+    [upper, crossUpper],
+    [lower, crossLower],
+  ] as const) {
+    crossRest.copy(bone.quaternion);
+    aimLocalY(bone, direction);
+    bone.quaternion.copy(crossRest.slerp(bone.quaternion, lift));
+    bone.updateMatrixWorld(true);
+  }
 }
 
 function footVertexIndices(mesh: SkinnedMesh): number[] {

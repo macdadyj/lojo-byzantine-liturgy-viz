@@ -82,10 +82,11 @@ function poseArms(clone: Object3D, pose: BakePose): void {
       if (lower) aimLocalY(lower, new Vector3(0.32 * inward, 0.94, -0.12));
     } else if (pose === "chest") {
       // Arms crossed on the breast, right over left, as the faithful approach the chalice.
-      const over = side === "R" ? 0.03 : 0;
-      if (upper) aimLocalY(upper, new Vector3(0.1 * inward, -0.95, 0.3 + over));
-      if (lower) aimLocalY(lower, new Vector3(0.8 * inward, 0.55, 0.15 + over));
-      if (wrist) aimLocalY(wrist, new Vector3(0.65 * inward, 0.7, 0));
+      // Forearms stay nearly level so the hands land on the opposite collarbone, not above the shoulder.
+      const over = side === "R" ? 0.06 : 0;
+      if (upper) aimLocalY(upper, new Vector3(0.05 * inward, -0.85, 0.5 + over));
+      if (lower) aimLocalY(lower, new Vector3(0.7 * inward, 0.35, 0.35 + over));
+      if (wrist) aimLocalY(wrist, new Vector3(0.6 * inward, 0.35, -0.7));
     } else {
       // Hands clasped low in front.
       if (upper) aimLocalY(upper, new Vector3(0.12 * inward, -0.97, 0.2));

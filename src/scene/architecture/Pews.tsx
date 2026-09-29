@@ -60,7 +60,7 @@ function PewRow({ width, xs, shadows }: { width: number; xs: readonly number[]; 
   }, [spots]);
   useLayoutEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <instancedMesh ref={ref} args={[geometry, undefined, spots.length]} castShadow={shadows} receiveShadow={shadows}>
+    <instancedMesh ref={ref} args={[geometry, undefined, spots.length]} castShadow={shadows} receiveShadow>
       <meshStandardMaterial map={woodTexture()} color="#b08a68" roughness={0.55} metalness={0} />
     </instancedMesh>
   );

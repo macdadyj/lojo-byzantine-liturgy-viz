@@ -118,11 +118,12 @@ function attach(clone: Object3D, boneName: string, mesh: Mesh): Object3D | null 
 }
 
 function sticharionSkirt(frame: Frame): BufferGeometry {
-  const rings: Ring[] = [];
+  // The first ring sits up inside the tunic so no rim shows at the waist.
+  const rings: Ring[] = [(angle) => [Math.sin(angle) * 0.15, frame.waistY + 0.08, Math.cos(angle) * 0.12 - 0.01]];
   const count = 7;
   for (let row = 0; row < count; row += 1) {
     const t = row / (count - 1);
-    const y = lerp(frame.waistY, 0.05, t);
+    const y = lerp(frame.waistY - 0.06, 0.05, t);
     const rx = lerp(0.2, 0.32, Math.pow(t, 0.8));
     const rz = lerp(0.17, 0.28, Math.pow(t, 0.8));
     rings.push((angle) => [Math.sin(angle) * rx * fold(angle, t), y, Math.cos(angle) * rz * fold(angle, t) - 0.01]);
@@ -276,14 +277,14 @@ function vestMaterial(key: string, make: () => Material): Material {
 function brocade(ground: string, figure: string, key: string): Material {
   return vestMaterial(key, () => {
     const map = brocadeTexture(ground, figure);
-    return new MeshStandardMaterial({ name: key, map, color: "#ffffff", roughness: 0.46, metalness: 0.42, side: DoubleSide });
+    return new MeshStandardMaterial({ name: key, map, color: "#ffffff", roughness: 0.56, metalness: 0.3, side: DoubleSide });
   });
 }
 
 const vestColors: Record<Vestment, { ground: string; figure: string; plain: string }> = {
-  priest: { ground: "#c89b43", figure: "#8a5f22", plain: "#e6d9b8" },
-  deacon: { ground: "#cfa652", figure: "#946a2c", plain: "#cfa652" },
-  server: { ground: "#e3d3ad", figure: "#b39359", plain: "#e3d3ad" },
+  priest: { ground: "#b58a3a", figure: "#7a521d", plain: "#ddd0b0" },
+  deacon: { ground: "#b98f44", figure: "#80592a", plain: "#b98f44" },
+  server: { ground: "#d6c6a0", figure: "#a3844d", plain: "#d6c6a0" },
 };
 
 function plainCloth(color: string): Material {

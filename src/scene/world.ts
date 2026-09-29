@@ -22,6 +22,10 @@ export const world = {
   ambon: [0, 0.2, -5.6] as Vec3,
 };
 
+/** Centre of the dome over the crossing, and the clerestory window bays along both side walls. */
+export const domeZ = -1.15;
+export const clerestoryZ = [-6.2, -1.2, 3.4, 8.2, 12.6];
+
 const doorX = -world.deaconDoorX;
 
 export const littleEntrancePath: Vec3[] = [

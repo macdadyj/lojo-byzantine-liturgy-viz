@@ -10,6 +10,7 @@ import { mulberry32, pick } from "../random";
 import { naveFloor, pewBanks, pewRows } from "../crowdLayout";
 import { ageScale, type Age } from "../People";
 import { bakeFigure, type BakePose } from "./figureBake";
+import { ContactShadows, type Contact } from "./ContactShadows";
 import { createCrowdMaterial, type CrowdUniforms } from "./crowdMaterial";
 
 /** Sunday clothes only. The pack's hoodie (fantasy hood) and sleeveless dress are not used. */
@@ -255,8 +256,20 @@ export function BakedCrowd({ members, shadows }: { members: readonly Member[]; s
     uniforms.uTime.value = state.clock.elapsedTime;
   });
 
+  const contacts = useMemo<Contact[]>(
+    () =>
+      members.map(({ person, pose, position }) => ({
+        x: position.x,
+        y: pose === "sit" ? naveFloor : position.y,
+        z: pose === "kneel" ? position.z + 0.2 : position.z,
+        radius: 0.27 * memberScale(person),
+      })),
+    [members],
+  );
+
   return (
     <group>
+      <ContactShadows contacts={contacts} opacity={0.42} />
       {batches.map((batch) => (
         <CrowdBatch key={batch.key} batch={batch} material={material} shadows={shadows} />
       ))}
@@ -313,5 +326,5 @@ function CrowdBatch({ batch, material, shadows }: { batch: Batch; material: Mate
     mesh.computeBoundingSphere();
   }, [batch]);
 
-  return <instancedMesh ref={ref} args={[geometry, material, count]} castShadow={shadows} receiveShadow={shadows} />;
+  return <instancedMesh ref={ref} args={[geometry, material, count]} castShadow={shadows} receiveShadow />;
 }

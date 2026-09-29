@@ -13,18 +13,21 @@ export function StageLook({ quality }: { quality: Quality }) {
     const previous = gl.toneMapping;
     const previousExposure = gl.toneMappingExposure;
     gl.toneMapping = ACESFilmicToneMapping;
-    gl.toneMappingExposure = quality === "low" ? 1.18 : quality === "medium" ? 0.96 : 0.9;
-    if (quality !== "high") return () => {
+    gl.toneMappingExposure = quality === "low" ? 1.18 : 1.0;
+    if (quality === "low") return () => {
       gl.toneMapping = previous;
       gl.toneMappingExposure = previousExposure;
     };
     const pmrem = new PMREMGenerator(gl);
     const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = environment;
+    // A dim reflection so gilding and brocade catch light without flattening the room.
+    scene.environmentIntensity = 0.32;
     return () => {
       gl.toneMapping = previous;
       gl.toneMappingExposure = previousExposure;
       scene.environment = null;
+      scene.environmentIntensity = 1;
       environment.dispose();
       pmrem.dispose();
     };
@@ -38,19 +41,19 @@ export function QualityEffects({ quality }: { quality: Quality }) {
 }
 
 function PictureGrade({ quality }: { quality: "high" | "medium" }) {
-  const high = quality === "high";
+  if (quality === "medium") {
+    return (
+      <EffectComposer multisampling={0}>
+        <Bloom luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur intensity={0.4} />
+        <Vignette eskil={false} offset={0.2} darkness={0.5} />
+      </EffectComposer>
+    );
+  }
   return (
     <EffectComposer multisampling={0}>
-      <N8AO
-        halfRes
-        aoSamples={high ? 8 : 1}
-        denoiseSamples={high ? 2 : 1}
-        aoRadius={high ? 0.85 : 0.01}
-        intensity={high ? 1.15 : 0}
-        quality="performance"
-      />
-      <Bloom luminanceThreshold={0.55} mipmapBlur intensity={high ? 0.16 : 0.09} />
-      <Vignette eskil={false} offset={0.18} darkness={0.42} />
+      <N8AO halfRes aoSamples={8} denoiseSamples={2} aoRadius={0.85} intensity={1.3} quality="performance" />
+      <Bloom luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur intensity={0.55} />
+      <Vignette eskil={false} offset={0.2} darkness={0.5} />
     </EffectComposer>
   );
 }
