@@ -17,6 +17,9 @@ import { holyDebug, publishHolyClock, useHolyBeat } from "./holyBeat";
 import { cameraFor, doorsFor, stagingFor, type Actor, type Stance } from "./staging";
 import { Walker } from "./Walker";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
+import { Lighting } from "./Lighting";
+import { useLab } from "../lab/labState";
+import { LabClock, ReadySignal, StatsProbe } from "../lab/SceneProbes";
 
 export type LookMode = "follow" | "free";
 
@@ -103,21 +106,24 @@ export function LiturgyScene({
     window.__liturgy = bridge;
   }, [clergyReceiving]);
   const doors = doorsFor(step.id, clergyReceiving);
-  const dim = quality === "low";
+  const lab = useLab();
+  const { systems } = lab;
   return (
     <Canvas
       dpr={dprFor(quality)}
-      camera={{ fov: 42, position: pose.position, near: 0.15, far: 140 }}
-      gl={{ antialias: quality !== "low", powerPreference: "high-performance" }}
+      camera={{ fov: 42, position: (lab.camera ?? pose).position, near: 0.15, far: 140 }}
+      gl={{ antialias: quality !== "low", powerPreference: "high-performance", preserveDrawingBuffer: lab.freezeAt !== null }}
     >
-      <color attach="background" args={[dim ? "#b9a48c" : "#8d7358"]} />
-      <fog attach="fog" args={[dim ? "#b9a48c" : "#8d7358", dim ? 26 : 18, dim ? 80 : 56]} />
-      <hemisphereLight args={["#f0d2a4", "#4a382c", dim ? 0.7 : 0.42]} />
-      <ambientLight intensity={dim ? 0.5 : 0.22} color="#f3e0c4" />
-      <directionalLight position={[-4, 18, 26]} intensity={1.35} />
-      <directionalLight position={[6, 12, -6]} intensity={0.38} />
+      <LabClock freezeAt={lab.freezeAt} />
+      <StatsProbe />
+      <Lighting preset={lab.lighting} quality={quality} />
       <StageLook quality={quality} />
-      <FollowCamera pose={pose} enabled={mode === "follow"} reducedMotion={reducedMotion} quality={quality} />
+      <FollowCamera
+        pose={lab.camera ?? pose}
+        enabled={mode === "follow"}
+        reducedMotion={reducedMotion || lab.snap}
+        quality={quality}
+      />
       {mode === "free" ? <Walker enabled doors={doors} headBob={headBob} /> : null}
       <Suspense fallback={null}>
         <Church
@@ -127,10 +133,20 @@ export function LiturgyScene({
           activeSpaces={activeSpaces}
           selectedSpace={selectedSpace}
           onSelectSpace={onSelectSpace}
+          showArt={systems.icons}
         />
-        <Cast step={step} reducedMotion={reducedMotion} quality={quality} elevated={step.id === "holy-things" && !clergyReceiving} />
+        {systems.people ? (
+          <Cast
+            step={step}
+            reducedMotion={reducedMotion}
+            quality={quality}
+            elevated={step.id === "holy-things" && !clergyReceiving}
+            incense={systems.incense}
+          />
+        ) : null}
+        <ReadySignal />
       </Suspense>
-      <QualityEffects quality={quality} />
+      {systems.post ? <QualityEffects quality={quality} /> : null}
       <FpsProbe onFps={onFps} />
       <HolyBeatPump />
       <IconPicker enabled={mode === "free"} onPick={onInspect} />
@@ -249,18 +265,20 @@ function Cast({
   reducedMotion,
   quality,
   elevated,
+  incense,
 }: {
   step: LiturgyStep;
   reducedMotion: boolean;
   quality: Quality;
   elevated: boolean;
+  incense: boolean;
 }) {
   const staging = stagingFor(step.id);
   const route = step.route;
   const choirStance: Stance =
     staging.faithful === "bow" || staging.faithful === "kneel" ? staging.faithful : "stand";
   const gesture = gestureFor(step.id);
-  const censing = censingFor(step.id);
+  const censing = incense && censingFor(step.id);
   if (!route) processionFocus.active = false;
   const carry = priestCarry(step.id, elevated);
 

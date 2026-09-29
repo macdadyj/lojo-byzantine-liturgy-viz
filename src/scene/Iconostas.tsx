@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { PlaneGeometry, SRGBColorSpace, type Group, type Texture } from "three";
+import { DataTexture, PlaneGeometry, SRGBColorSpace, type Group, type Texture } from "three";
 import { useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { ByzantineCross } from "./Figures";
@@ -36,14 +36,29 @@ const iconFiles = {
 
 type IconMaps = Record<keyof typeof iconFiles, Texture>;
 
-export function SacredArt({ doors, quality }: { doors: DoorState; quality: Quality }) {
-  const maps = useTexture(iconFiles) as IconMaps;
+let blankMaps: IconMaps | null = null;
+
+/** Neutral panels for the lab's icons-off view, so geometry and light can be judged alone. */
+function blankIconMaps(): IconMaps {
+  if (blankMaps) return blankMaps;
+  const blank = new DataTexture(new Uint8Array([168, 150, 120, 255]), 1, 1);
+  blank.colorSpace = SRGBColorSpace;
+  blank.needsUpdate = true;
+  const maps = {} as IconMaps;
+  for (const key of Object.keys(iconFiles) as (keyof typeof iconFiles)[]) maps[key] = blank;
+  blankMaps = maps;
+  return blankMaps;
+}
+
+export function SacredArt({ doors, quality, showArt = true }: { doors: DoorState; quality: Quality; showArt?: boolean }) {
+  const loaded = useTexture(iconFiles) as IconMaps;
+  const maps = showArt ? loaded : blankIconMaps();
   useLayoutEffect(() => {
-    for (const texture of Object.values(maps)) {
+    for (const texture of Object.values(loaded)) {
       texture.colorSpace = SRGBColorSpace;
       texture.anisotropy = 4;
     }
-  }, [maps]);
+  }, [loaded]);
 
   return (
     <group>

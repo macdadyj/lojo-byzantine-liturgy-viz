@@ -20,12 +20,13 @@ type ChurchProps = {
   activeSpaces: readonly SpaceId[];
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
+  showArt?: boolean;
 };
 
 const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
 const domeZ = -1.15;
 
-export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace }: ChurchProps) {
+export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace, showArt = true }: ChurchProps) {
   return (
     <group>
       <Ground />
@@ -38,12 +39,12 @@ export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace
       <Floors />
       <Pews />
       <Furnishings />
-      <SacredArt doors={doors} quality={quality} />
+      <SacredArt doors={doors} quality={quality} showArt={showArt} />
       {quality === "high" ? <WindowRays /> : null}
       <pointLight position={[0.1, 2.7, -14.6]} color="#ffc99a" intensity={quality === "low" ? 7 : 3.4} distance={10} decay={2} />
       <pointLight position={[-6.4, 2.4, -14.2]} color="#ffc99a" intensity={quality === "low" ? 4.5 : 2.2} distance={7} decay={2} />
       <pointLight position={[7.2, 5.35, 6.1]} color="#ffd2a8" intensity={quality === "low" ? 8 : 4.2} distance={9} decay={2} />
-      <Frescoes />
+      {showArt ? <Frescoes /> : null}
       <Lamps flicker={quality !== "low"} quality={quality} />
       <CandleStands quality={quality} />
       <DevotionalProps quality={quality} />
