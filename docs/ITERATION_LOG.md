@@ -129,3 +129,18 @@ same frame.
 - Looked at and left alone: on one women's figure, a cropped top meets the trousers in a jagged
   hem line at the waistband. It is inside the CC0 model; recolouring it by bone did not help,
   and at normal viewing distance it is a few pixels.
+
+## Final run
+
+A full `npm run shots` run (every step and bookmark, desktop and phone: 66 shots) after Pass 6.
+The selection in `docs/iterations/final/`:
+
+- `cam-west-overview.png`: the nave from the west doors, with pews, arcades, the frieze and the iconostas.
+- `cam-iconostas.png`: the carved walnut screen with the Theotokos and Christ icons and the royal doors.
+- `step-19-holy-things.png`: "Holy things for the holy" with the royal doors open.
+- `step-23-holy-things-clergy.png`: the clergy's communion with the royal doors shut (for comparison).
+- `cam-kneeling.png`: the faithful in the pews under clerestory sunlight.
+- `step-13-great-entrance.png`: the Great Entrance, with vestments, the floor and the frieze.
+
+`npm run check` (typecheck, 24 tests, build) and `npm run perf` pass: desktop medium 563 calls,
+phone low 239 calls, desktop high 421 calls, 1578 KB of JS against a 2000 KB budget.
