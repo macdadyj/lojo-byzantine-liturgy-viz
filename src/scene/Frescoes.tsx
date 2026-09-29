@@ -101,12 +101,13 @@ function evangelist(degrees: number, key: "matthew" | "mark" | "luke" | "john"):
 }
 
 function drumPlacement(index: number, key: FrescoKey, card: IconId): Placement {
-  const angle = (index / 8) * Math.PI * 2 + 0.2;
-  const radius = 3.05;
+  // Flush on the drum wall, halfway between its eight windows.
+  const angle = ((index + 0.5) / 8) * Math.PI * 2;
+  const radius = 3.36;
   return {
     key,
     card,
-    position: [Math.cos(angle) * radius, 11.55, domeZ + Math.sin(angle) * radius],
+    position: [Math.cos(angle) * radius, 12.2, domeZ + Math.sin(angle) * radius],
     rotation: [0, Math.atan2(-Math.cos(angle), -Math.sin(angle)), 0],
     size: [0.85, 1.15],
   };

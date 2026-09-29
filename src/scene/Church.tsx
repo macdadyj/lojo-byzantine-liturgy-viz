@@ -1,5 +1,18 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CanvasTexture, ExtrudeGeometry, Mesh, MeshBasicMaterial, Shape, SRGBColorSpace, Vector3, type Group, type Object3D, type PointLight } from "three";
+import {
+  CanvasTexture,
+  ExtrudeGeometry,
+  InstancedMesh,
+  Matrix4,
+  Mesh,
+  MeshBasicMaterial,
+  Shape,
+  SRGBColorSpace,
+  Vector3,
+  type Group,
+  type Object3D,
+  type PointLight,
+} from "three";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { colors } from "./colors";
@@ -520,6 +533,17 @@ function Chandelier({
   light: boolean;
 }) {
   const lamp = useRef<PointLight>(null);
+  const bulbs = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = bulbs.current;
+    if (!mesh) return;
+    for (let index = 0; index < 10; index += 1) {
+      const angle = (index / 10) * Math.PI * 2;
+      mesh.setMatrixAt(index, taperMatrix.makeTranslation(Math.cos(angle) * 0.72, -0.08, Math.sin(angle) * 0.72));
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, []);
   useFrame((state) => {
     const bulb = lamp.current;
     if (!bulb || !flicker) return;
@@ -540,15 +564,10 @@ function Chandelier({
         <torusGeometry args={[0.38, 0.018, 8, 20]} />
         <meshStandardMaterial color="#e6c56e" metalness={0.84} roughness={0.24} />
       </mesh>
-      {Array.from({ length: 10 }, (_, index) => {
-        const angle = (index / 10) * Math.PI * 2;
-        return (
-          <mesh key={index} position={[Math.cos(angle) * 0.72, -0.08, Math.sin(angle) * 0.72]}>
-            <sphereGeometry args={[0.04, 8, 8]} />
-            <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={2.4} />
-          </mesh>
-        );
-      })}
+      <instancedMesh ref={bulbs} args={[undefined, undefined, 10]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={2.4} />
+      </instancedMesh>
       {light ? <pointLight ref={lamp} color="#ffc48a" intensity={2.1} distance={14} decay={2} /> : null}
     </group>
   );
@@ -607,9 +626,7 @@ function DevotionalProps({ quality }: { quality: Quality }) {
   ];
   return (
     <group>
-      {trays.map((position) => (
-        <SandTray key={position.join(",")} position={position} />
-      ))}
+      <SandTrays trays={trays} />
       {lamps.map((position, index) => (
         <Lampada key={position.join(",")} position={position} light={quality !== "low" && index < 2} />
       ))}
@@ -635,25 +652,53 @@ function DevotionalProps({ quality }: { quality: Quality }) {
   );
 }
 
-function SandTray({ position }: { position: [number, number, number] }) {
+const taperMatrix = new Matrix4();
+const taperScale = new Vector3();
+const taperAt = new Vector3();
+const noTurn = new Matrix4().identity();
+
+/** Every sand tray's tapers and flames as two instanced draws (there are over a hundred of each). */
+function SandTrays({ trays }: { trays: [number, number, number][] }) {
+  const wax = useRef<InstancedMesh>(null);
+  const flames = useRef<InstancedMesh>(null);
+  const count = trays.length * taperLayout.length;
+  useLayoutEffect(() => {
+    const waxMesh = wax.current;
+    const flameMesh = flames.current;
+    if (!waxMesh || !flameMesh) return;
+    let index = 0;
+    for (const [tx, ty, tz] of trays) {
+      for (const [x, halfHeight, z] of taperLayout) {
+        taperAt.set(tx + x, ty + halfHeight, tz + z);
+        taperMatrix.copy(noTurn).scale(taperScale.set(1, halfHeight * 2, 1)).setPosition(taperAt);
+        waxMesh.setMatrixAt(index, taperMatrix);
+        taperAt.y = ty + halfHeight * 2;
+        taperMatrix.copy(noTurn).setPosition(taperAt);
+        flameMesh.setMatrixAt(index, taperMatrix);
+        index += 1;
+      }
+    }
+    waxMesh.instanceMatrix.needsUpdate = true;
+    flameMesh.instanceMatrix.needsUpdate = true;
+    waxMesh.computeBoundingSphere();
+    flameMesh.computeBoundingSphere();
+  }, [trays]);
   return (
-    <group position={position}>
-      <mesh position={[0, 0.06, 0]}>
-        <boxGeometry args={[0.52, 0.08, 0.28]} />
-        <meshStandardMaterial color="#c2b48a" roughness={0.95} />
-      </mesh>
-      {taperLayout.map((spot, index) => (
-        <group key={index} position={spot}>
-          <mesh>
-            <cylinderGeometry args={[0.006, 0.007, spot[1] * 2, 5]} />
-            <meshStandardMaterial color="#f6f0e4" roughness={0.55} />
-          </mesh>
-          <mesh position={[0, spot[1], 0]}>
-            <sphereGeometry args={[0.012, 5, 5]} />
-            <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={1.5} />
-          </mesh>
-        </group>
+    <group>
+      {trays.map((position) => (
+        <mesh key={position.join(",")} position={[position[0], position[1] + 0.06, position[2]]}>
+          <boxGeometry args={[0.52, 0.08, 0.28]} />
+          <meshStandardMaterial color="#c2b48a" roughness={0.95} />
+        </mesh>
       ))}
+      <instancedMesh ref={wax} args={[undefined, undefined, count]}>
+        <cylinderGeometry args={[0.006, 0.007, 1, 5]} />
+        <meshStandardMaterial color="#f6f0e4" roughness={0.55} />
+      </instancedMesh>
+      <instancedMesh ref={flames} args={[undefined, undefined, count]}>
+        <sphereGeometry args={[0.012, 5, 5]} />
+        <meshStandardMaterial color="#ffe1b0" emissive="#ffb45c" emissiveIntensity={1.5} />
+      </instancedMesh>
     </group>
   );
 }

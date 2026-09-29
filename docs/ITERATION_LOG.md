@@ -97,3 +97,22 @@ same frame.
   the easing starts and ends at rest. A dev-only `__liturgy.cameraAt()` probe reads the camera
   position; headless sampling showed the glide passing through intermediate positions and the veil
   darkening around the cut.
+
+## Pass 5: performance and the dome
+
+- The five candle sand trays drew every taper and every flame as its own mesh: about 240 draw calls
+  for pencil-sized props. They are now two instanced meshes for all trays together.
+- Each chandelier's ten bulbs are one instanced draw instead of ten.
+- `npm run perf` (software WebGL; draw calls are the meaningful number here):
+
+  | Scene | Before this pass | After |
+  | --- | --- | --- |
+  | desktop medium, gathering | 759 calls | 563 calls |
+  | phone low, gathering | 436 calls | 239 calls |
+  | desktop high, anaphora | 420 calls | 421 calls |
+
+  Phone-low frame rate on this VM varies between runs (4.1 to 5.7 fps under SwiftShader), so it
+  says little about a real phone; the budget still passes.
+- The small drum icons hung about 0.3 m inside the drum wall and overlapped the windows, so from
+  the nave you saw the gold backs of their frames. They now sit flush on the wall between the
+  windows (`peek-dome.jpg`).
