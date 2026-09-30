@@ -20,7 +20,8 @@
     "peek": "node scripts/peek.mjs",
     "stills": "node scripts/stills.mjs",
     "small-art": "node scripts/small-art.mjs",
-    "phone:touch": "node scripts/phone-touch.mjs"
+    "phone:touch": "node scripts/phone-touch.mjs",
+    "route-plan": "node scripts/route-plan.mjs"
   },
   "dependencies": {
     "@fontsource/newsreader": "^5.2.8",

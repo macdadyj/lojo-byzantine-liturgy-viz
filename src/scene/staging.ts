@@ -76,7 +76,7 @@ const deaconByAltar: Actor = {
  * people and the walkway the entrances cross, and clear of the north aisle the Great Entrance walks down.
  */
 export const readerAside: Actor = {
-  position: [-2.5, 0.02, 0.45],
+  position: [-2.5, 0.02, 0.65],
   facing: 0,
   stance: "stand",
 };
