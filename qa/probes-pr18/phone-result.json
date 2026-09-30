@@ -12,15 +12,15 @@
    "boot": false,
    "text": "Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church | Fo"
   },
-  "nextButtonMs": 9428,
-  "firstFrameMs": 9446,
+  "nextButtonMs": 9102,
+  "firstFrameMs": 9123,
   "boot": {
    "firstContent": null,
-   "shell": 1027,
-   "sceneRequested": 1370,
-   "sceneChunk": 3307,
-   "firstFrame": 4539,
-   "sceneReady": 9141,
+   "shell": 1033,
+   "sceneRequested": 1377,
+   "sceneChunk": 3324,
+   "firstFrame": 4456,
+   "sceneReady": 8785,
    "tier": "low",
    "tierReason": "software rendering",
    "ceiling": "low",
@@ -34,7 +34,7 @@
     "failure": null
    },
    "render": {
-    "fps": 6,
+    "fps": 7,
     "calls": 204,
     "triangles": 81868,
     "programs": 13,
@@ -52,7 +52,7 @@
   {
    "name": "loads to usable state under Fast 3G + 4x CPU",
    "ok": true,
-   "detail": "{\"next\":9428,\"firstFrame\":9446,\"700ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | O\"},\"2000ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | D\"},\"4000ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church | Fo\"}}"
+   "detail": "{\"next\":9102,\"firstFrame\":9123,\"700ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | O\"},\"2000ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | D\"},\"4000ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church | Fo\"}}"
   },
   {
    "name": "safe area respected (top 47 / bottom 34)",
@@ -127,7 +127,7 @@
   {
    "name": "menu jump to Great Entrance",
    "ok": true,
-   "detail": "13 / 22 · Hide words"
+   "detail": "13 / 22 · Show words"
   },
   {
    "name": "player .procession-play >= 44 px and on top",
@@ -152,7 +152,7 @@
   {
    "name": "Great Entrance autoplays on phone",
    "ok": true,
-   "detail": "{\"label\":\"The gifts are taken up at the prothesis\",\"play\":\"Pause\",\"speed\":\"1×\",\"v\":2.4,\"max\":91.2}"
+   "detail": "{\"label\":\"The gifts are taken up at the prothesis\",\"play\":\"Pause\",\"speed\":\"1×\",\"v\":3.3,\"max\":91.2}"
   },
   {
    "name": "speed button cycles 0.25/0.5/1/2 and wraps",
@@ -162,27 +162,27 @@
   {
    "name": "phone speed 0.25× rate (4x CPU)",
    "ok": true,
-   "detail": "measured 0.22x"
+   "detail": "measured 0.20x"
   },
   {
    "name": "phone speed 0.5× rate (4x CPU)",
    "ok": true,
-   "detail": "measured 0.38x"
+   "detail": "measured 0.40x"
   },
   {
    "name": "phone speed 1× rate (4x CPU)",
-   "ok": true,
-   "detail": "measured 0.82x"
+   "ok": false,
+   "detail": "measured 0.60x"
   },
   {
    "name": "phone speed 2× rate (4x CPU)",
-   "ok": false,
-   "detail": "measured 1.30x"
+   "ok": true,
+   "detail": "measured 1.40x"
   },
   {
    "name": "tap Pause stops",
    "ok": true,
-   "detail": "27.2 → 27.2"
+   "detail": "26.4 → 26.4"
   },
   {
    "name": "Next/Previous moment by tap",
@@ -197,7 +197,7 @@
   {
    "name": "Play after backward scrub continues forward from there",
    "ok": true,
-   "detail": "15.9 → 20.9"
+   "detail": "15.7 → 19.9"
   },
   {
    "name": "at the end shows Replay and stops",
@@ -207,12 +207,12 @@
   {
    "name": "Replay by tap restarts forward",
    "ok": true,
-   "detail": "1.4 → 5.1"
+   "detail": "1.5 → 5.8"
   },
   {
    "name": "Text view: church hidden, page scrolls by finger, Next reachable",
    "ok": true,
-   "detail": "scrollY 1265, 13 / 22 → 14 / 22"
+   "detail": "scrollY 1038, 13 / 22 → 14 / 22"
   },
   {
    "name": "Text view touch targets >= 44 px",

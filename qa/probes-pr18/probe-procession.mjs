@@ -83,7 +83,8 @@ for (const [index, id] of [[5, "little-entrance"], [12, "great-entrance"]]) {
     await page.evaluate((t) => window.__liturgy.procession.seek(t), t);
     await frames(2);
     const pos = await page.evaluate(() => window.__walkers.map((w) => { const v = w.getWorldPosition(w.position.clone()); return [v.x, v.y, v.z]; }));
-    samples.push({ t, pos });
+    const cam = await page.evaluate(() => window.__liturgy.cameraAt());
+    samples.push({ t, pos, cam });
   }
   // Collisions: walker body cylinder r=0.22 from feet+0.3 to feet+1.6 against obstacle AABBs, ignoring huge boxes.
   const hits = new Map();
@@ -125,8 +126,16 @@ for (const [index, id] of [[5, "little-entrance"], [12, "great-entrance"]]) {
   near.sort((a, b) => a.d - b.d);
   const seen = new Set(); const closest = near.filter((n) => { const k = n.name + n.box; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 25);
   writeFileSync(`${out}/obstacles-${id}.json`, JSON.stringify(obstacles));
+  const beats = await page.evaluate(() => window.__liturgy.procession.snapshot().beats);
+  const camHits = [];
+  for (const { t, cam } of samples) for (const o of obstacles) {
+    if (cam[0] > o.min[0] - 0.15 && cam[0] < o.max[0] + 0.15 && cam[1] > o.min[1] - 0.15 && cam[1] < o.max[1] + 0.15 && cam[2] > o.min[2] - 0.15 && cam[2] < o.max[2] + 0.15) {
+      const sx = o.max[0] - o.min[0], sz = o.max[2] - o.min[2]; if (sx > 4 || sz > 4) continue;
+      camHits.push({ t, cam, name: o.name, box: [o.min, o.max].map((b) => b.map((v) => +v.toFixed(2))) });
+    }
+  }
   const maxZ = Math.max(...samples.flatMap((s) => s.pos.map((p) => p[2])));
-  report[id] = { duration, walkerCount, obstacleCount: obstacles.length, crossings, maxZ, closest, hits: [...hits.values()], track: samples.filter((_, i) => i % 8 === 0).map((s) => ({ t: s.t, priest: s.pos.map((p) => [+p[0].toFixed(2), +p[2].toFixed(2)]) })) };
+  report[id] = { duration, walkerCount, obstacleCount: obstacles.length, crossings, maxZ, beats, camHits: camHits.slice(0, 20), camTrack: samples.map((s) => [s.t, ...s.cam]), leadTrack: samples.map((s) => [s.t, +s.pos[0][0].toFixed(2), +s.pos[0][2].toFixed(2)]), closest, hits: [...hits.values()], track: samples.filter((_, i) => i % 8 === 0).map((s) => ({ t: s.t, priest: s.pos.map((p) => [+p[0].toFixed(2), +p[2].toFixed(2)]) })) };
   console.log(id, "duration", duration, "walkers", walkerCount, "obstacles", obstacles.length, "hits", hits.size, "crossings", JSON.stringify(crossings));
 }
 report.errors = errors;

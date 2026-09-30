@@ -3,7 +3,7 @@
   {
    "name": "little-entrance: player appears and autoplays",
    "ok": true,
-   "detail": "{\"t\":1.2182999999998136,\"playing\":true,\"speed\":1,\"beat\":0,\"route\":\"little-entrance\",\"duration\":56.66335107826747}"
+   "detail": "{\"t\":1.2415999999996274,\"playing\":true,\"speed\":1,\"beat\":0,\"route\":\"little-entrance\",\"duration\":56.66335107826747}"
   },
   {
    "name": "little-entrance: 4 walkers found",
@@ -13,17 +13,17 @@
   {
    "name": "little-entrance: speed 0.25× rate",
    "ok": true,
-   "detail": "measured 0.217x, pressed=0.25×"
+   "detail": "measured 0.212x, pressed=0.25×"
   },
   {
    "name": "little-entrance: speed 0.5× rate",
    "ok": true,
-   "detail": "measured 0.493x, pressed=0.5×"
+   "detail": "measured 0.495x, pressed=0.5×"
   },
   {
    "name": "little-entrance: speed 1× rate",
    "ok": true,
-   "detail": "measured 0.968x, pressed=1×"
+   "detail": "measured 0.995x, pressed=1×"
   },
   {
    "name": "little-entrance: speed 2× rate",
@@ -33,7 +33,7 @@
   {
    "name": "little-entrance: pause freezes clock and walkers",
    "ok": true,
-   "detail": "15.86→15.86"
+   "detail": "16.58→16.58"
   },
   {
    "name": "little-entrance: changing speed while paused stays paused",
@@ -43,12 +43,12 @@
   {
    "name": "little-entrance: Next moment steps forward through beats to the end",
    "ok": true,
-   "detail": "[[\"The Gospel is taken up from the altar\",0],[\"Out through the north deacon door\",12.9],[\"Down from the solea into the nave\",22.3],[\"Across the nave, in front of the people\",27.6],[\"Around the tetrapod to the ambon\",36.9],[\"“Wisdom! Be attentive!” The Gospel is raised before the doors\",42.1],[\"In through the Royal Doors\",50],[\"The Gospel is laid on the altar\",56.7]]"
+   "detail": "[[\"The Gospel is taken up from the altar\",0],[\"Out through the north deacon door\",8.9],[\"Down from the solea into the nave\",18.4],[\"Across the nave, in front of the people\",23.7],[\"Around the tetrapod to the ambon\",32.9],[\"“Wisdom! Be attentive!” The Gospel is raised before the doors\",42.1],[\"In through the Royal Doors\",46.1],[\"The Gospel is laid on the altar\",56.7]]"
   },
   {
    "name": "little-entrance: Previous moment steps backward to 0",
    "ok": true,
-   "detail": "[50,42.1,36.9,27.6,22.3,12.9,0]"
+   "detail": "[46.1,42.1,32.9,23.7,18.4,8.9,0]"
   },
   {
    "name": "little-entrance: mouse scrub to 70% then drag back to 20%",
@@ -63,7 +63,7 @@
   {
    "name": "little-entrance: plays forward to the end without reversing, then shows Replay",
    "ok": true,
-   "detail": "samples 106, reversals 0, label Replay"
+   "detail": "samples 102, reversals 0, label Replay"
   },
   {
    "name": "little-entrance: stays at the end (no loop / ping-pong)",
@@ -73,17 +73,17 @@
   {
    "name": "little-entrance: Replay restarts at the beginning and moves forward",
    "ok": true,
-   "detail": "0.37→6.53 lead -2.96,-12.98→-5.98,-10.99 end -1.96,-16.02"
+   "detail": "0.55→6.28 lead -2.96,-12.98→-5.82,-11.1 end -1.96,-16.02"
   },
   {
    "name": "little-entrance: re-entering the step restarts forward",
    "ok": true,
-   "detail": "2.84→6.73 speed 2"
+   "detail": "2.91→6.79 speed 2"
   },
   {
    "name": "great-entrance: player appears and autoplays",
    "ok": true,
-   "detail": "{\"t\":3.3461999999992553,\"playing\":true,\"speed\":2,\"beat\":0,\"route\":\"great-entrance\",\"duration\":91.18050642181572}"
+   "detail": "{\"t\":3.1938000000007447,\"playing\":true,\"speed\":2,\"beat\":0,\"route\":\"great-entrance\",\"duration\":91.18050642181572}"
   },
   {
    "name": "great-entrance: 4 walkers found",
@@ -93,27 +93,27 @@
   {
    "name": "great-entrance: speed 0.25× rate",
    "ok": true,
-   "detail": "measured 0.245x, pressed=0.25×"
+   "detail": "measured 0.231x, pressed=0.25×"
   },
   {
    "name": "great-entrance: speed 0.5× rate",
    "ok": true,
-   "detail": "measured 0.485x, pressed=0.5×"
+   "detail": "measured 0.496x, pressed=0.5×"
   },
   {
    "name": "great-entrance: speed 1× rate",
    "ok": true,
-   "detail": "measured 0.944x, pressed=1×"
+   "detail": "measured 0.924x, pressed=1×"
   },
   {
    "name": "great-entrance: speed 2× rate",
    "ok": true,
-   "detail": "measured 1.899x, pressed=2×"
+   "detail": "measured 1.768x, pressed=2×"
   },
   {
    "name": "great-entrance: pause freezes clock and walkers",
    "ok": true,
-   "detail": "16.69→16.69"
+   "detail": "16.84→16.84"
   },
   {
    "name": "great-entrance: changing speed while paused stays paused",
@@ -123,12 +123,12 @@
   {
    "name": "great-entrance: Next moment steps forward through beats to the end",
    "ok": true,
-   "detail": "[[\"The gifts are taken up at the prothesis\",0],[\"Out through the north deacon door\",8.2],[\"Down the north aisle, among the people\",17.6],[\"Across the back of the nave\",42.9],[\"Up the center aisle through the people\",47.7],[\"Around the tetrapod to the ambon\",66.8],[\"The commemorations: “May the Lord God remember all of you…”\",76.6],[\"In through the Royal Doors\",84.5],[\"The gifts are set on the altar\",91.2]]"
+   "detail": "[[\"The gifts are taken up at the prothesis\",0],[\"Out through the north deacon door\",4.3],[\"Down the north aisle, among the people\",13.7],[\"Across the back of the nave\",39],[\"Up the center aisle through the people\",43.8],[\"Around the tetrapod to the ambon\",62.9],[\"The commemorations: “May the Lord God remember all of you…”\",76.6],[\"In through the Royal Doors\",80.6],[\"The gifts are set on the altar\",91.2]]"
   },
   {
    "name": "great-entrance: Previous moment steps backward to 0",
    "ok": true,
-   "detail": "[84.5,76.6,66.8,47.7,42.9,17.6,8.2,0]"
+   "detail": "[80.6,76.6,62.9,43.8,39,13.7,4.3,0]"
   },
   {
    "name": "great-entrance: mouse scrub to 70% then drag back to 20%",
@@ -143,7 +143,7 @@
   {
    "name": "great-entrance: plays forward to the end without reversing, then shows Replay",
    "ok": true,
-   "detail": "samples 181, reversals 0, label Replay"
+   "detail": "samples 175, reversals 0, label Replay"
   },
   {
    "name": "great-entrance: stays at the end (no loop / ping-pong)",
@@ -153,12 +153,12 @@
   {
    "name": "great-entrance: Replay restarts at the beginning and moves forward",
    "ok": true,
-   "detail": "0.60→6.15 lead -6.63,-11.45→-7.55,-8.38 end -1.96,-16.02"
+   "detail": "0.29→5.44 lead -6.63,-11.45→-7.55,-8.95 end -1.96,-16.02"
   },
   {
    "name": "great-entrance: re-entering the step restarts forward",
    "ok": true,
-   "detail": "2.59→5.12 speed 2"
+   "detail": "2.94→5.80 speed 2"
   }
  ],
  "errors": []
