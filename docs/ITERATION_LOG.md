@@ -210,3 +210,74 @@ and curtain are shut as before (`desktop-step-23-holy-things-clergy.jpg`).
 Kept shots for passes 7 and 8 are in `docs/iterations/sael/`. `npm run check` (typecheck, 44
 tests, build) and `npm run perf` pass: desktop medium 446 calls, phone low 195 calls at 6.2 fps
 (software budget 4.5), desktop high 314 calls, 1509 KB of JS.
+
+## Pass 9: phones
+
+Reported: the live site does not load usably in Safari on an iPhone. Measured with `npm run phone`
+(Fast 3G, see [TEST_LAB.md](TEST_LAB.md#phones-npm-run-phone)) on the main build as nginx served it,
+then on this branch.
+
+What was wrong:
+
+- nginx sent the 1.5 MB script uncompressed, and the page stayed blank until all of it had arrived
+  and run (`#root` was empty). Over Fast 3G that was about 10 s of white screen.
+- Starting the scene blocked the main thread: in WebKit a tap on Next took until 28 s to answer.
+- Every device started at Medium (shadow maps, the practical-light loop, the post-processing
+  composer) and Auto could climb to High. Each tier change recompiles every shader.
+- On a phone the church filled the whole screen with `touch-action: none`, so the page could hardly
+  be scrolled to the step text and the pager below it (`before-step-01.jpg`).
+- Drag to look read `movementX`, which iOS does not report for touch, and the joystick's own finger
+  also turned the view. The overlay buttons were small, crowded, and ignored the safe areas.
+- 2.4 MB of icon and fresco images, about 75 MB of GPU memory once decoded.
+- A WebGL failure, a failed chunk, or a thrown error left a blank or frozen page.
+
+What changed:
+
+- gzip in `nginx.conf`. The first screen is in `index.html` itself: title, "Opening the
+  walkthrough…", a bar, and a catcher that shows any script or chunk failure as words with Reload.
+- The app shell (steps, text, pager) is 279 KB before gzip with no three.js in it. The 3D scene, the
+  post-processing, and the lab are lazy chunks; the loading gate reports "Downloading the 3D church",
+  "Preparing the church", then "Loading icons x of y" while the church is already drawn.
+- A GPU probe and `chooseTier`: phones and tablets start at Low with Auto capped at Low, software
+  renderers too, devices reporting 4 GB or less start at Low and can climb to Medium, desktops start
+  at Medium as before. `?quality=` or the View sheet still picks any tier by hand. Low means no shadow
+  maps, no composer (its chunk is not even fetched), the cheaper light rig, and a pixel ratio of at
+  most 1.5 on phones. Phones also load half-size art (816 KB).
+- Phone layout: the church takes 62% of the height with the step text under it and a fixed Back and
+  Next bar with the step title. The page scrolls over the church in Follow liturgy; only Free look
+  captures touch. Buttons are 44 px or larger and clear the notch and home indicator. Expand fills the
+  screen (the Fullscreen API where it exists; iPhone Safari has none, so it is CSS). Quality and the
+  cast key moved into a View sheet.
+- Touch look tracks one finger by `clientX`/`clientY`; the joystick keeps its own pointer.
+- No WebGL2, a lost context that does not come back within 4 s, or a scene crash shows the step's
+  still picture (`public/stills`, `npm run stills`), what the faithful see, and a row of icons with
+  their notes, plus Try again (at Low) and the error text.
+- `?debug=1` shows the GPU, WebGL2 limits, the tier and why, fps, draw calls, canvas size and pixel
+  ratio, safe areas, load times, context losses, heap, the user agent, and every caught error, with Copy.
+
+| iPhone profile, Fast 3G | main (no gzip) | this branch |
+| --- | --- | --- |
+| first content | 10.1 s | 1.8 s |
+| tap on Next answered | 27.9 s | 3.0 s |
+| first 3D frame | 13.0 s | 5.0 s |
+| scene ready, all icons | 27.3 s | 10.1 s |
+| JS sent | 1509 KB | 371 KB |
+| everything sent | 4037 KB | 1271 KB |
+| fps (WebKit, host GPU) | 16.4 | 20.3 |
+
+That is `webkit-390`; `webkit-414` is within 0.1 s of it. `chromium-414-cpu4x` went from 10.2 s to
+1.3 s for first content, 15.2 s to 3.4 s for the tap, 11.1 s to 6.0 s for the first frame, and 26.5 s
+to 10.8 s for ready. Its software-rendered fps fell from 5.2 to 3.8 because the phone tier now draws
+at 1.5x rather than the old Low's 1x; SwiftShader's speed is pixel count, a phone GPU's mostly is not.
+Peak JS heap there is 28 MB (19 MB before).
+
+Desktop is unchanged: `npm run shots` of steps 1, 13, 19 and 22 at High and steps 1 and 16 at Medium
+are pixel-identical to main, and `npm run perf` gives main's draw calls and triangles (446, 195, 314).
+Splitting the icons into their own Suspense boundary had first cost 115 desktop shadow casters; the
+pass that flags shadows now runs again when the icons and frescoes arrive.
+
+Pictures in `docs/iterations/mobile/`: `before-load-10s.jpg` and `before-step-01.jpg` (main),
+`after-load-1.5s.jpg`, `after-step-01.jpg`, `after-step-06.jpg`, `after-step-13.jpg`,
+`after-step-19.jpg`, `after-free-look.jpg`, `after-text-panel.jpg`, the fault cases
+(`fault-no-webgl.jpg`, `fault-chunk-blocked.jpg`, `fault-runtime-error.jpg`, `fault-context-lost.jpg`)
+and `debug.jpg`.
