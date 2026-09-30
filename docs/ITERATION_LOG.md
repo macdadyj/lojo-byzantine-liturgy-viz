@@ -326,3 +326,64 @@ The tap is answered in 14 ms once dispatched; when it lands depends on when the 
 which varied between runs. The frame rate is lower because the church now covers the whole screen (585×1179
 drawing pixels against 585×784). Desktop is unchanged: `npm run perf` gives the same 446 / 195 / 314 draw
 calls, and the desktop page keeps its header pager, side list and Expand.
+
+## Pass 11: the entrances, walked as a Ruthenian parish walks them
+
+Screenshots: `docs/iterations/liturgy/`. The floor plan `route-plan.png` is drawn from the same route data
+the scene walks (`npm run route-plan`).
+
+What was wrong on main:
+
+- The procession walked a path out of the north door and back, but its clock ran forward, then backward,
+  forever (`t` bounced between 0 and 1). Every other pass the clergy walked the route in reverse, facing
+  forward, so half the time the gifts left through the Royal Doors and went home through the north door.
+- The path was parameterized per waypoint, not per meter, so walking speed changed from segment to segment.
+- Neither route reached the people: the Great Entrance turned back at the second pew.
+- The tetrapod stood at z 1.15, in the first standing row, with a candle stand in the center aisle at
+  z 2.4, so there was no room to walk between the icon and the people. The reader stood among the south
+  pews.
+
+What changed:
+
+- `src/scene/routes.ts` holds both routes as stops on the floor, some with a named moment ("Out through
+  the north deacon door") and a hold. `buildTimeline` makes one forward pass at 0.8 m/s by arc length; the
+  priest walks last, 3.15 m behind the first candle, and stops before the altar while the candles go on
+  round its north end. Legs follow meters walked (`uStride`), so the gait stops when the procession
+  stops and slows with it.
+- Little Entrance (57 s at 1×): altar, north through the sanctuary, out the north deacon door, down off
+  the solea into the north aisle, across the walkway in front of the people, round the tetrapod, a 4 s
+  stand at the ambon for "Wisdom! Be attentive!", in through the Royal Doors, the Gospel on the altar.
+- Great Entrance (1:31 at 1×): prothesis, out the north deacon door, down the north aisle between the
+  pews and the columns, across the back of the nave, up the center aisle, round the tetrapod, a 4 s stand
+  at the ambon for the commemorations, in through the Royal Doors, the gifts on the altar.
+- The tetrapod moved east to z −1.3 (under the dome), its sand trays with it and the candle stand to its
+  east side. The walkway runs at z −0.35, about 0.7 m from the stand and 1.9 m in front of the first
+  standing row. Free walking treats the tetrapod as solid now. The dismissal line's last person moved out
+  of the trays.
+- The reader stands on the north side at (−2.5, 0.65): among the faithful, between the first row and the
+  walkway, clear of the north aisle.
+- The two servers who stand in the sanctuary are the candle bearers, so they are hidden while a
+  procession walks instead of being in two places at once.
+- The follow camera walks the route 3.4 m ahead of the first candle and looks back at the middle of the
+  procession, so it goes through the same doors and never through a wall; in the north aisle it stands a
+  little toward the pews to see past the columns, and beside the tetrapod it rises to look over the icon.
+  As the train reaches the altar it moves to a fixed view of the holy table. A scrub further than 6 m cuts.
+- The player (`ProcessionBar`) reads a small store (`processionClock`) that the scene advances each frame:
+  Play/Pause (Replay at the end), speed 0.25× to 2×, previous/next moment, and a scrub bar, with the
+  moment's name and the time. Wide screens show it over the bottom of the church; phones put it in the step
+  sheet above Back and Next with 44 px targets and speed on one button (the words shrink to 30% of the
+  screen on these two steps to make room). Reduced motion starts paused at the ambon.
+- Tests: `routes.test.ts` checks for both routes that the only crossings of the iconostas are out
+  through the north door and back through the Royal Doors, that time only moves forward at walking pace,
+  that every walker stays clear of pews, columns, the tetrapod, the altar and the reader, that the camera
+  crosses the iconostas only through a door, and that only the Great Entrance reaches the back of the
+  nave; plus the player's speed, end, replay, step and scrub. `npm run phone:touch` now works the player
+  with touches (44/44).
+
+Checks: `npm run check` (61 tests), `npm run perf` (446 / 197 / 314 draw calls, 287 KB before first
+paint), `npm run phone:faults` (6/6), `npm run phone:touch` (44/44).
+
+Simplified on purpose: inside the sanctuary the clergy walk straight from the altar (or the prothesis) to
+the north door rather than circling the holy table, and the servers step into the doorway at the ambon
+stand instead of stepping aside. Parishes differ on how far into the nave each entrance goes; this church
+takes the Little Entrance across the front and the Great Entrance round the whole nave.

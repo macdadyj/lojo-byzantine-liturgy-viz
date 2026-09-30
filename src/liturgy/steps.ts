@@ -265,7 +265,7 @@ export const steps: LiturgyStep[] = [
     spaces: ["prothesis", "deacon-door", "nave", "solea", "royal-doors", "altar"],
     roles: ["priest", "deacon", "people", "choir"],
     route: "great-entrance",
-    see: "The clergy carry the chalice and the diskos — the vessels prepared at the proskomedia — out the north deacon door, through the nave, and back through the Royal Doors to the altar. Candles and incense lead. The faithful often bow as the gifts pass. The vessels are set on the holy table.",
+    see: "The clergy carry the chalice and the diskos — the vessels prepared at the proskomedia — out the north deacon door, through the nave, and back through the Royal Doors to the altar. Candles and incense lead. The faithful often bow as the gifts pass. Where the church allows, the procession goes down a side aisle among the people and back up the center aisle; in a small church it may stay on the solea. The vessels are set on the holy table.",
     hear: [
       {
         kind: "speech",

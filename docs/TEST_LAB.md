@@ -17,7 +17,8 @@ npx playwright install chromium webkit   # once; WebKit is only for the phone ch
 | `npm run peek` | One-off captures from any camera position, for close inspection |
 | `npm run perf` | Production build, then load time and FPS against budgets |
 | `npm run phone` | The real page as an iPhone over Fast 3G: load milestones, bytes, fps, screenshots |
-| `npm run phone:touch` | Real touches on the phone layout: drag the church, then reach Next, the sheet, the menu, Text |
+| `npm run phone:touch` | Real touches on the phone layout: drag the church, then reach Next, the sheet, the menu, Text, the procession player |
+| `npm run route-plan` | Draws both entrances on a floor plan from the route data, into `docs/iterations/liturgy/route-plan.png` |
 | `npm run phone:faults` | No WebGL, blocked chunks, errors, lost context: each must show words, not a blank page |
 | `npm run stills` / `npm run small-art` | Regenerate the fallback pictures and the phones' half-size art |
 | `npm run check` | Type check, unit tests, production build (the gate before a commit) |
@@ -169,8 +170,15 @@ in readable words on screen and exits 1 if one does not.
 sends DevTools touch events (they go through `touch-action` and scrolling like a finger), drags the church
 and then taps Next, drags onto the sheet, swipes the sheet, the Steps menu and the Text view, and checks
 that the body never locks scrolling, that each control is on screen, on top, and at least 44 px, and that
-landscape keeps Next and Steps reachable. WebKit, which has no touch-move API, repeats the taps and takes
-the screenshots in `qa/phone/<stamp>-touch/`.
+landscape keeps Next and Steps reachable. On the Great Entrance it checks that the procession plays on
+its own, then taps Pause, the speed button and Next moment, and drags a finger along the scrub bar (the
+procession moves, the page does not). WebKit, which has no touch-move API, repeats the taps (including
+Pause and speed) and takes the screenshots in `qa/phone/<stamp>-touch/`.
+
+In the dev server, `window.__liturgy.procession` is the player's clock (`seek(seconds)`, `pause()`,
+`play()`, `setSpeed()`, `stepBeat(±1)`, `snapshot()`), for putting a procession at an exact moment before
+a capture. `window.__liturgy.marchT = 0..1` still pins it to a fraction of the route. Lab captures with
+`freeze` start paused at the key moment (the ambon).
 
 ### What the emulation cannot prove
 
