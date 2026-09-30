@@ -1,0 +1,240 @@
+{
+ "marks": {
+  "700ms": {
+   "boot": false,
+   "text": "Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | O"
+  },
+  "2000ms": {
+   "boot": false,
+   "text": "Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | D"
+  },
+  "4000ms": {
+   "boot": false,
+   "text": "Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church | Fo"
+  },
+  "nextButtonMs": 9428,
+  "firstFrameMs": 9446,
+  "boot": {
+   "firstContent": null,
+   "shell": 1027,
+   "sceneRequested": 1370,
+   "sceneChunk": 3307,
+   "firstFrame": 4539,
+   "sceneReady": 9141,
+   "tier": "low",
+   "tierReason": "software rendering",
+   "ceiling": "low",
+   "quality": "low",
+   "gpu": {
+    "webgl2": true,
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "vendor": "Google Inc. (Google)",
+    "maxTextureSize": 8192,
+    "highpFragment": true,
+    "failure": null
+   },
+   "render": {
+    "fps": 6,
+    "calls": 204,
+    "triangles": 81868,
+    "programs": 13,
+    "textures": 55,
+    "geometries": 201,
+    "width": 585,
+    "height": 1109,
+    "pixelRatio": 1.5
+   },
+   "contextLost": 0,
+   "errors": []
+  }
+ },
+ "results": [
+  {
+   "name": "loads to usable state under Fast 3G + 4x CPU",
+   "ok": true,
+   "detail": "{\"next\":9428,\"firstFrame\":9446,\"700ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | O\"},\"2000ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church |  | D\"},\"4000ms\":{\"boot\":false,\"text\":\"Steps |  | Divine Liturgy |  | 3D | Text |  | Step 1 of 22: Gathering in the church |  | Church | Fo\"}}"
+  },
+  {
+   "name": "safe area respected (top 47 / bottom 34)",
+   "ok": true,
+   "detail": "menu top 53, Next bottom 801"
+  },
+  {
+   "name": "all on-screen touch targets >= 44 px (3D view, sheet open)",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": ".step-bar-prev visible, on top, >=44px",
+   "ok": true,
+   "detail": "86x52 @749"
+  },
+  {
+   "name": ".step-bar-next visible, on top, >=44px",
+   "ok": true,
+   "detail": "86x52 @749"
+  },
+  {
+   "name": ".step-bar-status.is-toggle visible, on top, >=44px",
+   "ok": true,
+   "detail": "182x52 @749"
+  },
+  {
+   "name": ".phone-menu-button visible, on top, >=44px",
+   "ok": true,
+   "detail": "104x44 @53"
+  },
+  {
+   "name": ".phone-view-switch button visible, on top, >=44px",
+   "ok": true,
+   "detail": "56x44 @53"
+  },
+  {
+   "name": "3D view fills screen with sheet over its bottom",
+   "ok": true,
+   "detail": "canvas 105-844, sheet top 350"
+  },
+  {
+   "name": "after 4 canvas drags, Next still answers and page did not jump",
+   "ok": true,
+   "detail": "1 / 22 · Hide words → 2 / 22 · Hide words, scrollY 0"
+  },
+  {
+   "name": "Back answers",
+   "ok": true,
+   "detail": "1 / 22 · Hide words"
+  },
+  {
+   "name": "drag ending over Next does not swallow the following tap",
+   "ok": true,
+   "detail": "1 / 22 · Hide words → 2 / 22 · Hide words"
+  },
+  {
+   "name": "title toggles the sheet closed and open",
+   "ok": true,
+   "detail": "false/true"
+  },
+  {
+   "name": "menu opens with all steps",
+   "ok": true,
+   "detail": "22"
+  },
+  {
+   "name": "menu touch targets >= 44 px tall",
+   "ok": true,
+   "detail": "0 small"
+  },
+  {
+   "name": "menu jump to Great Entrance",
+   "ok": true,
+   "detail": "13 / 22 · Hide words"
+  },
+  {
+   "name": "player .procession-play >= 44 px and on top",
+   "ok": true,
+   "detail": "44x44"
+  },
+  {
+   "name": "player .procession-step >= 44 px and on top",
+   "ok": true,
+   "detail": "44x44"
+  },
+  {
+   "name": "player .procession-speed >= 44 px and on top",
+   "ok": true,
+   "detail": "54x44"
+  },
+  {
+   "name": "player .procession-scrub >= 44 px and on top",
+   "ok": true,
+   "detail": "154x44"
+  },
+  {
+   "name": "Great Entrance autoplays on phone",
+   "ok": true,
+   "detail": "{\"label\":\"The gifts are taken up at the prothesis\",\"play\":\"Pause\",\"speed\":\"1×\",\"v\":2.4,\"max\":91.2}"
+  },
+  {
+   "name": "speed button cycles 0.25/0.5/1/2 and wraps",
+   "ok": true,
+   "detail": "1× → 2× → 0.25× → 0.5× → 1×"
+  },
+  {
+   "name": "phone speed 0.25× rate (4x CPU)",
+   "ok": true,
+   "detail": "measured 0.22x"
+  },
+  {
+   "name": "phone speed 0.5× rate (4x CPU)",
+   "ok": true,
+   "detail": "measured 0.38x"
+  },
+  {
+   "name": "phone speed 1× rate (4x CPU)",
+   "ok": true,
+   "detail": "measured 0.82x"
+  },
+  {
+   "name": "phone speed 2× rate (4x CPU)",
+   "ok": false,
+   "detail": "measured 1.30x"
+  },
+  {
+   "name": "tap Pause stops",
+   "ok": true,
+   "detail": "27.2 → 27.2"
+  },
+  {
+   "name": "Next/Previous moment by tap",
+   "ok": true,
+   "detail": "Down the north aisle, among the people → Across the back of the nave → Down the north aisle, among the people"
+  },
+  {
+   "name": "finger scrub forward then backward",
+   "ok": true,
+   "detail": "0.89 → 0.17"
+  },
+  {
+   "name": "Play after backward scrub continues forward from there",
+   "ok": true,
+   "detail": "15.9 → 20.9"
+  },
+  {
+   "name": "at the end shows Replay and stops",
+   "ok": true,
+   "detail": "{\"label\":\"The gifts are set on the altar\",\"play\":\"Replay\",\"speed\":\"2×\",\"v\":91.2,\"max\":91.2}"
+  },
+  {
+   "name": "Replay by tap restarts forward",
+   "ok": true,
+   "detail": "1.4 → 5.1"
+  },
+  {
+   "name": "Text view: church hidden, page scrolls by finger, Next reachable",
+   "ok": true,
+   "detail": "scrollY 1265, 13 / 22 → 14 / 22"
+  },
+  {
+   "name": "Text view touch targets >= 44 px",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "name": "3D view comes back",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "landscape: Next and menu reachable",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "name": "no console errors",
+   "ok": true,
+   "detail": "[]"
+  }
+ ],
+ "errors": [],
+ "safeArea": "top 47 / bottom 34"
+}
