@@ -4,13 +4,13 @@ import { spaceList } from "../liturgy/spaces";
 import { clampLookPitchAt, lookPitchMin, minEyeHeight, resolveWalk, standingEye } from "./collide";
 import { beatAfter, holyCloseMs, noteHolyStep, pinHolyBeat, publishHolyClock, resetHolyBeat, getHolyBeat } from "./holyBeat";
 import { censingFor, gestureFor } from "./gestures";
-import { pointBehind, pointOnPath } from "./path";
 import { closestPair, communionLine, dismissalLine, faithfulPlace } from "./crowdLayout";
 import { floorTopAt } from "./floors";
+import { headingAt, makePath, pointAt, walkwayZ } from "./routes";
 import { nextQuality } from "./quality";
 import { cameraFor, doorsFor, isStagedId, stagedStepIds, stagingFor } from "./staging";
 import { easeGlide, planMove } from "./cameraMove";
-import { floorPatches, greatEntrancePath, littleEntrancePath, world } from "./world";
+import { floorPatches, tetrapod, world } from "./world";
 
 describe("3D liturgy staging", () => {
   it("stages and frames every liturgy step", () => {
@@ -33,14 +33,35 @@ describe("3D liturgy staging", () => {
     }
   });
 
-  it("routes both entrances out the north door and back toward the altar", () => {
-    for (const path of [littleEntrancePath, greatEntrancePath]) {
-      expect(path.length).toBeGreaterThanOrEqual(4);
-      expect(path.some((point) => point[0] < -3)).toBe(true);
-      expect(path[0]?.[2]).toBeLessThan(-4);
+  it("keeps a walkway between the tetrapod and the people, with the reader beside it on the north", () => {
+    const frontRow = faithfulPlace(-2.2, 2.2, "stand")[2];
+    expect(frontRow - tetrapod[2]).toBeGreaterThan(2);
+    expect(walkwayZ).toBeGreaterThan(tetrapod[2] + 0.8);
+    expect(walkwayZ).toBeLessThan(frontRow - 0.8);
+    const [rx, , rz] = stagingFor("litany-of-peace").reader.position;
+    expect(rx).toBeLessThan(-1.2);
+    expect(rz).toBeGreaterThan(walkwayZ + 0.6);
+    expect(rz).toBeLessThan(frontRow);
+    const kept = resolveWalk(tetrapod[0], tetrapod[2] + 0.2, { royal: false, north: false, south: false });
+    expect(Math.hypot(kept.x - tetrapod[0], kept.z - tetrapod[2])).toBeGreaterThan(0.6);
+  });
+
+  it("stands back from the Proskomedia on an upright phone so the table and both clergy are in the picture", () => {
+    const desk = cameraFor("proskomedia");
+    const phone = cameraFor("proskomedia", true);
+    expect(phone).not.toEqual(desk);
+    expect(cameraFor("gospel", true)).toEqual(cameraFor("gospel"));
+    const [cx, , cz] = phone.position;
+    const look = Math.atan2(phone.target[2] - cz, phone.target[0] - cx);
+    const halfWidth = Math.atan(Math.tan((21 * Math.PI) / 180) * (390 / 740));
+    const { priest, deacon } = stagingFor("proskomedia");
+    for (const [x, , z] of [priest.position, deacon.position, world.prothesis]) {
+      const angle = Math.atan2(z - cz, x - cx) - look;
+      expect(Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)))).toBeLessThan(halfWidth * 0.85);
     }
-    const greatEnd = greatEntrancePath[greatEntrancePath.length - 1];
-    expect(greatEnd?.[2]).toBeLessThan(-5);
+    for (const [x, , z] of [priest.position, deacon.position]) expect(Math.hypot(x - cx, z - cz)).toBeGreaterThan(2.5);
+    expect(cz).toBeLessThan(world.iconZ - 0.5);
+    expect(Math.hypot(cx - world.altar[0], cz - world.altar[2])).toBeGreaterThan(1.5);
   });
 
   it("frames clergy-action steps toward the people who are acting", () => {
@@ -68,17 +89,18 @@ describe("3D liturgy staging", () => {
     expect(doorsFor("anaphora").royal).toBe(true);
   });
 
-  it("samples the middle of a path between its waypoints", () => {
-    const mid = pointOnPath(
-      [
-        [0, 0, 0],
-        [0, 0, 10],
-      ],
-      0.5,
-    );
-    expect(mid[2]).toBeCloseTo(5);
-    expect(pointOnPath([], 0.4)).toEqual([0, 0, 0]);
-    expect(pointBehind([[0, 0, 0], [0, 0, 10]], 1, 4)[2]).toBeCloseTo(6, 0);
+  it("places a walker by meters walked along a path", () => {
+    const path = makePath([
+      [0, 0],
+      [0, 10],
+      [4, 10],
+    ]);
+    expect(path.length).toBeCloseTo(14);
+    expect(pointAt(path, 5)).toEqual([0, 5]);
+    expect(pointAt(path, 12)).toEqual([2, 10]);
+    expect(pointAt(path, 99)).toEqual([4, 10]);
+    expect(pointAt(makePath([]), 3)).toEqual([0, 0]);
+    expect(headingAt(path, 5)).toEqual([0, 1]);
   });
 
   it("stands the faithful on the floor, off the pews, and apart", () => {

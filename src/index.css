@@ -51,6 +51,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: "Public Sans", "Segoe UI", sans-serif;
@@ -104,6 +107,7 @@ button {
   border: 1px solid var(--line);
   border-radius: 999px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 button:focus-visible,
@@ -377,7 +381,16 @@ button:disabled {
   margin-top: 0;
   overflow: hidden;
   border-radius: 12px;
-  background: #c5cfcb;
+  background: #2a2119;
+  /* The page still scrolls past the church with a finger; only Free look takes over the drag. */
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.church-view.is-free {
   touch-action: none;
 }
 
@@ -515,87 +528,41 @@ button:disabled {
 
 .joystick {
   position: absolute;
-  left: 0.8rem;
+  left: calc(0.9rem + env(safe-area-inset-left));
   bottom: 4.5rem;
   z-index: 7;
   display: grid;
   place-items: center;
-  width: 6.5rem;
-  height: 6.5rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  border: 2px solid rgba(251, 248, 243, 0.8);
   border-radius: 50%;
-  background: rgba(251, 248, 243, 0.72);
+  background: rgba(28, 25, 21, 0.35);
   touch-action: none;
   font-size: 0.8rem;
+}
+
+.joystick-knob {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  background: rgba(251, 248, 243, 0.92);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.joystick-label {
+  position: absolute;
+  bottom: -1.5rem;
+  color: #fffaf6;
+  font-size: 0.75rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
 }
 
 .see-caption {
   margin: 0.35rem 0 0.55rem;
   max-width: 70ch;
-}
-
-@media (max-width: 720px) {
-  .page {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    padding: 0 0 1.5rem;
-  }
-
-  .layout {
-    order: -1;
-    padding: 0;
-  }
-
-  .info-bar {
-    order: 1;
-    margin: 0.45rem;
-  }
-
-  .church-view {
-    height: 100svh;
-    min-height: 100svh;
-    border-radius: 0;
-  }
-
-  .quality-bar {
-    top: 0.35rem;
-    left: 0.35rem;
-    right: auto;
-    max-width: 11.5rem;
-  }
-
-  .view-bar {
-    top: 2.55rem;
-    left: 0.35rem;
-    right: auto;
-    width: auto;
-    max-width: 13rem;
-    flex-wrap: wrap;
-  }
-
-  .walk-hint {
-    top: 6.6rem;
-    bottom: auto;
-    left: 0.4rem;
-    right: 0.4rem;
-    max-width: 16rem;
-    text-align: left;
-  }
-
-  .joystick {
-    left: 0.45rem;
-    bottom: 0.7rem;
-    width: 5.4rem;
-    height: 5.4rem;
-  }
-
-  .cast-key {
-    left: auto;
-    right: 0.4rem;
-    bottom: 0.55rem;
-    width: auto;
-    max-width: 8.2rem;
-  }
 }
 
 .cast-key {
@@ -958,55 +925,940 @@ button:disabled {
   }
 }
 
-@media (max-width: 720px) {
-  .church-view {
-    height: calc(100svh - 1.2rem);
-    min-height: calc(100svh - 1.2rem);
-  }
-
-  .quality-bar {
-    top: 0.35rem;
-    left: 0.35rem;
-    right: auto;
-    max-width: 11.5rem;
-  }
-
-  .view-bar {
-    top: 4.7rem;
-    left: 0.35rem;
-    right: auto;
-    width: auto;
-    max-width: 13rem;
-  }
-
-  .walk-hint {
-    top: 10.6rem;
-    bottom: auto;
-    left: 0.4rem;
-    right: auto;
-    max-width: 12.5rem;
-    transform: none;
-  }
-
-  .joystick {
-    left: 0.45rem;
-    right: auto;
-    bottom: 0.7rem;
-    width: 5.4rem;
-    height: 5.4rem;
-  }
-
-  .cast-key {
-    left: auto;
-    right: 0.4rem;
-    bottom: 0.55rem;
-    width: auto;
-    max-width: 8.2rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* Load, notices, and the pictures shown when WebGL cannot run. */
+
+.load-note {
+  max-width: 18rem;
+  color: rgba(255, 250, 246, 0.75);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.load-pill,
+.scene-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 0.7rem;
+  z-index: 8;
+  transform: translateX(-50%);
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(28, 25, 21, 0.72);
+  color: #fffaf6;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.scene-notice {
+  top: 45%;
+  bottom: auto;
+  white-space: normal;
+  text-align: center;
+  border-radius: 12px;
+}
+
+.scene-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.9rem;
+  background: var(--surface);
+  color: var(--ink);
+  touch-action: pan-x pan-y;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.fallback-head {
+  margin-bottom: 0.8rem;
+}
+
+.fallback-title {
+  font-weight: 600;
+}
+
+.fallback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.fallback-actions button {
+  min-height: 44px;
+  padding: 0 1rem;
+}
+
+.fallback-detail {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--bg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.4 ui-monospace, Menlo, monospace;
+}
+
+.fallback-still {
+  margin: 0 0 0.7rem;
+}
+
+.fallback-still img {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.fallback-still figcaption {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.fallback-see {
+  max-width: 62ch;
+  margin-bottom: 0.9rem;
+}
+
+.fallback-gallery {
+  display: flex;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0 0 0.6rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  list-style: none;
+}
+
+.fallback-gallery li {
+  flex: 0 0 min(15rem, 72%);
+  scroll-snap-align: start;
+}
+
+.fallback-gallery img {
+  display: block;
+  width: 100%;
+  height: 14rem;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--line);
+}
+
+.fallback-icon-title {
+  margin-top: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.fallback-icon-text {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* Expand and the phone's picture settings. */
+
+.corner-bar {
+  position: absolute;
+  right: 0.65rem;
+  bottom: 0.65rem;
+  z-index: 6;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.corner-bar button {
+  padding: 0.35rem 0.75rem;
+  background: rgba(251, 248, 243, 0.92);
+  font-size: 0.82rem;
+}
+
+.corner-bar button[aria-pressed="true"],
+.corner-bar button[aria-expanded="true"] {
+  background: var(--accent);
+  color: #fffaf6;
+  border-color: var(--accent);
+}
+
+.view-sheet {
+  position: absolute;
+  top: calc(3.6rem + env(safe-area-inset-top));
+  right: 0.5rem;
+  left: 0.5rem;
+  z-index: 9;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: rgba(251, 248, 243, 0.96);
+  color: #1c1915;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.view-sheet-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.view-sheet .quality-bar,
+.view-sheet .cast-key {
+  position: static;
+  max-width: none;
+  padding: 0;
+  background: transparent;
+}
+
+.church-view.is-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  border-radius: 0;
+}
+
+html[data-expanded] body {
+  overflow: hidden;
+}
+
+.church-view.is-expanded .view-bar,
+.church-view.is-expanded .quality-bar {
+  top: calc(0.65rem + env(safe-area-inset-top));
+}
+
+/*
+ * Phone layout. 3D view: a top bar, the church filling the rest of the screen, and the step's words in a sheet
+ * over its bottom edge with Back and Next under the thumb. Text view: the same bar, then an ordinary scrolling
+ * page of words and the outline, with Back and Next fixed at the bottom. The body never locks; the 3D view is
+ * simply one screen tall, and only the picture itself takes a finger's drag.
+ */
+
+.page.is-phone {
+  --top-h: calc(3.6rem + env(safe-area-inset-top));
+  --bar-h: calc(4.4rem + env(safe-area-inset-bottom));
+  width: 100%;
+  padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+.page.is-phone.is-text {
+  padding-bottom: calc(var(--bar-h) + 1rem);
+}
+
+.phone-bar {
+  position: sticky;
+  top: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--top-h);
+  margin: 0 calc(-1 * env(safe-area-inset-right)) 0 calc(-1 * env(safe-area-inset-left));
+  padding: env(safe-area-inset-top) calc(0.5rem + env(safe-area-inset-right)) 0 calc(0.5rem + env(safe-area-inset-left));
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.phone-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  padding: 0 1rem 0 0.85rem;
+  font-weight: 600;
+}
+
+.phone-menu-button[aria-expanded="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fffaf6;
+}
+
+.phone-menu-icon {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  box-shadow:
+    0 -5px 0 currentColor,
+    0 5px 0 currentColor;
+}
+
+.phone-bar-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-family: Newsreader, "Iowan Old Style", Palatino, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.phone-view-switch {
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.phone-view-switch button {
+  min-width: 3.5rem;
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border: 0;
+  font-weight: 600;
+}
+
+.phone-view-switch button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fffaf6;
+}
+
+.is-phone .layout {
+  display: block;
+}
+
+/* In the 3D view the panel holds only positioned children, so it must not shrink to fit them. */
+.is-phone .stage-body {
+  align-items: stretch;
+}
+
+.is-phone .map-panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.is-phone .page-section,
+.is-phone .step-nav,
+.is-phone .info-bar,
+.is-phone .colophon {
+  margin: 1rem 0.75rem 0;
+  scroll-margin-top: calc(var(--top-h) + 0.5rem);
+}
+
+.is-phone .step-nav {
+  position: static;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+}
+
+.is-phone .step-link {
+  min-height: 48px;
+  align-items: center;
+}
+
+.is-phone .legend-button,
+.is-phone .where-chip,
+.is-phone .related {
+  min-height: 44px;
+  padding: 0 0.9rem;
+}
+
+.is-phone .detail-lead .kicker,
+.is-phone .detail-lead h2 {
+  flex-basis: 100%;
+  margin-bottom: 0;
+}
+
+.is-phone .detail-more summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.is-phone.is-text .church-view {
+  display: none;
+}
+
+/* The 3D view: exactly the screen under the top bar, so there is nothing to scroll and nothing locked. */
+.church-view.is-compact {
+  height: calc(100vh - var(--top-h));
+  height: calc(100dvh - var(--top-h));
+  min-height: 0;
+  border-radius: 0;
+  /* The whole picture is the drag-to-look area: Follow liturgy turns the view, Free look walks. */
+  touch-action: none;
+}
+
+.is-compact .view-bar {
+  top: 0.5rem;
+  left: 0.5rem;
+  right: auto;
+  flex-wrap: wrap;
+  max-width: calc(100% - 6rem);
+}
+
+.is-compact .corner-bar {
+  top: 0.5rem;
+  right: 0.5rem;
+  bottom: auto;
+}
+
+.is-compact .view-sheet {
+  top: 3.6rem;
+}
+
+.is-compact .view-bar button,
+.is-compact .corner-bar button,
+.is-compact .quality-bar button {
+  min-height: 44px;
+  padding: 0 0.9rem;
+  font-size: 0.88rem;
+}
+
+.is-compact .walk-hint {
+  top: 3.7rem;
+  bottom: auto;
+  left: 0.5rem;
+  right: auto;
+  max-width: 14rem;
+  transform: none;
+  text-align: left;
+  font-size: 0.8rem;
+}
+
+.is-compact.is-free .walk-hint {
+  top: 6.9rem;
+}
+
+.is-compact .icon-panel {
+  top: 3.7rem;
+  right: 0.5rem;
+  left: 0.5rem;
+  bottom: auto;
+  width: auto;
+  max-height: calc(100% - var(--bar-h) - 5rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.is-compact .icon-close {
+  min-height: 44px;
+  padding: 0 0.9rem;
+}
+
+/* The sheet covers the bottom of the picture, so anything sitting there moves above it. */
+.is-compact .joystick {
+  bottom: calc(var(--bar-h) + 2.2rem);
+}
+
+.is-compact .load-pill,
+.is-compact .scene-notice {
+  bottom: calc(var(--bar-h) + 0.9rem);
+}
+
+.is-phone .load-gate {
+  justify-content: flex-start;
+  padding-top: 18vh;
+}
+
+.sheet-open .joystick,
+.sheet-open .load-pill {
+  display: none;
+}
+
+.step-sheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - var(--top-h) - 4rem);
+  border-top: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.step-sheet-body {
+  max-height: 46dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 0.25rem calc(0.75rem + env(safe-area-inset-right)) 0.5rem calc(0.75rem + env(safe-area-inset-left));
+  -webkit-overflow-scrolling: touch;
+}
+
+.step-sheet-body[hidden] {
+  display: none;
+}
+
+.step-sheet-body .detail {
+  margin: 0;
+  padding: 0.6rem 0 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.step-sheet .step-bar {
+  position: static;
+  border-top: 0;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.step-sheet-body:not([hidden]) + .step-bar {
+  border-top: 1px solid var(--line);
+}
+
+.step-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--bar-h);
+  padding: 0.55rem calc(0.6rem + env(safe-area-inset-right)) calc(0.55rem + env(safe-area-inset-bottom))
+    calc(0.6rem + env(safe-area-inset-left));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.step-bar > button {
+  min-width: 5.4rem;
+  min-height: 52px;
+  padding: 0 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.step-bar-next {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fffaf6;
+}
+
+.step-bar-status {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.step-bar > .step-bar-status.is-toggle {
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 0.5rem;
+  border-radius: 14px;
+  border-color: transparent;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.step-bar-status.is-toggle::before {
+  content: "";
+  align-self: center;
+  width: 2.2rem;
+  height: 4px;
+  margin-bottom: 0.3rem;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.step-bar-count {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-bar-toggle {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.step-bar-title {
+  overflow: hidden;
+  font-size: 0.92rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Steps menu: a sheet over whatever is showing, scrolling inside itself. */
+.step-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.step-menu-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: rgba(20, 16, 12, 0.45);
+}
+
+.step-menu-panel {
+  position: absolute;
+  top: calc(0.5rem + env(safe-area-inset-top));
+  right: calc(0.5rem + env(safe-area-inset-right));
+  bottom: 0;
+  left: calc(0.5rem + env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.step-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.6rem 0.4rem 1rem;
+}
+
+.step-menu-head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.step-menu-head button {
+  min-height: 44px;
+  padding: 0 1rem;
+  font-weight: 600;
+}
+
+.step-menu-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0 0.75rem 0.7rem;
+  list-style: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.step-menu-sections button {
+  min-height: 44px;
+  padding: 0 0.9rem;
+  font-size: 0.9rem;
+}
+
+.step-menu-sections button[aria-current="page"] {
+  background: var(--zone-active);
+  border-color: var(--zone-active-stroke);
+  color: #1c1915;
+}
+
+.step-menu .step-nav {
+  position: static;
+  flex: 1;
+  max-height: none;
+  margin: 0;
+  padding: 0.7rem 0.75rem calc(1rem + env(safe-area-inset-bottom));
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 0;
+}
+
+/* A phone turned sideways: a slimmer sheet so the church keeps some height. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .page.is-phone {
+    --top-h: calc(3.2rem + env(safe-area-inset-top));
+    --bar-h: calc(3.9rem + env(safe-area-inset-bottom));
+  }
+
+  .step-bar > button,
+  .step-bar > .step-bar-status.is-toggle {
+    min-height: 44px;
+  }
+
+  .step-sheet-body {
+    max-height: 38dvh;
+  }
+
+  .is-compact .joystick {
+    width: 7rem;
+    height: 7rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .corner-bar button,
+  .view-sheet {
+    background: rgba(28, 25, 21, 0.9);
+    color: #f4efe6;
+  }
+
+  .corner-bar button[aria-pressed="true"],
+  .corner-bar button[aria-expanded="true"] {
+    background: var(--accent);
+    color: #1c1915;
+  }
+
+  .step-bar-next,
+  .phone-view-switch button[aria-pressed="true"],
+  .phone-menu-button[aria-expanded="true"] {
+    color: #1c1915;
+  }
+}
+
+/* ?debug=1 and the crash screen. */
+
+.debug-panel {
+  position: fixed;
+  top: calc(0.4rem + env(safe-area-inset-top));
+  left: calc(0.4rem + env(safe-area-inset-left));
+  right: calc(0.4rem + env(safe-area-inset-right));
+  z-index: 900;
+  max-height: 46vh;
+  overflow: auto;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(10, 10, 10, 0.86);
+  color: #d8f5c8;
+  font: 11px/1.35 ui-monospace, Menlo, monospace;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.debug-panel.is-closed {
+  right: auto;
+}
+
+.debug-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.debug-head button {
+  min-height: 32px;
+  padding: 0 0.7rem;
+  border-color: #5b7a4f;
+  font-size: 11px;
+}
+
+.debug-errors {
+  color: #ffb4a8;
+}
+
+.debug-panel pre {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+}
+
+.app-crash {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: calc(1rem + env(safe-area-inset-top)) 1rem 2rem;
+}
+
+.app-crash h1 {
+  font-size: 1.6rem;
+}
+
+.app-crash p {
+  margin: 0.6rem 0;
+}
+
+.app-crash button {
+  min-height: 44px;
+  padding: 0 1.2rem;
+}
+
+.app-crash pre {
+  margin-top: 1rem;
+  padding: 0.7rem;
+  border-radius: 8px;
+  background: var(--surface);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.4 ui-monospace, Menlo, monospace;
+}
+
+.is-compact .scene-fallback {
+  padding-bottom: calc(var(--bar-h) + 1rem);
+}
+
+.sheet-open .is-compact .scene-fallback {
+  padding-bottom: calc(var(--bar-h) + 46dvh + 1rem);
+}
+
+/*
+ * Procession player: over the bottom of the church on wide screens, and inside the phone's step sheet
+ * between the words and Back/Next, so the thumb reaches it without covering more of the church.
+ */
+.procession-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 3.1rem;
+  z-index: 7;
+  width: min(40rem, calc(100% - 1.3rem));
+  padding: 0.45rem 0.6rem 0.5rem;
+  transform: translateX(-50%);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.28);
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.procession-beat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.procession-label {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.procession-time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.procession-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.procession-controls button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 2.4rem;
+  min-height: 2.4rem;
+  padding: 0 0.55rem;
+  background: var(--surface);
+  font-size: 0.8rem;
+}
+
+.procession-controls .procession-play,
+.procession-speeds button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fffaf6;
+  border-color: var(--accent);
+}
+
+.procession-play {
+  padding: 0 0.8rem 0 0.65rem;
+}
+
+.procession-scrub {
+  flex: 1;
+  min-width: 4rem;
+  height: 2.4rem;
+  margin: 0 0.2rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.procession-speeds {
+  display: flex;
+  flex: none;
+  gap: 0.2rem;
+}
+
+.procession-speeds button {
+  min-width: 2.9rem;
+  padding: 0 0.45rem;
+}
+
+.step-sheet .procession-bar {
+  position: static;
+  width: auto;
+  padding: 0.5rem calc(0.75rem + env(safe-area-inset-right)) 0.35rem calc(0.75rem + env(safe-area-inset-left));
+  transform: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.step-sheet .procession-bar:first-child {
+  border-top: 0;
+}
+
+.step-sheet .procession-beat {
+  margin-bottom: 0.2rem;
+}
+
+.step-sheet .procession-controls {
+  gap: 0.3rem;
+}
+
+.step-sheet .procession-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+
+.step-sheet .procession-controls .procession-speed {
+  min-width: 3.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-sheet .procession-scrub {
+  height: 44px;
+}
+
+.procession-bar + .step-bar {
+  border-top: 1px solid var(--line);
+}
+
+.step-sheet.has-procession .step-sheet-body {
+  max-height: 30dvh;
+}
+
+@media (prefers-color-scheme: dark) {
+  .procession-controls .procession-play,
+  .procession-speeds button[aria-pressed="true"] {
+    color: #1c1915;
   }
 }

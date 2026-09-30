@@ -1,28 +1,44 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
-import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
+import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
+import { CatmullRomCurve3, ConeGeometry, InstancedMesh, Object3D, TubeGeometry, Vector3 } from "three";
 import type { Group } from "three";
 import type { SpaceId } from "../liturgy/spaces";
 import type { LiturgyStep, RouteId } from "../liturgy/types";
 import { Church } from "./Church";
 import { colors } from "./colors";
-import { FpsProbe, IconPicker, QualityEffects, StageLook } from "./Effects";
+import { FpsProbe, IconPicker, StageLook } from "./Effects";
 import { cameraFocus } from "./cameraFocus";
 import { censingFor, gestureFor } from "./gestures";
 import type { IconCard } from "./iconCards";
 import { Clergy, type Carry, type ClergyRole } from "./figures/Clergy";
 import { Congregants, Faithful } from "./figures/Crowd";
 import { cantorSpot, choirLine, communionLine, dismissalLine } from "./crowdLayout";
-import { pointBehind, type Vec3 } from "./path";
+import type { Vec3 } from "./path";
+import { routeFloorAt } from "./floors";
+import { setFigureStride } from "./figures/figureMaterial";
+import { processionClock, useProcessionMoving } from "./processionClock";
+import {
+  buildTimeline,
+  followShot,
+  headingAt,
+  pointAt,
+  priestAt,
+  routeFor,
+  walkSpeed,
+  walkerDistance,
+  type Timeline,
+} from "./routes";
 import { dprFor, type Quality } from "./quality";
 import { holyDebug, publishHolyClock, useHolyBeat } from "./holyBeat";
 import { cameraFor, doorsFor, stagingFor, type Actor, type CameraPose, type Stance } from "./staging";
 import { dipInMs, dipOutMs, easeGlide, glideSeconds, planMove } from "./cameraMove";
 import { Walker } from "./Walker";
-import { greatEntrancePath, littleEntrancePath, world } from "./world";
+import { world } from "./world";
 import { Lighting } from "./Lighting";
 import { IncenseHaze } from "./lighting/IncenseHaze";
+import { useFollowLook } from "./followLook";
 import { useLab } from "../lab/labState";
+import { useMediaQuery } from "../useMediaQuery";
 import { LabClock, ReadySignal, StatsProbe } from "../lab/SceneProbes";
 
 export type LookMode = "follow" | "free";
@@ -39,19 +55,37 @@ type LiturgySceneProps = {
   onInspect: (card: IconCard) => void;
   onFps: (fps: number) => void;
   reducedMotion: boolean;
+  /** Phones and tablets: a capped canvas, half-size icon images, and no request for the discrete GPU. */
+  handheld?: boolean;
+  /** Stops drawing while the church is hidden (the phone's Text view), without unmounting it. */
+  paused?: boolean;
+  /** Extra probes rendered inside the Canvas (diagnostics, context-loss handling). */
+  children?: ReactNode;
 };
 
-/** Lead walker writes this each frame so Follow liturgy can stay in front of a procession. */
+/** Resolves once the post-processing chunk has arrived, so the lab can wait for it before a screenshot. */
+export const postChunk = { loaded: false };
+const PostEffects = lazy(() =>
+  import("./PostEffects").then((module) => {
+    postChunk.loaded = true;
+    return module;
+  }),
+);
+
+/** A tall, narrow picture: a phone held upright. */
+const portraitQuery = "(max-aspect-ratio: 4/5)";
+
 let debugCamera: { position: Vec3; target: Vec3 } | null = null;
 
-const processionFocus = {
+/** The procession writes its camera shot each frame so Follow liturgy can walk ahead of it. */
+const processionShot = {
   active: false,
-  x: 0,
-  y: 0,
-  z: 0,
-  fx: 0,
-  fz: -1,
+  position: [0, 0, 0] as Vec3,
+  target: [0, 0, 0] as Vec3,
+  take: 0,
 };
+/** A scrub or a new step moves the shot further than this at once: cut instead of sweeping across the church. */
+const shotCutMeters = 6;
 
 const choirSpots = choirLine.map((position) => ({ position, rotationY: Math.PI / 2 }));
 const cantorSpots = [{ position: cantorSpot, rotationY: Math.PI / 2 }];
@@ -70,8 +104,12 @@ export function LiturgyScene({
   onInspect,
   onFps,
   reducedMotion,
+  handheld = false,
+  paused = false,
+  children,
 }: LiturgySceneProps) {
-  const pose = cameraFor(step.id);
+  const portrait = useMediaQuery(portraitQuery);
+  const pose = cameraFor(step.id, portrait);
   const beat = useHolyBeat(step.id);
   const clergyReceiving = beat === "clergy";
   useEffect(() => {
@@ -85,12 +123,18 @@ export function LiturgyScene({
   const lab = useLab();
   const { systems } = lab;
   const shadowMaps = systems.shadows && quality !== "low";
+  const post = systems.post && quality !== "low";
   return (
     <Canvas
-      dpr={dprFor(quality)}
+      frameloop={paused ? "never" : "always"}
+      dpr={dprFor(quality, handheld)}
       shadows={shadowMaps ? "percentage" : false}
       camera={{ fov: 42, position: (lab.camera ?? pose).position, near: 0.15, far: 140 }}
-      gl={{ antialias: quality !== "low", powerPreference: "high-performance", preserveDrawingBuffer: lab.freezeAt !== null }}
+      gl={{
+        antialias: quality !== "low",
+        powerPreference: handheld ? "default" : "high-performance",
+        preserveDrawingBuffer: lab.freezeAt !== null,
+      }}
     >
       <LabClock freezeAt={lab.freezeAt} />
       <StatsProbe />
@@ -112,11 +156,13 @@ export function LiturgyScene({
           selectedSpace={selectedSpace}
           onSelectSpace={onSelectSpace}
           showArt={systems.icons}
+          smallArt={handheld}
         />
         {systems.people ? (
           <Cast
             step={step}
             reducedMotion={reducedMotion}
+            frozen={lab.freezeAt !== null}
             quality={quality}
             elevated={step.id === "holy-things" && !clergyReceiving}
             incense={systems.incense}
@@ -125,12 +171,17 @@ export function LiturgyScene({
           />
         ) : null}
         {systems.incense && quality !== "low" ? <IncenseHaze count={quality === "high" ? 28 : 16} /> : null}
-        <ReadySignal />
+        <ReadySignal waitFor={post ? postChunk : null} />
       </Suspense>
-      {systems.post ? <QualityEffects quality={quality} focus={mode === "follow"} /> : null}
+      {post ? (
+        <Suspense fallback={null}>
+          <PostEffects quality={quality} focus={mode === "follow"} />
+        </Suspense>
+      ) : null}
       <FpsProbe onFps={onFps} />
       <HolyBeatPump />
       <IconPicker enabled={mode === "free"} onPick={onInspect} />
+      {children}
     </Canvas>
   );
 }
@@ -160,8 +211,10 @@ function FollowCamera({
   const look = useMemo(() => new Vector3(), []);
   const poseKey = `${quality}:${pose.position.join(",")}:${pose.target.join(",")}`;
   const shown = useRef<CameraPose | null>(null);
+  const shownTake = useRef(0);
   const glide = useRef<{ from: Vector3; fromLook: Vector3; t: number } | null>(null);
   const veil = useDipVeil(gl.domElement);
+  const offset = useFollowLook(gl.domElement, enabled);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -210,7 +263,8 @@ function FollowCamera({
 
   // Only a new pose starts a move; mode and reduced motion are read at that moment.
   useLayoutEffect(() => {
-    if (debugCamera || processionFocus.active) return;
+    offset.release();
+    if (debugCamera || processionShot.active) return;
     const previous = shown.current;
     shown.current = { position: [...pose.position], target: [...pose.target] };
     const cut = () => {
@@ -246,8 +300,18 @@ function FollowCamera({
     if (debugCamera) {
       goalPos.set(debugCamera.position[0], debugCamera.position[1], debugCamera.position[2]);
       goalTarget.set(debugCamera.target[0], debugCamera.target[1], debugCamera.target[2]);
-    } else if (processionFocus.active) {
-      frameProcession(goalPos, goalTarget);
+    } else if (processionShot.active) {
+      goalPos.fromArray(processionShot.position);
+      goalTarget.fromArray(processionShot.target);
+      const cut = processionShot.take !== shownTake.current || camera.position.distanceTo(goalPos) > shotCutMeters;
+      shownTake.current = processionShot.take;
+      const blend = reducedMotion || cut ? 1 : 1 - Math.exp(-delta * 4);
+      camera.position.lerp(goalPos, blend);
+      look.lerp(goalTarget, blend);
+      camera.lookAt(look);
+      cameraFocus.copy(look);
+      offset.apply(camera, delta, reducedMotion);
+      return;
     } else {
       goalPos.set(pose.position[0], pose.position[1], pose.position[2]);
       goalTarget.set(pose.target[0], pose.target[1], pose.target[2]);
@@ -259,6 +323,7 @@ function FollowCamera({
         look.lerpVectors(moving.fromLook, goalTarget, eased);
         camera.lookAt(look);
         cameraFocus.copy(look);
+        offset.apply(camera, delta, reducedMotion);
         if (moving.t >= 1) glide.current = null;
         return;
       }
@@ -269,6 +334,7 @@ function FollowCamera({
     look.lerp(goalTarget, blend);
     camera.lookAt(look);
     cameraFocus.copy(look);
+    offset.apply(camera, delta, reducedMotion);
   });
 
   return null;
@@ -325,18 +391,10 @@ function useDipVeil(canvas: HTMLCanvasElement) {
   );
 }
 
-function frameProcession(goalPos: Vector3, goalTarget: Vector3) {
-  const { x, y, z } = processionFocus;
-  // Stay on the solea, west of the iconostas. Do not sit in the north doorway.
-  const cx = Math.min(1.6, Math.max(-5.4, x + 2.8));
-  const cz = Math.min(1.2, Math.max(-6.05, z + 3.6));
-  goalPos.set(cx, 1.78, cz);
-  goalTarget.set(x, y + 1.2, z);
-}
-
 function Cast({
   step,
   reducedMotion,
+  frozen,
   quality,
   elevated,
   incense,
@@ -345,6 +403,7 @@ function Cast({
 }: {
   step: LiturgyStep;
   reducedMotion: boolean;
+  frozen: boolean;
   quality: Quality;
   elevated: boolean;
   incense: boolean;
@@ -357,7 +416,7 @@ function Cast({
     staging.faithful === "bow" || staging.faithful === "kneel" ? staging.faithful : "stand";
   const gesture = gestureFor(step.id);
   const censing = incense && censingFor(step.id);
-  if (!route) processionFocus.active = false;
+  if (!route) processionShot.active = false;
   const carry = priestCarry(step.id, elevated);
   const lineSpots = useMemo(
     () => (step.id === "dismissal" ? dismissalSpots : communionSpots).slice(0, staging.communicants),
@@ -366,9 +425,8 @@ function Cast({
 
   return (
     <group>
-      {route ? <RouteRibbon route={route} /> : null}
       {route ? (
-        <Procession route={route} reducedMotion={reducedMotion} quality={quality} censing={censing} />
+        <Procession route={route} reducedMotion={reducedMotion} frozen={frozen} quality={quality} censing={censing} />
       ) : (
         <>
           <Placed actor={staging.priest}>
@@ -400,12 +458,17 @@ function Cast({
       <Placed actor={staging.reader}>
         <Clergy role="reader" stance={staging.reader.stance} gesture={gesture} quality={quality} />
       </Placed>
-      <Placed actor={{ position: [-1.7, world.sanctuaryFloor, -14.7], facing: 0, stance: "stand" }}>
-        <Clergy role="server" stance="stand" quality={quality} />
-      </Placed>
-      <Placed actor={{ position: [2.7, world.sanctuaryFloor, -14.3], facing: 0, stance: "stand" }}>
-        <Clergy role="server" stance="stand" quality={quality} />
-      </Placed>
+      {/* The two servers carry the candles in a procession. */}
+      {route ? null : (
+        <>
+          <Placed actor={{ position: [-1.7, world.sanctuaryFloor, -14.7], facing: 0, stance: "stand" }}>
+            <Clergy role="server" stance="stand" quality={quality} />
+          </Placed>
+          <Placed actor={{ position: [2.7, world.sanctuaryFloor, -14.3], facing: 0, stance: "stand" }}>
+            <Clergy role="server" stance="stand" quality={quality} />
+          </Placed>
+        </>
+      )}
       <Faithful
         stance={staging.faithful}
         gesture={gesture}
@@ -484,162 +547,173 @@ function Placed({ actor, children }: { actor: Actor; children: ReactNode }) {
   );
 }
 
-function routePoints(route: RouteId): Vec3[] {
-  switch (route) {
-    case "little-entrance":
-      return littleEntrancePath;
-    case "great-entrance":
-      return greatEntrancePath;
-    default: {
-      const exhaustive: never = route;
-      return exhaustive;
-    }
-  }
-}
+/** Samples along the route, so the ribbon follows the steps up onto the solea and into the sanctuary. */
+const ribbonStep = 0.3;
+const arrowSpacing = 2.4;
 
-function RouteRibbon({ route }: { route: RouteId }) {
-  const points = routePoints(route);
+function RouteRibbon({ timeline }: { timeline: Timeline }) {
+  const { path } = timeline;
   const geometry = useMemo(() => {
-    const curve = new CatmullRomCurve3(
-      points.map((point) => new Vector3(point[0], point[1] + 0.05, point[2])),
-      false,
-      "catmullrom",
-      0.2,
-    );
-    return new TubeGeometry(curve, 80, 0.045, 6, false);
-  }, [points]);
+    const samples: Vector3[] = [];
+    for (let at = 0; at < path.length; at += ribbonStep) {
+      const [x, z] = pointAt(path, at);
+      samples.push(new Vector3(x, routeFloorAt(x, z) + 0.05, z));
+    }
+    const [x, z] = pointAt(path, path.length);
+    samples.push(new Vector3(x, routeFloorAt(x, z) + 0.05, z));
+    const curve = new CatmullRomCurve3(samples, false, "centripetal");
+    return new TubeGeometry(curve, samples.length * 2, 0.045, 6, false);
+  }, [path]);
+  const arrow = useMemo(() => {
+    const cone = new ConeGeometry(0.13, 0.34, 3);
+    cone.rotateX(Math.PI / 2);
+    cone.scale(1, 0.35, 1);
+    return cone;
+  }, []);
+  const arrows = useRef<InstancedMesh>(null);
+  const count = Math.max(1, Math.floor(path.length / arrowSpacing));
+
+  useLayoutEffect(() => {
+    const mesh = arrows.current;
+    if (!mesh) return;
+    const place = new Object3D();
+    for (let index = 0; index < count; index += 1) {
+      const at = (index + 0.5) * arrowSpacing;
+      const [x, z] = pointAt(path, at);
+      const [hx, hz] = headingAt(path, at, 0.05);
+      place.position.set(x, routeFloorAt(x, z) + 0.07, z);
+      place.rotation.set(0, Math.atan2(hx, hz), 0);
+      place.updateMatrix();
+      mesh.setMatrixAt(index, place.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [count, path]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => arrow.dispose(), [arrow]);
 
+  const material = <meshStandardMaterial color={colors.runner} roughness={0.4} emissive={colors.runner} emissiveIntensity={0.35} />;
   return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color={colors.runner} roughness={0.4} emissive={colors.runner} emissiveIntensity={0.35} />
-    </mesh>
+    <group>
+      <mesh geometry={geometry}>{material}</mesh>
+      <instancedMesh ref={arrows} args={[arrow, undefined, count]} key={count}>
+        {material}
+      </instancedMesh>
+    </group>
   );
 }
 
-type March = { t: number; dir: 1 | -1 };
+/** Meters the priest has walked, shared by every walker in the frame. */
+type March = { priest: number };
 
+/** Candles first, then the deacon, then the priest, `back` meters behind the first candle. */
 function Procession({
   route,
   reducedMotion,
+  frozen,
   quality,
   censing,
 }: {
   route: RouteId;
   reducedMotion: boolean;
+  frozen: boolean;
   quality: Quality;
   censing: boolean;
 }) {
-  const march = useRef<March>({ t: 0.62, dir: 1 });
-  const points = routePoints(route);
+  const timeline = useMemo(() => buildTimeline(routeFor(route)), [route]);
+  const march = useRef<March>({ priest: 0 });
+  const moving = useProcessionMoving();
+  // Reduced motion and still captures start paused at the key moment; read when a route begins, not after.
+  const still = useRef(reducedMotion || frozen);
+  still.current = reducedMotion || frozen;
 
   useEffect(() => {
-    march.current = { t: 0.62, dir: 1 };
+    processionClock.attach(route, {
+      duration: timeline.duration,
+      beats: timeline.beats.map(({ label, time }) => ({ label, time })),
+      time: still.current ? timeline.keyTime : 0,
+      playing: !still.current,
+    });
     return () => {
-      processionFocus.active = false;
+      processionClock.detach(route);
+      processionShot.active = false;
     };
-  }, [route]);
+  }, [route, timeline]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const bridge = window.__liturgy ?? {};
+    bridge.procession = processionClock;
+    window.__liturgy = bridge;
+  }, []);
 
   useFrame((_, delta) => {
-    if (reducedMotion) return;
     const pinned = import.meta.env.DEV ? window.__liturgy?.marchT : undefined;
-    if (typeof pinned === "number") {
-      march.current.t = Math.min(1, Math.max(0, pinned));
-      march.current.dir = 1;
-      return;
-    }
-    const state = march.current;
-    state.t += Math.min(delta, 0.05) * 0.22 * state.dir;
-    if (state.t >= 1) {
-      state.t = 1;
-      state.dir = -1;
-    } else if (state.t <= 0) {
-      state.t = 0;
-      state.dir = 1;
-    }
-  }, -1);
+    const time =
+      typeof pinned === "number"
+        ? timeline.duration * Math.min(1, Math.max(0, pinned))
+        : processionClock.advance(Math.min(delta, 0.25));
+    const priest = priestAt(timeline, time);
+    march.current.priest = priest.distance;
+    processionClock.setMoving(priest.moving && processionClock.snapshot().playing);
+    setFigureStride(priest.distance / walkSpeed);
+    const shot = followShot(timeline, priest.distance, routeFloorAt);
+    processionShot.active = true;
+    processionShot.position = shot.position;
+    processionShot.target = shot.target;
+    processionShot.take = shot.take;
+  }, -2);
 
   const gospel = route === "little-entrance";
+  const walker = { timeline, march, moving, quality };
   return (
     <group>
-      <PathWalker points={points} march={march} back={0} reducedMotion={reducedMotion} carry="candle" role="server" quality={quality} />
-      <PathWalker points={points} march={march} back={1.05} reducedMotion={reducedMotion} carry="candle" role="server" quality={quality} />
-      <PathWalker
-        points={points}
-        march={march}
-        back={2.1}
-        reducedMotion={reducedMotion}
-        carry={gospel ? "gospel" : "none"}
-        role="deacon"
-        quality={quality}
-        censing={censing}
-      />
-      <PathWalker
-        points={points}
-        march={march}
-        back={3.15}
-        lead
-        reducedMotion={reducedMotion}
-        carry={gospel ? "none" : "gifts"}
-        role="priest"
-        quality={quality}
-      />
+      <RouteRibbon timeline={timeline} />
+      <PathWalker {...walker} back={0} carry="candle" role="server" />
+      <PathWalker {...walker} back={1.05} carry="candle" role="server" />
+      <PathWalker {...walker} back={2.1} carry={gospel ? "gospel" : "none"} role="deacon" censing={censing} />
+      <PathWalker {...walker} back={3.15} carry={gospel ? "none" : "gifts"} role="priest" />
     </group>
   );
 }
 
 function PathWalker({
-  points,
+  timeline,
   march,
   back,
-  lead = false,
-  reducedMotion,
+  moving,
   role,
   carry = "none",
   quality,
   censing = false,
 }: {
-  points: Vec3[];
+  timeline: Timeline;
   march: RefObject<March>;
   back: number;
-  lead?: boolean;
-  reducedMotion: boolean;
+  moving: boolean;
   role: ClergyRole;
   carry?: Carry;
   quality: Quality;
   censing?: boolean;
 }) {
   const group = useRef<Group>(null);
-  const next = useMemo(() => new Vector3(), []);
 
   useFrame(() => {
     const body = group.current;
     const state = march.current;
     if (!body || !state) return;
-    const travel = reducedMotion ? 0.74 : state.t;
-    const here = pointBehind(points, travel, back);
-    const ahead = pointBehind(points, Math.min(1, travel + 0.045), back);
-    body.position.set(here[0], here[1], here[2]);
-    next.set(ahead[0], here[1], ahead[2]);
-    if (next.distanceTo(body.position) > 0.02) body.lookAt(next);
-    if (!lead) return;
-    const dx = ahead[0] - here[0];
-    const dz = ahead[2] - here[2];
-    const length = Math.hypot(dx, dz);
-    processionFocus.active = true;
-    processionFocus.x = here[0];
-    processionFocus.y = here[1];
-    processionFocus.z = here[2];
-    if (length > 0.04) {
-      processionFocus.fx = dx / length;
-      processionFocus.fz = dz / length;
-    }
+    const distance = walkerDistance(state.priest, back);
+    const [x, z] = pointAt(timeline.path, distance);
+    const [hx, hz] = headingAt(timeline.path, distance);
+    body.position.set(x, routeFloorAt(x, z), z);
+    // A figure faces −Z at rest.
+    body.rotation.y = Math.atan2(-hx, -hz);
   }, -1);
 
   return (
     <group ref={group}>
-      <Clergy role={role} stance="stand" walking={!reducedMotion} carry={carry} quality={quality} censing={censing} />
+      <Clergy role={role} stance="stand" walking={moving} carry={carry} quality={quality} censing={censing} />
     </group>
   );
 }

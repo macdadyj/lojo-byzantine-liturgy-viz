@@ -210,3 +210,208 @@ and curtain are shut as before (`desktop-step-23-holy-things-clergy.jpg`).
 Kept shots for passes 7 and 8 are in `docs/iterations/sael/`. `npm run check` (typecheck, 44
 tests, build) and `npm run perf` pass: desktop medium 446 calls, phone low 195 calls at 6.2 fps
 (software budget 4.5), desktop high 314 calls, 1509 KB of JS.
+
+## Pass 9: phones
+
+Reported: the live site does not load usably in Safari on an iPhone. Measured with `npm run phone`
+(Fast 3G, see [TEST_LAB.md](TEST_LAB.md#phones-npm-run-phone)) on the main build as nginx served it,
+then on this branch.
+
+What was wrong:
+
+- nginx sent the 1.5 MB script uncompressed, and the page stayed blank until all of it had arrived
+  and run (`#root` was empty). Over Fast 3G that was about 10 s of white screen.
+- Starting the scene blocked the main thread: in WebKit a tap on Next took until 28 s to answer.
+- Every device started at Medium (shadow maps, the practical-light loop, the post-processing
+  composer) and Auto could climb to High. Each tier change recompiles every shader.
+- On a phone the church filled the whole screen with `touch-action: none`, so the page could hardly
+  be scrolled to the step text and the pager below it (`before-step-01.jpg`).
+- Drag to look read `movementX`, which iOS does not report for touch, and the joystick's own finger
+  also turned the view. The overlay buttons were small, crowded, and ignored the safe areas.
+- 2.4 MB of icon and fresco images, about 75 MB of GPU memory once decoded.
+- A WebGL failure, a failed chunk, or a thrown error left a blank or frozen page.
+
+What changed:
+
+- gzip in `nginx.conf`. The first screen is in `index.html` itself: title, "Opening the
+  walkthrough…", a bar, and a catcher that shows any script or chunk failure as words with Reload.
+- The app shell (steps, text, pager) is 279 KB before gzip with no three.js in it. The 3D scene, the
+  post-processing, and the lab are lazy chunks; the loading gate reports "Downloading the 3D church",
+  "Preparing the church", then "Loading icons x of y" while the church is already drawn.
+- A GPU probe and `chooseTier`: phones and tablets start at Low with Auto capped at Low, software
+  renderers too, devices reporting 4 GB or less start at Low and can climb to Medium, desktops start
+  at Medium as before. `?quality=` or the View sheet still picks any tier by hand. Low means no shadow
+  maps, no composer (its chunk is not even fetched), the cheaper light rig, and a pixel ratio of at
+  most 1.5 on phones. Phones also load half-size art (816 KB).
+- Phone layout: the church takes 62% of the height with the step text under it and a fixed Back and
+  Next bar with the step title. The page scrolls over the church in Follow liturgy; only Free look
+  captures touch. Buttons are 44 px or larger and clear the notch and home indicator. Expand fills the
+  screen (the Fullscreen API where it exists; iPhone Safari has none, so it is CSS). Quality and the
+  cast key moved into a View sheet.
+- Touch look tracks one finger by `clientX`/`clientY`; the joystick keeps its own pointer.
+- No WebGL2, a lost context that does not come back within 4 s, or a scene crash shows the step's
+  still picture (`public/stills`, `npm run stills`), what the faithful see, and a row of icons with
+  their notes, plus Try again (at Low) and the error text.
+- `?debug=1` shows the GPU, WebGL2 limits, the tier and why, fps, draw calls, canvas size and pixel
+  ratio, safe areas, load times, context losses, heap, the user agent, and every caught error, with Copy.
+
+| iPhone profile, Fast 3G | main (no gzip) | this branch |
+| --- | --- | --- |
+| first content | 10.1 s | 1.8 s |
+| tap on Next answered | 27.9 s | 3.0 s |
+| first 3D frame | 13.0 s | 5.0 s |
+| scene ready, all icons | 27.3 s | 10.1 s |
+| JS sent | 1509 KB | 371 KB |
+| everything sent | 4037 KB | 1271 KB |
+| fps (WebKit, host GPU) | 16.4 | 20.3 |
+
+That is `webkit-390`; `webkit-414` is within 0.1 s of it. `chromium-414-cpu4x` went from 10.2 s to
+1.3 s for first content, 15.2 s to 3.4 s for the tap, 11.1 s to 6.0 s for the first frame, and 26.5 s
+to 10.8 s for ready. Its software-rendered fps fell from 5.2 to 3.8 because the phone tier now draws
+at 1.5x rather than the old Low's 1x; SwiftShader's speed is pixel count, a phone GPU's mostly is not.
+Peak JS heap there is 28 MB (19 MB before).
+
+Desktop is unchanged: `npm run shots` of steps 1, 13, 19 and 22 at High and steps 1 and 16 at Medium
+are pixel-identical to main, and `npm run perf` gives main's draw calls and triangles (446, 195, 314).
+Splitting the icons into their own Suspense boundary had first cost 115 desktop shadow casters; the
+pass that flags shadows now runs again when the icons and frescoes arrive.
+
+The phone layout described here was replaced in Pass 10; `before-load-10s.jpg` and `before-step-01.jpg`
+in `docs/iterations/mobile/` are main, the rest show the Pass 10 layout.
+
+## Pass 10: the church with the words over it
+
+Reported from the phone: the page opened into the 3D church, a finger on it would not scroll, and the
+Next button and the navigation could not be reached. The Pass 9 layout (church at 62% of the height,
+words under it) still made the page scroll past the picture to read and navigate.
+
+- The 3D view is the screen under a top bar: the church fills it, and the step's words sit in a sheet
+  over its bottom edge (`after-step-01.jpg`). Back, Next, and the step title are the sheet's bottom row,
+  under the thumb; tapping the title closes the words to that one row (`after-sheet-closed.jpg`). The
+  words scroll inside the sheet.
+- The top bar is outside the picture, so it never turns the view: **Steps** opens every step by part of
+  the Liturgy plus links to the 3D church, the step's words, the places, and About
+  (`after-steps-menu.jpg`); **3D / Text** switches to an ordinary scrolling page of words, places and
+  outline with Back and Next fixed at the bottom (`after-text-view.jpg`, `after-text-scrolled.jpg`). In
+  Text the church stays loaded but stops drawing.
+- The picture is the one drag area (`touch-action: none` only there). In Follow liturgy a finger now
+  looks around from the camera, and Next turns the view back to the step (`after-drag-to-look.jpg`); a
+  hint says so until the first touch. Mouse drags are unchanged. Free look walks as before, with the
+  joystick above the bar (`after-free-look.jpg`).
+- Nothing locks the body: the 3D view is exactly one screen tall; the sheet and the menu scroll
+  themselves with `overscroll-behavior: contain`. Expand is gone on phones, since the 3D view is already
+  full screen; desktops keep it.
+- Every control is at least 44 px (Back and Next 52 px), and the bar, the sheet and the menu pad for the
+  notch, the home indicator and the sides in landscape (`after-landscape.jpg`).
+- Found on the way: on narrow screens `.stage-body` is a flex column that aligned its children to the
+  start, so once the church panel held only positioned children it shrank to 0 px wide. The canvas hid
+  it; the no-WebGL fallback showed a blank area until the column was stretched.
+
+`npm run phone:touch` checks this with touches (33 checks, all pass): in Chromium through DevTools touch
+events, which go through `touch-action` and scrolling as a finger does, it drags the church and then
+taps Next, drags from the church onto the sheet and taps Next, swipes the sheet, the menu and the Text
+view, and checks that the body never locks, that every control is on screen and on top, and that
+landscape keeps Next and Steps reachable; WebKit repeats the taps and takes the screenshots.
+
+| iPhone profile, Fast 3G | main | Pass 9 | Pass 10 |
+| --- | --- | --- | --- |
+| first content | 10.1 s | 1.8 s | 1.8 s |
+| tap on Next answered | 27.9 s | 3.0 s | 2.1 to 5.2 s |
+| first 3D frame | 13.0 s | 5.0 s | 5.1 s |
+| scene ready | 27.3 s | 10.1 s | 10.0 s |
+| JS sent | 1509 KB | 371 KB | 373 KB |
+| fps (WebKit, host GPU) | 16.4 | 20.3 | 15.0 |
+
+The tap is answered in 14 ms once dispatched; when it lands depends on when the 3D chunk is being parsed,
+which varied between runs. The frame rate is lower because the church now covers the whole screen (585×1179
+drawing pixels against 585×784). Desktop is unchanged: `npm run perf` gives the same 446 / 195 / 314 draw
+calls, and the desktop page keeps its header pager, side list and Expand.
+
+## Pass 11: the entrances, walked as a Ruthenian parish walks them
+
+Screenshots: `docs/iterations/liturgy/`. The floor plan `route-plan.png` is drawn from the same route data
+the scene walks (`npm run route-plan`).
+
+What was wrong on main:
+
+- The procession walked a path out of the north door and back, but its clock ran forward, then backward,
+  forever (`t` bounced between 0 and 1). Every other pass the clergy walked the route in reverse, facing
+  forward, so half the time the gifts left through the Royal Doors and went home through the north door.
+- The path was parameterized per waypoint, not per meter, so walking speed changed from segment to segment.
+- Neither route reached the people: the Great Entrance turned back at the second pew.
+- The tetrapod stood at z 1.15, in the first standing row, with a candle stand in the center aisle at
+  z 2.4, so there was no room to walk between the icon and the people. The reader stood among the south
+  pews.
+
+What changed:
+
+- `src/scene/routes.ts` holds both routes as stops on the floor, some with a named moment ("Out through
+  the north deacon door") and a hold. `buildTimeline` makes one forward pass at 0.8 m/s by arc length; the
+  priest walks last, 3.15 m behind the first candle, and stops before the altar while the candles go on
+  round its north end. Legs follow meters walked (`uStride`), so the gait stops when the procession
+  stops and slows with it.
+- Little Entrance (57 s at 1×): altar, north through the sanctuary, out the north deacon door, down off
+  the solea into the north aisle, across the walkway in front of the people, round the tetrapod, a 4 s
+  stand at the ambon for "Wisdom! Be attentive!", in through the Royal Doors, the Gospel on the altar.
+- Great Entrance (1:31 at 1×): prothesis, out the north deacon door, down the north aisle between the
+  pews and the columns, across the back of the nave, up the center aisle, round the tetrapod, a 4 s stand
+  at the ambon for the commemorations, in through the Royal Doors, the gifts on the altar.
+- The tetrapod moved east to z −1.3 (under the dome), its sand trays with it and the candle stand to its
+  east side. The walkway runs at z −0.35, about 0.7 m from the stand and 1.9 m in front of the first
+  standing row. Free walking treats the tetrapod as solid now. The dismissal line's last person moved out
+  of the trays.
+- The reader stands on the north side at (−2.5, 0.65): among the faithful, between the first row and the
+  walkway, clear of the north aisle.
+- The two servers who stand in the sanctuary are the candle bearers, so they are hidden while a
+  procession walks instead of being in two places at once.
+- The follow camera walks the route 3.4 m ahead of the first candle and looks back at the middle of the
+  procession, so it goes through the same doors and never through a wall; in the north aisle it stands a
+  little toward the pews to see past the columns, and beside the tetrapod it rises to look over the icon.
+  As the train reaches the altar it moves to a fixed view of the holy table. A scrub further than 6 m cuts.
+- The player (`ProcessionBar`) reads a small store (`processionClock`) that the scene advances each frame:
+  Play/Pause (Replay at the end), speed 0.25× to 2×, previous/next moment, and a scrub bar, with the
+  moment's name and the time. Wide screens show it over the bottom of the church; phones put it in the step
+  sheet above Back and Next with 44 px targets and speed on one button (the words shrink to 30% of the
+  screen on these two steps to make room). Reduced motion starts paused at the ambon.
+- Tests: `routes.test.ts` checks for both routes that the only crossings of the iconostas are out
+  through the north door and back through the Royal Doors, that time only moves forward at walking pace,
+  that every walker stays clear of pews, columns, the tetrapod, the altar and the reader, that the camera
+  crosses the iconostas only through a door, and that only the Great Entrance reaches the back of the
+  nave; plus the player's speed, end, replay, step and scrub. `npm run phone:touch` now works the player
+  with touches (44/44).
+
+Checks: `npm run check` (61 tests), `npm run perf` (446 / 197 / 314 draw calls, 287 KB before first
+paint), `npm run phone:faults` (6/6), `npm run phone:touch` (44/44).
+
+Simplified on purpose: inside the sanctuary the clergy walk straight from the altar (or the prothesis) to
+the north door rather than circling the holy table, and the servers step into the doorway at the ambon
+stand instead of stepping aside. Parishes differ on how far into the nave each entrance goes; this church
+takes the Little Entrance across the front and the Great Entrance round the whole nave.
+
+## Pass 12: QA polish on the entrances and the phone view
+
+From the QA report on PR #18 (verdict SHIP, report in PR #19, `qa/QA_REPORT.md`).
+
+- Phone: each procession starts with the words folded, so the walk fills the picture above the player and
+  Back/Next. A tap on the step title still opens them, and ordinary steps keep whatever the reader last
+  chose.
+- The stand at the ambon: the follow camera used to be inside the Royal Doors looking out, so the two
+  candle bearers in the doorway hid the priest and deacon. About 6.5 m before the priest reaches the
+  ambon it now steps aside to the south side of the solea (4.5, 2.4, −8.45). From there the candles are
+  off to one side and the priest and deacon face the lens, on desktop and on an upright phone. It stays
+  there while they go in through the Royal Doors, then cuts to the view of the altar once the priest is
+  through. A followShot `take` marks the cut, so the camera never glides through the iconostas.
+- Proskomedia on an upright phone: a portrait-only pose (`portraitPoses` in `staging.ts`) stands back
+  near the south end of the iconostas, looks down over both clergy onto the table of preparation, and aims
+  low so the action sits above the open step sheet. Desktop and landscape keep the close shot.
+- Moment labels now start when the first candle reaches the place, not the priest, who is 3.15 m (about
+  4 s) behind. Stands (the start, the ambon) and the arrival at the altar still start when the priest
+  stops. A moment on the move never starts before the stand behind it is over, so "In through the Royal
+  Doors" appears as the procession moves off from the ambon.
+- Tests: moving labels begin when the first candle arrives, "Out through the north deacon door" names the
+  moment the candle is in the doorway, at the ambon the camera sees the priest and deacon inside a
+  portrait phone's field of view with no candle between, the camera cuts exactly once, the portrait
+  Proskomedia pose frames the table and both clergy from more than 2.5 m, and `phone:touch` checks the
+  folded sheet on a procession and that it opens.
+
+Checks: `npm run check` (66 tests), `npm run phone:touch` (46/46).

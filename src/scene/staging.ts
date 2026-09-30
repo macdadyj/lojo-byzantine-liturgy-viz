@@ -71,8 +71,12 @@ const deaconByAltar: Actor = {
   facing: 0,
   stance: "stand",
 };
-const readerAside: Actor = {
-  position: [3.55, 0.02, 3.35],
+/**
+ * Among the faithful on the north side, west of the tetrapod: at the front of the north pews, between the
+ * people and the walkway the entrances cross, and clear of the north aisle the Great Entrance walks down.
+ */
+export const readerAside: Actor = {
+  position: [-2.5, 0.02, 0.65],
   facing: 0,
   stance: "stand",
 };
@@ -333,9 +337,17 @@ export function isStagedId(id: string): id is StagedId {
   return (stagedStepIds as readonly string[]).includes(id);
 }
 
-export function cameraFor(id: string): CameraPose {
-  if (isStagedId(id)) return cameraPoses[id];
-  return cameraPoses.gathering;
+/**
+ * Where a narrow, upright picture needs to stand further back to show the action, not one figure. The target
+ * sits low so the action lands in the top half of a phone, above the open step sheet.
+ */
+const portraitPoses: Partial<Record<StagedId, CameraPose>> = {
+  proskomedia: { position: [1.0, 3.2, -10.2], target: [-6.0, -0.6, -14.2] },
+};
+
+export function cameraFor(id: string, portrait = false): CameraPose {
+  if (!isStagedId(id)) return cameraPoses.gathering;
+  return (portrait ? portraitPoses[id] : undefined) ?? cameraPoses[id];
 }
 
 export function stagingFor(id: string): Staging {

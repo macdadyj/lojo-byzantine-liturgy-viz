@@ -4,6 +4,9 @@ import { PerspectiveCamera, Vector3 } from "three";
 import { clampLookPitchAt, minEyeHeight, resolveWalk, standingEye, type DoorGaps } from "./collide";
 import { requestWalk, walkGoal, walkStick } from "./walkGoal";
 
+/** Radians of turn per CSS pixel a finger drags: a full phone width turns the view about 100 degrees. */
+export const touchLook = 0.0045;
+
 type WalkerProps = {
   enabled: boolean;
   doors: DoorGaps;
@@ -24,6 +27,7 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
   const bobPhase = useRef(0);
   const velocity = useRef({ forward: 0, strafe: 0 });
   const dragging = useRef(false);
+  const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const goalToken = useRef(0);
   const goalLeft = useRef(0);
   const gaps = useRef(doors);
@@ -68,18 +72,36 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
     };
     const onDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
+      if (event.pointerType !== "mouse") {
+        // Touch and pen drag the view with one finger; the joystick's finger never starts here.
+        if (drag.current) return;
+        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        return;
+      }
       dragging.current = true;
       const lock = element.requestPointerLock?.();
       void lock?.catch(() => undefined);
     };
-    const onUp = () => {
-      dragging.current = false;
+    const onUp = (event: PointerEvent) => {
+      if (drag.current?.id === event.pointerId) drag.current = null;
+      if (event.pointerType === "mouse") dragging.current = false;
     };
     const onMove = (event: PointerEvent) => {
-      const locked = document.pointerLockElement === element;
-      if (!locked && !dragging.current) return;
-      yaw.current -= event.movementX * 0.0022;
-      pitch.current -= event.movementY * 0.0022;
+      const finger = drag.current;
+      if (finger && finger.id === event.pointerId) {
+        // iOS Safari does not report movementX/Y for touch, so the drag is measured from client positions.
+        yaw.current -= (event.clientX - finger.x) * touchLook;
+        pitch.current -= (event.clientY - finger.y) * touchLook;
+        finger.x = event.clientX;
+        finger.y = event.clientY;
+      } else if (event.pointerType === "mouse") {
+        const locked = document.pointerLockElement === element;
+        if (!locked && !dragging.current) return;
+        yaw.current -= event.movementX * 0.0022;
+        pitch.current -= event.movementY * 0.0022;
+      } else {
+        return;
+      }
       pitch.current = clampLookPitchAt(pitch.current, spot.current.x, spot.current.z);
     };
 
@@ -87,6 +109,7 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
     window.addEventListener("keyup", onKey);
     element.addEventListener("pointerdown", onDown);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     window.addEventListener("pointermove", onMove);
     return () => {
       if (previous) document.body.dataset.walk = previous;
@@ -99,7 +122,9 @@ export function Walker({ enabled, doors, headBob }: WalkerProps) {
       window.removeEventListener("keyup", onKey);
       element.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
       window.removeEventListener("pointermove", onMove);
+      drag.current = null;
       keys.current = { forward: false, back: false, left: false, right: false };
       velocity.current = { forward: 0, strafe: 0 };
     };

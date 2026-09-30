@@ -15,6 +15,13 @@ const { browser, gpu } = await launchBrowser();
 const tier = gpu ? budgets.gpu : budgets.software;
 const report = { run: runStamp(), commit: gitCommit(), gpu, seconds, budgets: tier, results: {}, failures: [] };
 
+/** JS the page needs before it can show anything: the entry script and the chunks it preloads (not the lazy 3D church). */
+function entryKb() {
+  const html = readFileSync(join(root, "dist", "index.html"), "utf8");
+  const files = [...html.matchAll(/(?:src|href)="\.\/(assets\/[^"]+\.js)"/g)].map((match) => match[1]);
+  return Math.round(files.reduce((sum, file) => sum + statSync(join(root, "dist", file)).size, 0) / 1024);
+}
+
 function bundleKb() {
   const dir = join(root, "dist", "assets");
   let js = 0;
@@ -48,8 +55,11 @@ async function measure(label, viewportName, quality, step) {
 try {
   const kb = bundleKb();
   report.results.bundle = { jsKb: kb };
-  console.log(`bundle           ${kb} KB of JS (budget ${tier.bundleKb} KB)`);
+  const entry = entryKb();
+  report.results.bundle.entryKb = entry;
+  console.log(`bundle           ${kb} KB of JS in all (budget ${tier.bundleKb} KB), ${entry} KB before first paint (budget ${tier.entryKb} KB)`);
   if (kb > tier.bundleKb) report.failures.push(`JS bundle ${kb} KB > ${tier.bundleKb} KB`);
+  if (entry > tier.entryKb) report.failures.push(`entry JS ${entry} KB > ${tier.entryKb} KB`);
 
   const desktop = await measure("desktop-medium", "desktop", "medium", "gathering");
   const phone = await measure("phone-low", "phone", "low", "gathering");

@@ -2,16 +2,205 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1c1915" />
     <meta
       name="description"
       content="A step-by-step teaching walkthrough of the Ruthenian Byzantine Catholic Divine Liturgy of St. John Chrysostom."
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>Divine Liturgy walkthrough</title>
+    <style>
+      /* Painted before any script arrives, so a slow phone never shows a blank page. */
+      .boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.9rem;
+        padding: 1.5rem;
+        background: #1c1915;
+        color: #f4efe6;
+        font-family: -apple-system, "Segoe UI", sans-serif;
+        text-align: center;
+      }
+      .boot-title {
+        margin: 0;
+        font-family: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+        font-size: 1.7rem;
+        font-weight: 600;
+      }
+      .boot-msg,
+      .boot-slow {
+        margin: 0;
+        max-width: 22rem;
+        color: #cbbfae;
+        font-size: 0.95rem;
+      }
+      .boot-track {
+        position: relative;
+        width: min(16rem, 70vw);
+        height: 0.4rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 250, 246, 0.2);
+      }
+      .boot-track span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 35%;
+        border-radius: 999px;
+        background: #f0d48a;
+        animation: boot-slide 1.4s ease-in-out infinite;
+      }
+      @keyframes boot-slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(290%);
+        }
+      }
+      #boot-error {
+        position: fixed;
+        z-index: 1000;
+        left: 0.5rem;
+        right: 0.5rem;
+        bottom: calc(0.5rem + env(safe-area-inset-bottom));
+        max-height: 60vh;
+        overflow: auto;
+        padding: 0.8rem 0.9rem;
+        border-radius: 12px;
+        background: #fff4f0;
+        color: #3b1210;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+        font: 14px/1.4 -apple-system, "Segoe UI", sans-serif;
+      }
+      #boot-error.is-fatal {
+        top: calc(0.5rem + env(safe-area-inset-top));
+        max-height: none;
+      }
+      #boot-error strong {
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+      #boot-error pre {
+        margin: 0.4rem 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font: 12px/1.35 ui-monospace, Menlo, monospace;
+      }
+      #boot-error button {
+        margin: 0.3rem 0.4rem 0 0;
+        min-height: 44px;
+        padding: 0 1rem;
+        border: 1px solid #b9534b;
+        border-radius: 999px;
+        background: #fff;
+        color: inherit;
+        font: inherit;
+      }
+    </style>
+    <script>
+      // Catches anything that goes wrong, including a bundle this browser cannot run, and prints it on the
+      // page in words a screenshot can carry. Written as old JavaScript so it runs everywhere.
+      (function () {
+        var errors = (window.__bootErrors = []);
+        var mounted = false;
+        var slowTimer;
+        function describe() {
+          return navigator.userAgent + "\n" + location.href;
+        }
+        function show(message, fatal) {
+          if (!document.body) return;
+          var box = document.getElementById("boot-error");
+          if (!box) {
+            box = document.createElement("div");
+            box.id = "boot-error";
+            box.setAttribute("role", "alert");
+            document.body.appendChild(box);
+          }
+          if (fatal) box.className = "is-fatal";
+          box.innerHTML = "";
+          var title = document.createElement("strong");
+          title.textContent = fatal
+            ? "The walkthrough could not start. Please screenshot this and send it along."
+            : "Something went wrong (" + errors.length + "):";
+          var text = document.createElement("pre");
+          text.textContent = errors.slice(-5).join("\n\n") + (fatal ? "\n\n" + describe() : "");
+          var reload = document.createElement("button");
+          reload.textContent = "Reload";
+          reload.onclick = function () {
+            location.reload();
+          };
+          box.appendChild(title);
+          box.appendChild(text);
+          box.appendChild(reload);
+          if (!fatal) {
+            var close = document.createElement("button");
+            close.textContent = "Dismiss";
+            close.onclick = function () {
+              box.parentNode && box.parentNode.removeChild(box);
+            };
+            box.appendChild(close);
+          }
+        }
+        function record(message) {
+          if (errors[errors.length - 1] === message) return;
+          errors.push(String(message).slice(0, 800));
+          if (errors.length > 30) errors.shift();
+          show(message, !mounted);
+        }
+        window.__bootShowError = record;
+        window.__bootMounted = function () {
+          mounted = true;
+          clearTimeout(slowTimer);
+        };
+        window.addEventListener(
+          "error",
+          function (event) {
+            var target = event.target;
+            if (target && target !== window && (target.src || target.href)) {
+              if (target.tagName === "IMG") return;
+              record("Could not load " + (target.src || target.href));
+              return;
+            }
+            var message = event.message || "Script error";
+            if (/ResizeObserver loop/.test(message)) return;
+            var where = event.filename ? " (" + String(event.filename).split("/").pop() + ":" + event.lineno + ":" + event.colno + ")" : "";
+            var stack = event.error && event.error.stack ? "\n" + String(event.error.stack).split("\n").slice(0, 4).join("\n") : "";
+            record(message + where + stack);
+          },
+          true,
+        );
+        window.addEventListener("unhandledrejection", function (event) {
+          var reason = event.reason;
+          record("Unhandled: " + ((reason && (reason.stack || reason.message)) || reason));
+        });
+        if (!("noModule" in document.createElement("script"))) {
+          errors.push("This browser is too old for the walkthrough: it cannot run JavaScript modules.");
+        }
+        slowTimer = setTimeout(function () {
+          var slow = document.querySelector(".boot-slow");
+          if (slow) slow.hidden = false;
+        }, 8000);
+        document.addEventListener("DOMContentLoaded", function () {
+          if (errors.length && !mounted) show(errors[errors.length - 1], true);
+        });
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status">
+        <p class="boot-title">Divine Liturgy</p>
+        <p class="boot-msg">Opening the walkthrough…</p>
+        <div class="boot-track" aria-hidden="true"><span></span></div>
+        <p class="boot-slow" hidden>Still loading. On a slow connection the first visit can take a little while.</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     <noscript>This walkthrough needs JavaScript to move through the Liturgy.</noscript>
   </body>

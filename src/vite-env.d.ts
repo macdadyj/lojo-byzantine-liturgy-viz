@@ -20,7 +20,26 @@ interface LiturgyBridge {
     beat: "off" | "elevation" | "clergy";
     elapsed: number | null;
   };
+  /** Pins the procession to a fraction of its whole timeline. */
   marchT?: number;
+  procession?: {
+    play: () => void;
+    pause: () => void;
+    seek: (time: number) => void;
+    setSpeed: (speed: 0.25 | 0.5 | 1 | 2) => void;
+    stepBeat: (direction: -1 | 1) => void;
+    now: () => number;
+    snapshot: () => {
+      route: string | null;
+      time: number;
+      duration: number;
+      playing: boolean;
+      moving: boolean;
+      speed: number;
+      beats: readonly { label: string; time: number }[];
+      beat: number;
+    };
+  };
   walkTo?: (x: number, z: number, yaw: number, pitch?: number) => void;
 }
 

@@ -3,48 +3,51 @@ import { useTexture } from "@react-three/drei";
 import { SRGBColorSpace, type Group, type Texture } from "three";
 import { iconCards, type IconCard, type IconId } from "./iconCards";
 import { colors } from "./colors";
+import { iconUrl } from "./Iconostas";
 import { ornamentTexture } from "./surfaces";
+import { tetrapod } from "./world";
 
 const domeZ = -1.15;
 
-function frescoUrl(file: string): string {
-  return `${import.meta.env.BASE_URL}fresco/${file}`;
+function frescoUrl(file: string, small: boolean): string {
+  return `${import.meta.env.BASE_URL}fresco/${small ? "small/" : ""}${file}`;
 }
 
-function iconUrl(file: string): string {
-  return `${import.meta.env.BASE_URL}icons/${file}.jpg`;
+/** Phones load the half-size copies (`npm run small-art`); the shared icons come from the same files as the iconostas. */
+function frescoSet(small: boolean) {
+  return {
+    cefalu: frescoUrl("master-of-cefalu-001-christ-pantocrator-adjusted.webp", small),
+    bread: frescoUrl("eucharisty-with-bread-1420s-sergiev-posad-jpg.webp", small),
+    wine: frescoUrl("eucharisty-with-wine-1420s-sergiev-posad-jpg.webp", small),
+    dormition: frescoUrl("goluboe-uspeniejpg.webp", small),
+    matthew: frescoUrl("matthew-the-evangelist-iconjpeg.webp", small),
+    mark: frescoUrl("087-mark-the-evangelist-icon-from-saint-paraskev.webp", small),
+    luke: frescoUrl("st-luke-the-evangelistjpg.webp", small),
+    john: frescoUrl("john-the-evangelistjpg.webp", small),
+    exaltation: frescoUrl("exaltation-of-the-cross-palekh-icon-19-c-privcol.webp", small),
+    presentation: frescoUrl("050-presentation-of-jesus-at-the-temple-icon-fro.webp", small),
+    entry: frescoUrl("005-entry-into-jerusalem-icon-from-saint-paraske.webp", small),
+    lazarus: frescoUrl("novgorod-school-the-raising-of-lazarus-ngm02420-.webp", small),
+    ascension: frescoUrl("ascension-candia-15th-c-jpg.webp", small),
+    pentecost: frescoUrl("katholikon-hosios-loukas-pentecost-mosaicjpg.webp", small),
+    prophets: frescoUrl("prophet-elijah-venerable-pimen-the-great-and-mos.webp", small),
+    nativity: iconUrl("nativity", small),
+    annunciation: iconUrl("annunciation", small),
+    transfiguration: iconUrl("transfiguration", small),
+    trinity: iconUrl("trinity", small),
+    deesis: iconUrl("deesis", small),
+    michael: iconUrl("michael", small),
+    gabriel: iconUrl("gabriel", small),
+    forerunner: iconUrl("forerunner", small),
+    nicholas: iconUrl("nicholas", small),
+    theotokos: iconUrl("theotokos", small),
+    christ: iconUrl("christ", small),
+  };
 }
 
-const frescoFiles = {
-  cefalu: frescoUrl("master-of-cefalu-001-christ-pantocrator-adjusted.webp"),
-  bread: frescoUrl("eucharisty-with-bread-1420s-sergiev-posad-jpg.webp"),
-  wine: frescoUrl("eucharisty-with-wine-1420s-sergiev-posad-jpg.webp"),
-  dormition: frescoUrl("goluboe-uspeniejpg.webp"),
-  matthew: frescoUrl("matthew-the-evangelist-iconjpeg.webp"),
-  mark: frescoUrl("087-mark-the-evangelist-icon-from-saint-paraskev.webp"),
-  luke: frescoUrl("st-luke-the-evangelistjpg.webp"),
-  john: frescoUrl("john-the-evangelistjpg.webp"),
-  exaltation: frescoUrl("exaltation-of-the-cross-palekh-icon-19-c-privcol.webp"),
-  presentation: frescoUrl("050-presentation-of-jesus-at-the-temple-icon-fro.webp"),
-  entry: frescoUrl("005-entry-into-jerusalem-icon-from-saint-paraske.webp"),
-  lazarus: frescoUrl("novgorod-school-the-raising-of-lazarus-ngm02420-.webp"),
-  ascension: frescoUrl("ascension-candia-15th-c-jpg.webp"),
-  pentecost: frescoUrl("katholikon-hosios-loukas-pentecost-mosaicjpg.webp"),
-  prophets: frescoUrl("prophet-elijah-venerable-pimen-the-great-and-mos.webp"),
-  nativity: iconUrl("nativity"),
-  annunciation: iconUrl("annunciation"),
-  transfiguration: iconUrl("transfiguration"),
-  trinity: iconUrl("trinity"),
-  deesis: iconUrl("deesis"),
-  michael: iconUrl("michael"),
-  gabriel: iconUrl("gabriel"),
-  forerunner: iconUrl("forerunner"),
-  nicholas: iconUrl("nicholas"),
-  theotokos: iconUrl("theotokos"),
-  christ: iconUrl("christ"),
-} as const;
+const frescoFiles = { full: frescoSet(false), small: frescoSet(true) };
 
-type FrescoKey = keyof typeof frescoFiles;
+type FrescoKey = keyof typeof frescoFiles.full;
 
 type Placement = {
   key: FrescoKey;
@@ -125,15 +128,8 @@ const drum: Placement[] = [
 ];
 
 
-export const tourStops: { id: IconId; x: number; z: number; yaw: number; pitch: number }[] = [
-  { id: "exaltation", x: -8.4, z: -2.2, yaw: Math.PI / 2, pitch: 0 },
-  { id: "deesis", x: 8.2, z: 4.2, yaw: -Math.PI / 2, pitch: 0.15 },
-  { id: "dormition", x: 0.2, z: 16.5, yaw: Math.PI, pitch: 0.05 },
-  { id: "pantocrator", x: 0.4, z: 7.4, yaw: 0, pitch: -0.62 },
-];
-
-export function Frescoes() {
-  const maps = useTexture(frescoFiles) as Record<FrescoKey, Texture>;
+export function Frescoes({ smallArt = false, onShown }: { smallArt?: boolean; onShown?: () => void }) {
+  const maps = useTexture(smallArt ? frescoFiles.small : frescoFiles.full) as Record<FrescoKey, Texture>;
   const border = ornamentTexture();
   useLayoutEffect(() => {
     for (const texture of Object.values(maps)) {
@@ -141,6 +137,7 @@ export function Frescoes() {
       texture.anisotropy = 4;
     }
   }, [maps]);
+  useLayoutEffect(() => onShown?.(), [onShown]);
 
   return (
     <group>
@@ -159,7 +156,7 @@ export function Frescoes() {
         )),
       )}
       <Stand
-        position={[0, 0, 1.15]}
+        position={tetrapod}
         map={maps.nativity}
         card={iconCards.nativity}
         label="tetrapod"

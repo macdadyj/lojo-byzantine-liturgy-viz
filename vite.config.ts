@@ -18,6 +18,19 @@ function quietThreeClock() {
 export default defineConfig({
   base: "./",
   plugins: [react(), quietThreeClock()],
+  build: {
+    // three.js alone is most of the 3D chunk, which loads after the page is already usable.
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        // React is shared by the page and the lazily loaded 3D church; keep it in its own long-cached file.
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
+          return undefined;
+        },
+      },
+    },
+  },
   optimizeDeps: {
     esbuildOptions: {
       plugins: [

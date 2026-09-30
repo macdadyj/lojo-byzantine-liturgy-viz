@@ -1,4 +1,4 @@
-import { world } from "./world";
+import { tetrapod, tetrapodReach, world } from "./world";
 
 const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
 const pewRows = [2.2, 4.6, 7.0, 9.4, 11.8, 14.2];
@@ -106,7 +106,7 @@ export function resolveWalk(x: number, z: number, doors: DoorGaps): WalkSpot {
     else pz += (pz >= altarZ ? 1 : -1) * overlapZ;
   }
 
-  for (const blocker of blockers.values()) {
+  for (const blocker of [{ x: tetrapod[0], z: tetrapod[2], radius: tetrapodReach }, ...blockers.values()]) {
     const dx = px - blocker.x;
     const dz = pz - blocker.z;
     const dist = Math.hypot(dx, dz);

@@ -5,7 +5,7 @@ Everything runs locally; nothing here deploys anything.
 
 ```bash
 npm install
-npx playwright install chromium   # once, for shots and perf
+npx playwright install chromium webkit   # once; WebKit is only for the phone checks
 ```
 
 | Command | What it does |
@@ -16,6 +16,11 @@ npx playwright install chromium   # once, for shots and perf
 | `npm run shots:keep` | Copies chosen shots from a run into `docs/iterations/<pass>/` as JPEG |
 | `npm run peek` | One-off captures from any camera position, for close inspection |
 | `npm run perf` | Production build, then load time and FPS against budgets |
+| `npm run phone` | The real page as an iPhone over Fast 3G: load milestones, bytes, fps, screenshots |
+| `npm run phone:touch` | Real touches on the phone layout: drag the church, then reach Next, the sheet, the menu, Text, the procession player |
+| `npm run route-plan` | Draws both entrances on a floor plan from the route data, into `docs/iterations/liturgy/route-plan.png` |
+| `npm run phone:faults` | No WebGL, blocked chunks, errors, lost context: each must show words, not a blank page |
+| `npm run stills` / `npm run small-art` | Regenerate the fallback pictures and the phones' half-size art |
 | `npm run check` | Type check, unit tests, production build (the gate before a commit) |
 
 ## The lab page (`/lab`)
@@ -119,7 +124,8 @@ and `--params=people=0` work as in the lab URL. The clock is frozen at 4 s, as i
 
 Builds the production bundle, serves it with `vite preview`, and in headless Chromium measures:
 
-- JS bundle size.
+- JS bundle size, in all and before first paint (the entry script and its preloads in `dist/index.html`;
+  budget 400 KB, since the 3D scene must stay in lazy chunks).
 - Load time: navigation until every model and texture is loaded and the scene has rendered.
 - FPS over 8 s (`--seconds=N`) for desktop Medium (Gathering), phone Low (Gathering), and
   desktop High (Anaphora), plus draw calls and triangles.
@@ -132,6 +138,69 @@ Budgets are in `scripts/perf-budgets.json`, with two tiers:
   load under 8 s.
 
 The script prints each number, writes `qa/perf/latest.json`, and exits 1 on any budget failure.
+
+## Phones: `npm run phone`
+
+Loads the real walkthrough (not `/lab`) the way an iPhone would and measures the load:
+
+```bash
+npm run phone                                   # build, then all three profiles
+npm run phone -- --label=after --no-build       # reuse dist/
+npm run phone -- --dist=.tmp/base-dist --gzip=0 --label=baseline   # an older build, served as nginx used to
+```
+
+- Profiles: `webkit-390` (390×844 at 3x), `webkit-414` (414×896 at 2x), and `chromium-414-cpu4x` (the
+  same phone in Chromium with 4x CPU throttling). All three use an iPhone iOS 18 user agent, touch, and
+  `isMobile`.
+- Network: `scripts/lib/throttle-server.mjs` serves `dist/` over one shared link at the Fast 3G preset
+  (1.44 Mbit/s, 562 ms latency), with gzip like `nginx.conf`. `--net=none|slow4g|4g` and `--gzip=0`
+  change that. WebKit has no network throttling of its own, so the server does it for every browser.
+- Recorded per profile, from navigation: first content, the step bar being usable, how long a tap on
+  Next takes to answer, the WebGL context, first frame, scene ready (all icons in), frame rate over
+  5 s, bytes sent by kind, the tier chosen and why, the GPU string, peak JS heap (Chromium only), and
+  any errors.
+- Screenshots of the loading screen, step 1 when ready, steps 6, 13, 16, 19 and 22, free look, and the
+  text panel go to `qa/phone/<run>/<profile>/`, with `report.json` beside them.
+
+`npm run phone:faults` breaks the page on purpose in WebKit at 390×844: no WebGL2, the 3D chunk blocked,
+the main script blocked, a thrown runtime error, a lost WebGL context, and `?debug=1`. Each case must end
+in readable words on screen and exits 1 if one does not.
+
+`npm run phone:touch` drives the phone layout with touches and exits 1 if a check fails: in Chromium it
+sends DevTools touch events (they go through `touch-action` and scrolling like a finger), drags the church
+and then taps Next, drags onto the sheet, swipes the sheet, the Steps menu and the Text view, and checks
+that the body never locks scrolling, that each control is on screen, on top, and at least 44 px, and that
+landscape keeps Next and Steps reachable. On the Great Entrance it checks that the procession plays on
+its own, then taps Pause, the speed button and Next moment, and drags a finger along the scrub bar (the
+procession moves, the page does not). WebKit, which has no touch-move API, repeats the taps (including
+Pause and speed) and takes the screenshots in `qa/phone/<stamp>-touch/`.
+
+In the dev server, `window.__liturgy.procession` is the player's clock (`seek(seconds)`, `pause()`,
+`play()`, `setSpeed()`, `stepBeat(±1)`, `snapshot()`), for putting a procession at an exact moment before
+a capture. `window.__liturgy.marchT = 0..1` still pins it to a fraction of the route. Lab captures with
+`freeze` start paused at the key moment (the ambon).
+
+### What the emulation cannot prove
+
+Playwright's WebKit is WebKitGTK on Linux. It is close to Safari's engine but not an iPhone:
+
+- The GPU is the host's (reported as "Apple GPU"), not iOS Metal through ANGLE. Shader compile times,
+  driver bugs, and real frame rates on an A-series GPU are not measured.
+- There is no iOS memory ceiling. Safari kills a tab or loses the WebGL context under memory pressure;
+  here that never happens, so the context-lost case is simulated with `WEBGL_lose_context`.
+- WebKit has no CPU throttling and no memory API, so CPU cost and heap come only from the Chromium
+  profile, which runs on SwiftShader, where frame rate depends mostly on pixel count.
+- Safari's collapsing toolbars, the dynamic viewport, the home indicator, notch safe areas (all zero
+  here), rotation, Low Power Mode, and real multitouch are not exercised.
+
+The final check is `?debug=1` on the phone itself (see the README).
+
+## Fallback pictures and phone art
+
+- `npm run stills` renders one 480×600 picture per step at Medium into `public/stills/<step>.jpg`. The
+  page shows them, with the step text, when WebGL cannot run. Re-run it after a visible scene change.
+- `npm run small-art` writes half-size copies of the icons (`public/icons/small/`) and frescoes
+  (`public/fresco/small/`), which phones load instead of the full images (816 KB against 2.4 MB).
 
 ## Gate: `npm run check`
 

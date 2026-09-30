@@ -213,3 +213,11 @@ export const iconCards = {
 } as const satisfies Record<string, IconCard>;
 
 export type IconId = keyof typeof iconCards;
+
+/** Where Free look's icon tour stands to look at each stop. */
+export const tourStops: { id: IconId; x: number; z: number; yaw: number; pitch: number }[] = [
+  { id: "exaltation", x: -8.4, z: -2.2, yaw: Math.PI / 2, pitch: 0 },
+  { id: "deesis", x: 8.2, z: 4.2, yaw: -Math.PI / 2, pitch: 0.15 },
+  { id: "dormition", x: 0.2, z: 16.5, yaw: Math.PI, pitch: 0.05 },
+  { id: "pantocrator", x: 0.4, z: 7.4, yaw: 0, pitch: -0.62 },
+];

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   CanvasTexture,
   ExtrudeGeometry,
@@ -36,31 +36,36 @@ type ChurchProps = {
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
   showArt?: boolean;
+  /** Half-size icon and fresco images, for phones. */
+  smallArt?: boolean;
 };
 
 const columnZ = [-4.6, -0.2, 4.2, 8.6, 13.0];
 const castScale = new Vector3();
 
-export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace, showArt = true }: ChurchProps) {
-  const root = useRef<Group>(null);
-  useLayoutEffect(() => {
-    const group = root.current;
-    if (!group) return;
-    group.traverse((object) => {
-      if (!(object instanceof Mesh)) return;
-      const material = Array.isArray(object.material) ? object.material[0] : object.material;
-      if (!material || material.transparent || material instanceof MeshBasicMaterial) return;
-      object.receiveShadow = true;
-      let shell = false;
-      for (let node: Object3D | null = object; node; node = node.parent) if (node.userData.shell) shell = true;
-      // Small props (tapers, lamp bulbs, frames) cost a shadow draw each and cast nothing visible.
-      object.getWorldScale(castScale);
-      const geometry = object.geometry;
-      if (!geometry.boundingSphere) geometry.computeBoundingSphere();
-      const radius = (geometry.boundingSphere?.radius ?? 0) * Math.max(castScale.x, castScale.y, castScale.z);
-      object.castShadow = !shell && radius > 0.45;
-    });
+function setShadowFlags(group: Group): void {
+  group.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    const material = Array.isArray(object.material) ? object.material[0] : object.material;
+    if (!material || material.transparent || material instanceof MeshBasicMaterial) return;
+    object.receiveShadow = true;
+    let shell = false;
+    for (let node: Object3D | null = object; node; node = node.parent) if (node.userData.shell) shell = true;
+    // Small props (tapers, lamp bulbs, frames) cost a shadow draw each and cast nothing visible.
+    object.getWorldScale(castScale);
+    const geometry = object.geometry;
+    if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+    const radius = (geometry.boundingSphere?.radius ?? 0) * Math.max(castScale.x, castScale.y, castScale.z);
+    object.castShadow = !shell && radius > 0.45;
   });
+}
+
+export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace, onSelectSpace, showArt = true, smallArt = false }: ChurchProps) {
+  const root = useRef<Group>(null);
+  const flagShadows = useCallback(() => {
+    if (root.current) setShadowFlags(root.current);
+  }, []);
+  useLayoutEffect(flagShadows);
   return (
     <group ref={root}>
       <group userData={{ shell: true }}>
@@ -76,11 +81,15 @@ export function Church({ doors, showLabels, quality, activeSpaces, selectedSpace
       <Floors />
       <Pews shadows={quality !== "low"} />
       <Furnishings />
-      <SacredArt doors={doors} quality={quality} showArt={showArt} />
+      <SacredArt doors={doors} quality={quality} showArt={showArt} smallArt={smallArt} onShown={flagShadows} />
       <pointLight position={[0.1, 2.7, -14.6]} color="#ffc99a" intensity={quality === "low" ? 7 : 3.4} distance={10} decay={2} />
       <pointLight position={[-6.4, 2.4, -14.2]} color="#ffc99a" intensity={quality === "low" ? 4.5 : 2.2} distance={7} decay={2} />
       <pointLight position={[7.2, 5.35, 6.1]} color="#ffd2a8" intensity={quality === "low" ? 8 : 4.2} distance={9} decay={2} />
-      {showArt ? <Frescoes /> : null}
+      {showArt ? (
+        <Suspense fallback={null}>
+          <Frescoes smallArt={smallArt} onShown={flagShadows} />
+        </Suspense>
+      ) : null}
       <Lamps />
       <CandleStands />
       <DevotionalProps />
