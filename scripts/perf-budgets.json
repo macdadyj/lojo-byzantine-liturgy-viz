@@ -1,4 +1,4 @@
 {
-  "software": { "bundleKb": 2000, "loadMs": 30000, "desktopMediumFps": 0.4, "phoneLowFps": 4.5, "desktopHighFps": 0.25, "maxDrawCalls": 900 },
-  "gpu": { "bundleKb": 2000, "loadMs": 8000, "desktopMediumFps": 45, "phoneLowFps": 45, "desktopHighFps": 30, "maxDrawCalls": 900 }
+  "software": { "bundleKb": 2000, "entryKb": 400, "loadMs": 30000, "desktopMediumFps": 0.4, "phoneLowFps": 4.5, "desktopHighFps": 0.25, "maxDrawCalls": 900 },
+  "gpu": { "bundleKb": 2000, "entryKb": 400, "loadMs": 8000, "desktopMediumFps": 45, "phoneLowFps": 45, "desktopHighFps": 30, "maxDrawCalls": 900 }
 }

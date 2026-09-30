@@ -14,8 +14,12 @@
     "shots": "node scripts/shots.mjs",
     "shots:diff": "node scripts/shots-diff.mjs",
     "perf": "node scripts/perf.mjs",
+    "phone": "node scripts/phone.mjs",
+    "phone:faults": "node scripts/phone-faults.mjs",
     "shots:keep": "node scripts/shots-keep.mjs",
-    "peek": "node scripts/peek.mjs"
+    "peek": "node scripts/peek.mjs",
+    "stills": "node scripts/stills.mjs",
+    "small-art": "node scripts/small-art.mjs"
   },
   "dependencies": {
     "@fontsource/newsreader": "^5.2.8",
