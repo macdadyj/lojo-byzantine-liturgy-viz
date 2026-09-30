@@ -58,23 +58,30 @@ function blankIconMaps(): IconMaps {
 }
 
 type ArtProps = { doors: DoorState; quality: Quality };
-type LoadProps = ArtProps & { smallArt: boolean };
+type LoadProps = ArtProps & { smallArt: boolean; onShown?: () => void };
 
 /**
  * The iconostas, dome and apse with their icons. Until the images arrive (2 MB, slow on a phone) the same
- * panels stand blank, so the church can be drawn and used right away.
+ * panels stand blank, so the church can be drawn and used right away. `onShown` runs once the loaded
+ * panels are in the scene, since they replace the blank ones after the parent has committed.
  */
-export function SacredArt({ doors, quality, showArt = true, smallArt = false }: ArtProps & { showArt?: boolean; smallArt?: boolean }) {
+export function SacredArt({
+  doors,
+  quality,
+  showArt = true,
+  smallArt = false,
+  onShown,
+}: ArtProps & { showArt?: boolean; smallArt?: boolean; onShown?: () => void }) {
   const blank = <ArtPanels doors={doors} quality={quality} maps={blankIconMaps()} />;
   if (!showArt) return blank;
   return (
     <Suspense fallback={blank}>
-      <LoadedArt doors={doors} quality={quality} smallArt={smallArt} />
+      <LoadedArt doors={doors} quality={quality} smallArt={smallArt} onShown={onShown} />
     </Suspense>
   );
 }
 
-function LoadedArt({ doors, quality, smallArt }: LoadProps) {
+function LoadedArt({ doors, quality, smallArt, onShown }: LoadProps) {
   const loaded = useTexture(smallArt ? iconFiles.small : iconFiles.full) as IconMaps;
   useLayoutEffect(() => {
     for (const texture of Object.values(loaded)) {
@@ -82,6 +89,7 @@ function LoadedArt({ doors, quality, smallArt }: LoadProps) {
       texture.anisotropy = 4;
     }
   }, [loaded]);
+  useLayoutEffect(() => onShown?.(), [onShown]);
   return <ArtPanels doors={doors} quality={quality} maps={loaded} />;
 }
 

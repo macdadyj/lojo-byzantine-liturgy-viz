@@ -127,7 +127,7 @@ const drum: Placement[] = [
 ];
 
 
-export function Frescoes({ smallArt = false }: { smallArt?: boolean }) {
+export function Frescoes({ smallArt = false, onShown }: { smallArt?: boolean; onShown?: () => void }) {
   const maps = useTexture(smallArt ? frescoFiles.small : frescoFiles.full) as Record<FrescoKey, Texture>;
   const border = ornamentTexture();
   useLayoutEffect(() => {
@@ -136,6 +136,7 @@ export function Frescoes({ smallArt = false }: { smallArt?: boolean }) {
       texture.anisotropy = 4;
     }
   }, [maps]);
+  useLayoutEffect(() => onShown?.(), [onShown]);
 
   return (
     <group>
