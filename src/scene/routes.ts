@@ -70,7 +70,7 @@ function intoTheSanctuary(atAmbon: string, atAltar: string): RouteStop[] {
 }
 
 const endShot: Shot = { position: [2.6, 2.3, -11.4], target: [-0.9, 1.3, -14.9] };
-const keyShot: Shot = { position: [4.5, 2.4, -8.45], target: [0, 1.05, -6.1] };
+const keyShot: Shot = { position: [4.5, 2.4, -8.45], target: [0, 1.05, -6.35] };
 
 /**
  * Little Entrance: from the altar out the north deacon door, down off the solea, across the walkway in front
