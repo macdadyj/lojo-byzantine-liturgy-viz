@@ -1,5 +1,5 @@
 import { ShaderChunk } from "three";
-import { world } from "../world";
+import { tetrapod, world } from "../world";
 
 type Vec3 = [number, number, number];
 
@@ -13,16 +13,17 @@ export const chandelierSpots: Vec3[] = [
   [0, 5.8, -13.4],
 ];
 
+/** The one before the tetrapod stands on its east side, so the center aisle and the walkway stay clear. */
 export const candleStandSpots: Vec3[] = [
   [-1.5, 0, -6.4],
   [1.5, 0, -6.4],
-  [0, 0, 2.4],
+  [0, 0, tetrapod[2] - 0.9],
   [-3.2, 0, 18.6],
 ];
 
 export const sandTraySpots: Vec3[] = [
-  [0.85, 0, 1.15],
-  [-0.85, 0, 1.15],
+  [0.85, 0, tetrapod[2]],
+  [-0.85, 0, tetrapod[2]],
   [1.15, 0, -6.15],
   [-1.15, 0, -6.15],
   [-2.3, 0, 20.2],

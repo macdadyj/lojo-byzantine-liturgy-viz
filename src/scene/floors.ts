@@ -22,6 +22,12 @@ export function floorTopAt(x: number, z: number, maxY = Infinity): number {
   return top;
 }
 
+/** Floor under a procession: like `floorTopAt`, but carried across the threshold under each iconostas door. */
+export function routeFloorAt(x: number, z: number): number {
+  if (z <= -9.05) return 0.42;
+  return floorTopAt(x, Math.max(z, -8.9));
+}
+
 function collectFloors(scene: Object3D): void {
   floors.length = 0;
   scene.traverse((object) => {

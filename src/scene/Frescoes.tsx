@@ -5,6 +5,7 @@ import { iconCards, type IconCard, type IconId } from "./iconCards";
 import { colors } from "./colors";
 import { iconUrl } from "./Iconostas";
 import { ornamentTexture } from "./surfaces";
+import { tetrapod } from "./world";
 
 const domeZ = -1.15;
 
@@ -155,7 +156,7 @@ export function Frescoes({ smallArt = false, onShown }: { smallArt?: boolean; on
         )),
       )}
       <Stand
-        position={[0, 0, 1.15]}
+        position={tetrapod}
         map={maps.nativity}
         card={iconCards.nativity}
         label="tetrapod"

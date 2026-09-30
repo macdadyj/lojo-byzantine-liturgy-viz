@@ -71,8 +71,12 @@ const deaconByAltar: Actor = {
   facing: 0,
   stance: "stand",
 };
-const readerAside: Actor = {
-  position: [3.55, 0.02, 3.35],
+/**
+ * Among the faithful on the north side, west of the tetrapod: at the front of the north pews, between the
+ * people and the walkway the entrances cross, and clear of the north aisle the Great Entrance walks down.
+ */
+export const readerAside: Actor = {
+  position: [-2.5, 0.02, 0.45],
   facing: 0,
   stance: "stand",
 };

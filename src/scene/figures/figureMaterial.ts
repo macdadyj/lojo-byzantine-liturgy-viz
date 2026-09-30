@@ -5,10 +5,18 @@ import { crossKeys } from "./rig";
 export const Motion = { still: 0, walk: 1, cross: 2 } as const;
 export type MotionId = (typeof Motion)[keyof typeof Motion];
 
-const uniforms: { uTime: IUniform<number> } = { uTime: { value: 0 } };
+const uniforms: { uTime: IUniform<number>; uStride: IUniform<number> } = { uTime: { value: 0 }, uStride: { value: 0 } };
 
 export function setFigureTime(seconds: number): void {
   uniforms.uTime.value = seconds;
+}
+
+/**
+ * Walking legs follow distance walked, not the clock, so a paused or slowed procession does not stride in
+ * place. One unit is the time a meter takes at 1× speed.
+ */
+export function setFigureStride(value: number): void {
+  uniforms.uStride.value = value;
 }
 
 function glslFloat(value: number): string {
@@ -56,6 +64,7 @@ export function figureMaterial(): MeshStandardMaterial {
   const material = new MeshStandardMaterial({ roughness: 0.82, metalness: 0 });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = uniforms.uTime;
+    shader.uniforms.uStride = uniforms.uStride;
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
@@ -66,6 +75,7 @@ attribute vec3 aElbow;
 attribute vec4 iPalette;
 attribute vec4 iLook;
 uniform float uTime;
+uniform float uStride;
 varying vec3 vTint;
 varying float vRough;
 varying float vMetal;
@@ -91,7 +101,7 @@ mat3 jointTurn = mat3(1.0);
 mat3 elbowTurn = mat3(1.0);
 float bob = 0.0;
 if (motion == 1) {
-  float stride = uTime * 5.2 + phase;
+  float stride = uStride * 5.2 + phase;
   float swing = sin(stride) * 0.42;
   if (aJoint > 0.5 && aJoint < 1.5) jointTurn = rotX(swing);
   else if (aJoint > 1.5 && aJoint < 2.5) jointTurn = rotX(-swing);

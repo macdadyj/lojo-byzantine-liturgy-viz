@@ -43,13 +43,13 @@ export const communionLine: Vec3[] = [
   [0.75, naveFloor, -2.5],
 ];
 
-/** Center aisle, clear of the priest at the ambon and of the pews. */
+/** Center aisle, clear of the priest at the ambon, of the pews, and of the tetrapod with its sand trays. */
 export const dismissalLine: Vec3[] = [
   [-0.6, world.soleaFloor, -4.15],
   [0.65, world.soleaFloor, -4.2],
   [-0.6, naveFloor, -2.85],
   [0.65, naveFloor, -2.9],
-  [-0.6, naveFloor, -1.55],
+  [0, naveFloor, -0.3],
 ];
 
 export const choirLine: Vec3[] = [

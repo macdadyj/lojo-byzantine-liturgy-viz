@@ -26,33 +26,13 @@ export const world = {
 export const domeZ = -1.15;
 export const clerestoryZ = [-6.2, -1.2, 3.4, 8.2, 12.6];
 
-const doorX = -world.deaconDoorX;
-
-export const littleEntrancePath: Vec3[] = [
-  [-1.6, world.sanctuaryFloor, -12.8],
-  [-5.8, world.sanctuaryFloor, -11.2],
-  [doorX, world.sanctuaryFloor, -9.7],
-  [doorX, world.soleaFloor, -8.2],
-  [-4.8, world.soleaFloor, -6.6],
-  [-3.9, 0.02, -0.6],
-  [-3.9, 0.02, 2.8],
-  [0.15, 0.02, 0.8],
-  [0.1, world.soleaFloor, -6.6],
-  [0.15, world.sanctuaryFloor, -12.8],
-];
-
-export const greatEntrancePath: Vec3[] = [
-  [-6.2, world.sanctuaryFloor, -14.2],
-  [doorX, world.sanctuaryFloor, -11.0],
-  [doorX, world.sanctuaryFloor, -9.7],
-  [doorX, world.soleaFloor, -8.2],
-  [-5.4, world.soleaFloor, -6.8],
-  [-3.9, 0.02, -1.0],
-  [-3.9, 0.02, 3.2],
-  [0.2, 0.02, 1.6],
-  [0.15, world.soleaFloor, -6.5],
-  [0.15, world.sanctuaryFloor, -14.8],
-];
+/**
+ * The tetrapod with the festal icon, under the dome and east of the people, leaving a walkway between it and
+ * the first standing row for the entrances.
+ */
+export const tetrapod: Vec3 = [0, 0, -1.3];
+/** How close a person can stand to the tetrapod's center. */
+export const tetrapodReach = 0.55;
 
 export type FloorPatch = {
   id: SpaceId;
