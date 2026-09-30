@@ -387,3 +387,31 @@ Simplified on purpose: inside the sanctuary the clergy walk straight from the al
 the north door rather than circling the holy table, and the servers step into the doorway at the ambon
 stand instead of stepping aside. Parishes differ on how far into the nave each entrance goes; this church
 takes the Little Entrance across the front and the Great Entrance round the whole nave.
+
+## Pass 12: QA polish on the entrances and the phone view
+
+From the QA report on PR #18 (verdict SHIP, report in PR #19, `qa/QA_REPORT.md`).
+
+- Phone: each procession starts with the words folded, so the walk fills the picture above the player and
+  Back/Next. A tap on the step title still opens them, and ordinary steps keep whatever the reader last
+  chose.
+- The stand at the ambon: the follow camera used to be inside the Royal Doors looking out, so the two
+  candle bearers in the doorway hid the priest and deacon. About 6.5 m before the priest reaches the
+  ambon it now steps aside to the south side of the solea (4.5, 2.4, −8.45). From there the candles are
+  off to one side and the priest and deacon face the lens, on desktop and on an upright phone. It stays
+  there while they go in through the Royal Doors, then cuts to the view of the altar once the priest is
+  through. A followShot `take` marks the cut, so the camera never glides through the iconostas.
+- Proskomedia on an upright phone: a portrait-only pose (`portraitPoses` in `staging.ts`) stands back
+  near the south end of the iconostas, looks down over both clergy onto the table of preparation, and aims
+  low so the action sits above the open step sheet. Desktop and landscape keep the close shot.
+- Moment labels now start when the first candle reaches the place, not the priest, who is 3.15 m (about
+  4 s) behind. Stands (the start, the ambon) and the arrival at the altar still start when the priest
+  stops. A moment on the move never starts before the stand behind it is over, so "In through the Royal
+  Doors" appears as the procession moves off from the ambon.
+- Tests: moving labels begin when the first candle arrives, "Out through the north deacon door" names the
+  moment the candle is in the doorway, at the ambon the camera sees the priest and deacon inside a
+  portrait phone's field of view with no candle between, the camera cuts exactly once, the portrait
+  Proskomedia pose frames the table and both clergy from more than 2.5 m, and `phone:touch` checks the
+  folded sheet on a procession and that it opens.
+
+Checks: `npm run check` (66 tests), `npm run phone:touch` (46/46).
