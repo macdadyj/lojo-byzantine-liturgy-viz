@@ -1,0 +1,76 @@
+[
+ {
+  "name": "chromium: step 1 opens with the sheet open",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "chromium: non-procession step keeps sheet open",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "chromium: little entrance starts with the sheet folded, player on screen",
+  "ok": true,
+  "detail": "{\"top\":515,\"bottom\":593}"
+ },
+ {
+  "name": "chromium: little: words open on tap; next step restores user's sheet; returning to entrance",
+  "ok": true,
+  "detail": "open=true, next step=true, back on entrance=true",
+  "backOnEntrance": "true"
+ },
+ {
+  "name": "chromium: great entrance starts with the sheet folded, player on screen",
+  "ok": true,
+  "detail": "{\"top\":515,\"bottom\":593}"
+ },
+ {
+  "name": "chromium: great: words open on tap; next step restores user's sheet; returning to entrance",
+  "ok": true,
+  "detail": "open=true, next step=true, back on entrance=true",
+  "backOnEntrance": "true"
+ },
+ {
+  "name": "chromium: no console errors",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "name": "webkit: step 1 opens with the sheet open",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "webkit: non-procession step keeps sheet open",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "webkit: little entrance starts with the sheet folded, player on screen",
+  "ok": true,
+  "detail": "{\"top\":515,\"bottom\":593}"
+ },
+ {
+  "name": "webkit: little: words open on tap; next step restores user's sheet; returning to entrance",
+  "ok": true,
+  "detail": "open=true, next step=true, back on entrance=true",
+  "backOnEntrance": "true"
+ },
+ {
+  "name": "webkit: great entrance starts with the sheet folded, player on screen",
+  "ok": true,
+  "detail": "{\"top\":515,\"bottom\":593}"
+ },
+ {
+  "name": "webkit: great: words open on tap; next step restores user's sheet; returning to entrance",
+  "ok": true,
+  "detail": "open=true, next step=true, back on entrance=true",
+  "backOnEntrance": "true"
+ },
+ {
+  "name": "webkit: no console errors",
+  "ok": true,
+  "detail": "[]"
+ }
+]

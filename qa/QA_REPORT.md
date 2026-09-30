@@ -1,5 +1,124 @@
 # QA punch list — Divine Liturgy walkthrough
 
+## Re-verified PR #18 — polish pass (Pass 12)
+
+Retest of `cursor/mobile-safari-works-f9da` at `e1d5ad0` (four commits after `ab2e929`: `d3c7a39`, `cdc04ac`, `a13a562`, `e1d5ad0`). No app code was changed, and nothing was merged or deployed.
+
+**Verdict: SHIP.**
+
+All four fixes hold, and none of the previously verified items regressed.
+
+| Fix | Result | Evidence |
+| --- | --- | --- |
+| Phone sheet starts folded during both entrances | **Fixed.** In Chromium and WebKit (iPhone 13), both entrances open with the sheet folded (`aria-expanded="false"`) and the player on screen (top at 515 px, bottom at 593 px). Step 1 and Proskomedia still open with the sheet open. Tapping the title opens the words, and they stay open on the next step. | `pr18r2-phone-great-starts-folded.png`, `pr18r2-phone-webkit-little-starts-folded.png` |
+| Ambon and commemorations framing shows the priest and deacon | **Fixed on desktop and phone.** Paused mid-hold (0:44 “Wisdom!”, 1:18 commemorations), the camera stands on the south solea. The priest (with the chalice in the Great Entrance) and the deacon (with the Gospel in the Little Entrance, the censer in the Great) are both in frame and unobstructed. The candle-bearers are off to one side. Once the priest is through the doors, the view cuts to the altar shot (a single 3.5 m jump, with no sweep across the church). | `pr18r2-desktop-wisdom-hold.png`, `pr18r2-desktop-commemorations-hold.png`, `pr18r2-phone-wisdom-hold.png`, `pr18r2-phone-commemorations-hold.png`, `pr18r2-phone-little-into-royal-doors.png`, `pr18r2-desktop-great-at-altar-cut.png` |
+| Portrait phone Proskomedia | **Fixed.** Priest and deacon are shown full-length at the prothesis, above the open sheet, instead of a frame full of vestments. Landscape and desktop keep the old pose, because the portrait-only pose applies at an aspect ratio of 4:5 or narrower. | `pr18r2-phone-proskomedia-portrait.png`, `pr18r2-phone-proskomedia-portrait-folded.png` |
+| Moment labels keyed to the lead candle | **Fixed.** Read from the live scene, each moving beat starts when the lead candle reaches its point. For example, “Out through the north deacon door” starts at 8.9 s (Little) and 4.3 s (Great) with the lead at x = −7.55, z ≈ −9.9; “Across the back of the nave” starts at 39.0 s with the lead at z = 15.6. Holds and the arrival at the altar still start when the priest arrives, as the code documents. | `qa/probes-pr18/procession-result.json` |
+
+### Re-run commands
+
+- `npm ci && npm run check`: both typechecks, 66/66 tests (5 new), and the build all succeed.
+- `npm run phone:touch`: 46/46, Chromium and WebKit.
+- `npm run phone:faults`: no WebGL, blocked chunk, blocked main script, runtime error, lost context and debug are all ok.
+- `npm run perf`, run alone: PERF OK. Desktop medium 0.5 fps, high 0.7 fps, phone low 6.4 fps, with 287 KB of JS before first paint.
+
+### Regression, with my own probes
+
+- **Directions and clipping.** Every walker in both entrances still goes out at x = −7.55 (north deacon door) and back in at x = 0 (Royal Doors). The Great Entrance still reaches the back at z = 15.6. No walker touches anything, and the follow camera, including the new shot on the south solea, never enters any object (0 hits).
+- **Player, desktop.** 32/32 pass: the four speeds, pause, speed change while paused, next and previous moment, mouse scrub forward and back, keyboard scrub, playing to the end without reversing, Replay, and re-entering the step.
+- **Player and UI, phone** (Fast 3G, 4× CPU, SwiftShader, safe area 47/34 px). 36/37 pass: usable at 9.1 s, 44 px targets, drags never block Back or Next, sheet toggle, menu, Text view scroll, touch scrub, Replay, landscape, and no console errors. The miss is the known P3 below.
+- **Layout.** Unchanged: the tetrapod is at z = −1.3 with the walkway, and the reader is north of and behind it (`pr18r2-desktop-little-around-tetrapod.png`).
+
+### Still open (P3, not blockers)
+
+1. **Speed on very slow devices.** Under 4× CPU throttling plus software GL (about 3 fps), 1× measured 0.60× and 2× measured 1.40×, because the clock caps each frame step at 0.25 s. This was already known and was not in this fix list.
+2. **Returning to an entrance keeps the words open.** If you open the words during an entrance, go Next, then come Back, the sheet is still open. Only the first visit to each entrance starts folded. That may be intended.
+3. **The drag hint overlaps the deacon's head.** On portrait Proskomedia, the one-time “Drag the church to look around” hint covers the top of the deacon's head until the first touch.
+
+---
+
+## Verified PR #18 — phones, entrances, procession player
+
+Independent retest of PR #18, branch `cursor/mobile-safari-works-f9da` at `ab2e929` (“Docs and screenshots for the entrances and the procession player (Pass 11)”). No app code was changed. Nothing was merged or deployed. The author's claims were not used as evidence. Every result below comes from my own probes, which read walker and obstacle positions straight from the live three.js scene graph and drive the UI with real mouse and CDP touch events. The probes are in `qa/probes-pr18/` with their JSON results.
+
+**Verdict: SHIP.**
+
+All five requested areas pass. There is no P0 or P1. The P2 items below are about what the camera shows, not about correctness: the procession and the controls work as asked.
+
+### Punch list
+
+1. **P2 — On a phone, the open sheet hides the procession.** The sheet opens by default and covers the lower part of the 3D view (canvas from 105 px to 844 px, sheet top at 350 px). The follow camera centres the procession in the full canvas, so during both entrances only heads show above the sheet (`pr18-phone-great-sheet-open-hides-procession.png`). Collapsing the sheet fixes it, and the player stays visible when the sheet is collapsed (`pr18-phone-webkit-great-collapsed.png`). Suggested fix: offset the camera target by the sheet height, or collapse the sheet while a procession plays.
+2. **P2 — At the key holds, the servers hide the priest.** At “Wisdom! Be attentive!” and at the commemorations, the follow camera stands inside the sanctuary and looks out through the Royal Doors. The two candle-bearers fill the frame, and the priest, who is doing the commemorations, is hidden at the back of the line. This happens on desktop and phone (`pr18-great-6-commemorations.png`, `pr18-little-5-wisdom.png`, `pr18-phone-commemorations-servers-block-priest.png`). The author lists “servers wait in the doorway” as a simplification, but the camera makes it the subject of the shot.
+3. **P2 (already on `main`, more visible now) — the Proskomedia camera on a phone is between the vestments.** In portrait, step 2 is mostly the priest's and deacon's robes with the prothesis between them (`pr18-phone-proskomedia-camera-in-vestments.png`). This staging did not change in this PR, but the full-screen phone view makes it the first thing you see after Next.
+4. **P3 — Speed depends on frame rate when the phone is very slow.** The clock advances per frame and caps each frame at 0.25 s. With 4× CPU throttling and software GL (about 3 fps), the measured rates were 0.22×, 0.38×, 0.82× and 1.30× for 0.25×, 0.5×, 1× and 2×. Without CPU throttling they are within 10% (desktop 0.22–0.25×, 0.49×, 0.94–0.97×, 1.85–1.90×). A real iPhone GPU runs far above 4 fps, so this only affects very slow devices.
+5. **P3 — Moment labels follow the priest, who walks last.** Labels switch when the priest reaches a point, about 4 s after the lead candle. For example, at 0:11 the label still reads “The Gospel is taken up from the altar” while the candles are already in the north deacon door (`pr18-little-1-out-north-door.png`).
+6. **P3 — Dev-only console warnings.** The dev server logs “THREE.BufferGeometry.toNonIndexed(): BufferGeometry is already non-indexed.” eight times. Production builds logged no errors in Chromium or WebKit.
+7. **Note.** The chosen speed carries across steps: 2× picked in the Great Entrance is still 2× when you return to the Little Entrance. That seems reasonable, but it should be a deliberate choice.
+
+### 1. Mobile — pass
+
+These runs used the production build (`vite preview`) in Chromium with an iPhone 18.5 Safari user agent, a 390×844 viewport, `isMobile`, `hasTouch`, and DPR 3. Network was Fast 3G (150 ms, about 1.4 Mbps), CPU throttling was 4×, and WebGL was ANGLE SwiftShader, which the app detects as the `low` tier (“software rendering”). The safe-area override was 47 px top and 34 px bottom. I repeated the core checks in Playwright WebKit (iPhone 13 profile).
+
+| Check | Result |
+| --- | --- |
+| Loading screen | At 0.7 s: the dark “Divine Liturgy / Opening the walkthrough…” screen with a progress bar (`pr18-phone-loading-700ms.png`). |
+| Usable state | Next was on screen at 9.4 s and the first frame drew at 9.4 s (shell 1.0 s, scene chunk 3.3 s). The author's `npm run phone` gives 1.4–1.8 s to content on Fast 3G. |
+| Fallbacks | `npm run phone:faults`: no WebGL, blocked chunk, blocked main script, runtime error and lost context each show words, not a blank page. |
+| Scrolling | 3D view: `body` and `html` are never `overflow: hidden`, and the page does not move after four hard canvas drags (scrollY 0). A finger swipe in Text view scrolls the page to 1265 px, and Next stays reachable. |
+| Canvas drags vs controls | After four drags (horizontal, and long vertical ones both ways), Next, then Back, answer on the first tap. A drag that ends on top of Next does not swallow the next tap. |
+| Bottom sheet over 3D | The canvas fills the screen under the top bar, and the sheet sits over it. Tapping the step title collapses it to Back/Next and taps open it again. Words scroll inside the sheet. |
+| Menu and 3D/Text toggle | “Steps” opens all 22 steps. It scrolls inside itself and jumps to the Great Entrance with a tap. 3D/Text switch both ways. |
+| Touch targets | Every on-screen control in the 3D view, the menu and the Text view is at least 44×44 px. Back and Next are 86×52, and the player buttons are 44×44 (speed 54×44). |
+| Safe area | With the 47/34 px insets, the menu button's top is at 53 px and Next's bottom is at 801 px. `viewport-fit=cover` and `env(safe-area-inset-*)` are in use. |
+| Landscape | At 844×390, Next and the menu are reachable and on top. |
+| Console | No errors in Chromium or WebKit, and no page errors. |
+
+### 2. Procession accuracy — pass
+
+I sampled the live scene every 0.25 s through each whole procession. The four walkers were found as the scene groups that moved; I did not use the app's route data. Obstacles were every mesh or instance (718 for the Little Entrance, 729 for the Great), including pews, standing people, columns, the tetrapod with its candle trays, the altar, the door frames and the reader.
+
+- **Doors.** Every walker crosses the iconostas line exactly twice. In both entrances, all four walkers go out westward at x = −7.55 (the north deacon door) and come back eastward at x = 0.00 (the Royal Doors).
+- **Among the people.** The Little Entrance stays at the front (deepest point z = −0.35, the walkway). The Great Entrance goes down the north aisle, across the back at z = 15.6, and up the centre aisle (`pr18-great-2-north-aisle.png`, `pr18-great-3-back-of-nave.png`, `pr18-great-4-center-aisle.png`).
+- **No clipping.** No walker's body (0.22 m radius, from 0.3 m to 1.6 m above the floor) touches anything. Closest approaches from walker centre to object edge: pews 0.38 m, Royal-Door frames 0.47 m, standing people 0.50 m, column bases 0.52 m, tetrapod candle trays 0.55 m. The reader and the altar were never within 0.6 m.
+- **Direction.** In real-time playback to the end at 2× (106 and 181 samples), the clock never went backwards. It stays at the end with **Replay** and does not loop or ping-pong. Replay, and leaving and re-entering the step, both restart at 0 and walk forward toward the north door.
+
+### 3. Player — pass
+
+**Desktop** (1280×800, real mouse), on both entrances:
+- The speed buttons 0.25×, 0.5×, 1× and 2× each measure within 10–15% of their nominal rate, with `aria-pressed` on the selected one.
+- Pause freezes both the clock and all four walkers. Changing speed while paused keeps it paused.
+- Next moment steps through every beat in order to the end, and then Next is disabled. Previous moment steps back to 0:00.
+- Clicking the scrub bar at 70%, then dragging it back to 20%, moves both the clock and the walkers. Pressing ArrowLeft on the scrub bar steps back.
+- **Phone** (CDP touch, throttled), on the Great Entrance:
+  - The player autoplays.
+  - The speed button cycles 1× → 2× → 0.25× → 0.5× → 1×.
+  - Tapping Pause holds the clock. Tapping Next moment, then Previous moment, returns to the same beat.
+  - A finger drag on the scrub bar goes forward to 0.89, then back to 0.17, and the page does not scroll.
+  - After Play, it continues forward from the scrubbed point. Dragging to the end shows Replay, and tapping Replay restarts forward.
+- The author's `npm run phone:touch` also passed 44/44, including its WebKit taps.
+
+### 4. Layout — pass
+
+- The tetrapod stands at z = −1.3, under the dome and east of the people. The walkway between it and the first standing row is open, and the route ribbon runs along it (`pr18-layout-tetrapod-walkway-reader.png`).
+- The reader, in black, stands on the north side, west of (behind) the tetrapod, at the front of the people rather than out on the solea (`pr18-layout-reader-from-south.png`).
+- No walker comes within 0.6 m of the reader.
+
+### 5. Regression — pass
+
+- `npm ci && npm run check`: both typechecks, 61/61 vitest tests (including the 11 new route and player tests), and the Vite build all succeed.
+- `npm run perf`, run alone: PERF OK. Desktop medium 0.5 fps, high 0.5 fps, phone low 7.0 fps, with 287 KB of JS before first paint (budget 400 KB). An earlier run failed desktop-medium at 0.2 fps against a 0.4 budget, but it ran alongside other browser probes. Treat this software-GL budget as noisy.
+- Desktop sweep (1440×900, production build): clicking all 22 steps renders the canvas on every one. The player appears only on the two entrances, and there were no console errors.
+
+### Evidence
+
+- **Little Entrance, desktop:** `pr18-little-1-out-north-door.png`, `-2-down-from-solea`, `-3-walkway`, `-4-around-tetrapod`, `-5-wisdom`, `-6-royal-doors`.
+- **Great Entrance, desktop:** `pr18-great-1-prothesis.png`, `-2-north-aisle`, `-3-back-of-nave`, `-4-center-aisle`, `-5-around-tetrapod`, `-6-commemorations`, `-7-royal-doors`.
+- **Phone:** `pr18-phone-loading-700ms.png`, `-sheet-open`, `-menu`, `-text-view-scrolled`, `-landscape`, `-webkit-great-collapsed`, plus the three P2 shots named above.
+
+All screenshots are in `qa/screenshots/`.
+
+---
+
 ## Verified pass 8
 
 Independent retest of draft PR #14, branch `cursor/liturgy-pass-8-339c` at `357bef6` (“Keep the Holy Things close on one clock and render the faithful with more lifelike materials”). No app code was changed. The “Fixed in pass 8” section below is the developer’s claim. This section is the walk. Pass 7’s verdict was SHIP, with the Holy Things close still open and the models still simple.
