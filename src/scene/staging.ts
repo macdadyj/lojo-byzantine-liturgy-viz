@@ -121,7 +121,7 @@ const cameraPoses: Record<StagedId, CameraPose> = {
   cherubic: { position: [-3.55, 1.74, -12.55], target: [-6.35, 1.22, -14.55] },
   "great-entrance": { position: [-3.6, 1.74, -1.6], target: [-2.2, 1.28, -6.2] },
   creed: { position: [0.35, 1.74, 6.6], target: [0.05, 1.4, -8.8] },
-  anaphora: { position: [1.45, 1.74, -13.05], target: [0.02, 1.32, -15.2] },
+  anaphora: { position: [2.9, 1.78, -11.4], target: [0.1, 1.3, -15.1] },
   epiklesis: { position: [0.25, 1.68, 3.4], target: [0.02, 1.22, -14.9] },
   theotokos: { position: [1.7, 1.88, -12.35], target: [0.1, 1.65, -17.7] },
   "our-father": { position: [-0.35, 1.7, 8.2], target: [0.2, 1.38, 3.1] },

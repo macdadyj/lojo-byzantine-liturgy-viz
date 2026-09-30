@@ -2,15 +2,9 @@
 
 ## Figures
 
-The people in the church are CC0 modular characters by Quaternius. The faithful use the suit, casual, and hoodie bodies. Cloth is recolored to muted Sunday colors, with a shirt, shoes, and a weave normal so a jacket is not one flat swatch. Skin uses a warm sheen. Heads are scaled down toward adult proportions. Women also wear a headscarf and a skirt modeled in this project. Work helmets, hi-vis vests, crowns, and costume outfits from the pack are not shown. Children and teenagers are shorter. The priest and deacon start from the same rig; the phelonion, sticharion, epitrachelion, orarion, beard, and kamilavka are modeled in this project and skinned to that skeleton. Idle playback is offset per person so the nave is not one synchronized loop.
+The people are not downloaded models. They are built in code for this project (`src/scene/figures/`) from simple three.js shapes (MIT), in the manner of the instanced, primitive-built crowds on https://sael.net/ (technique only; see `docs/REFERENCE_NOTES.md`). The vestments follow Byzantine usage: the priest's Greek-cut phelonion, sticharion, epitrachelion, and epimanikia; the deacon's sticharion and orarion over the left shoulder; the servers' pale sticharia with a cross on the back.
 
-- Files in use: `public/models/cast/` (`m-suit`, `m-casual`, `m-hoodie`, `w-suit`, `w-formal`, `w-casual`, `priest`, `deacon`, and `anims`). The pack’s worker, farmer, king, and medieval files are still in the folder and are not placed in the nave.
-- Men: Ultimate Modular Men, CC0 — https://quaternius.com/packs/ultimatemodularcharacters.html
-- Women: Ultimate Modular Women, CC0 — https://quaternius.com/packs/ultimatemodularwomen.html
-- License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
-- Credit: Models by @Quaternius
-- Animations: `Idle_Neutral` and `Walk` from those packs, plus `sit` and `kneel` posed on the same skeleton for the pews and the epiklesis. Root motion on the walk is removed so a procession does not slide out of the group.
-- Not used: Mixamo, Ready Player Me, or the earlier MakeHuman export (open mouths and bodysuit textures).
+- Earlier versions used CC0 characters by Quaternius (Ultimate Modular Men and Women). They are no longer in the repository.
 
 ## Frescoes and additional icons
 

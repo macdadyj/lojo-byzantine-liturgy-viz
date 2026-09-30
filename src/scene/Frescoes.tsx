@@ -52,6 +52,8 @@ type Placement = {
   position: [number, number, number];
   rotation: [number, number, number];
   size: [number, number];
+  /** Pitch applied after the yaw, for panels laid on a sloping surface. */
+  tilt?: number;
 };
 
 const north = Math.PI / 2;
@@ -75,19 +77,37 @@ const placements: Placement[] = [
   { key: "bread", card: "communionBread", position: [-1.7, 2.15, -17.95], rotation: [0, 0, 0], size: [1.55, 2] },
   { key: "wine", card: "communionWine", position: [1.7, 2.15, -17.95], rotation: [0, 0, 0], size: [1.55, 2] },
   { key: "nicholas", card: "nicholas", position: [0, 2.05, -17.9], rotation: [0, 0, 0], size: [1.15, 1.7] },
-  { key: "matthew", card: "matthew", position: [-2.35, 9.55, domeZ - 2.15], rotation: [0.5, 0.4, 0], size: [1.35, 1.7] },
-  { key: "mark", card: "mark", position: [2.35, 9.55, domeZ - 2.15], rotation: [0.5, -0.4, 0], size: [1.35, 1.7] },
-  { key: "luke", card: "luke", position: [-2.35, 9.55, domeZ + 2.15], rotation: [-0.45, 2.6, 0], size: [1.35, 1.7] },
-  { key: "john", card: "john", position: [2.35, 9.55, domeZ + 2.15], rotation: [-0.45, -2.6, 0], size: [1.35, 1.7] },
+  evangelist(225, "matthew"),
+  evangelist(315, "mark"),
+  evangelist(135, "luke"),
+  evangelist(45, "john"),
 ];
 
+/**
+ * The four evangelists on the diagonals of the sloping lower drum (radius 4.7 at 9.2 m to 3.5 at 11.6 m),
+ * where pendentives would carry them, facing the centre and tipped down toward the nave.
+ */
+function evangelist(degrees: number, key: "matthew" | "mark" | "luke" | "john"): Placement {
+  const angle = (degrees * Math.PI) / 180;
+  const radius = 4.02;
+  return {
+    key,
+    card: key,
+    position: [Math.cos(angle) * radius, 10.45, domeZ + Math.sin(angle) * radius],
+    rotation: [0, Math.atan2(-Math.cos(angle), -Math.sin(angle)), 0],
+    tilt: Math.atan2(1.2, 2.4),
+    size: [1.2, 1.6],
+  };
+}
+
 function drumPlacement(index: number, key: FrescoKey, card: IconId): Placement {
-  const angle = (index / 8) * Math.PI * 2 + 0.2;
-  const radius = 3.05;
+  // Flush on the drum wall, halfway between its eight windows.
+  const angle = ((index + 0.5) / 8) * Math.PI * 2;
+  const radius = 3.36;
   return {
     key,
     card,
-    position: [Math.cos(angle) * radius, 11.55, domeZ + Math.sin(angle) * radius],
+    position: [Math.cos(angle) * radius, 12.2, domeZ + Math.sin(angle) * radius],
     rotation: [0, Math.atan2(-Math.cos(angle), -Math.sin(angle)), 0],
     size: [0.85, 1.15],
   };
@@ -165,16 +185,18 @@ function FrescoPlane({ item, map, framed = true }: { item: Placement; map: Textu
   }, [card]);
   return (
     <group ref={ref} position={item.position} rotation={item.rotation}>
-      {framed ? (
-        <mesh position={[0, 0, -0.03]}>
-          <boxGeometry args={[item.size[0] + 0.12, item.size[1] + 0.12, 0.04]} />
-          <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.32} />
+      <group rotation={[item.tilt ?? 0, 0, 0]}>
+        {framed ? (
+          <mesh position={[0, 0, -0.03]}>
+            <boxGeometry args={[item.size[0] + 0.12, item.size[1] + 0.12, 0.04]} />
+            <meshStandardMaterial color={colors.gold} metalness={0.72} roughness={0.32} />
+          </mesh>
+        ) : null}
+        <mesh>
+          <planeGeometry args={item.size} />
+          <meshStandardMaterial map={map} roughness={0.78} emissive="#fff6e8" emissiveMap={map} emissiveIntensity={0.24} />
         </mesh>
-      ) : null}
-      <mesh>
-        <planeGeometry args={item.size} />
-        <meshStandardMaterial map={map} roughness={0.78} emissive="#fff6e8" emissiveMap={map} emissiveIntensity={0.24} />
-      </mesh>
+      </group>
     </group>
   );
 }

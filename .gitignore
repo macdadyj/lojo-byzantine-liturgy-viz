@@ -4,3 +4,8 @@ dist
 *.local
 .vite
 .playwright-mcp
+
+# Screenshot runs from `npm run shots` (selected images are copied into docs/iterations)
+qa/screenshots/2*/
+qa/perf/
+qa/peek/

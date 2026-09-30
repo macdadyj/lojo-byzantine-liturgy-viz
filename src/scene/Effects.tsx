@@ -1,9 +1,11 @@
 import { Bloom, EffectComposer, N8AO, Vignette } from "@react-three/postprocessing";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { ACESFilmicToneMapping, PMREMGenerator } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { Raycaster, Vector2, type Object3D } from "three";
+import { Raycaster, Vector2, Vector3, type Object3D } from "three";
+import { cameraFocus } from "./cameraFocus";
+import { FocusBlurEffect } from "./focusBlur";
 import type { IconCard } from "./iconCards";
 import type { Quality } from "./quality";
 
@@ -13,18 +15,21 @@ export function StageLook({ quality }: { quality: Quality }) {
     const previous = gl.toneMapping;
     const previousExposure = gl.toneMappingExposure;
     gl.toneMapping = ACESFilmicToneMapping;
-    gl.toneMappingExposure = quality === "low" ? 1.18 : quality === "medium" ? 0.96 : 0.9;
-    if (quality !== "high") return () => {
+    gl.toneMappingExposure = quality === "low" ? 1.18 : 1.1;
+    if (quality === "low") return () => {
       gl.toneMapping = previous;
       gl.toneMappingExposure = previousExposure;
     };
     const pmrem = new PMREMGenerator(gl);
     const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = environment;
+    // A dim reflection so gilding and brocade catch light without flattening the room.
+    scene.environmentIntensity = 0.32;
     return () => {
       gl.toneMapping = previous;
       gl.toneMappingExposure = previousExposure;
       scene.environment = null;
+      scene.environmentIntensity = 1;
       environment.dispose();
       pmrem.dispose();
     };
@@ -32,27 +37,55 @@ export function StageLook({ quality }: { quality: Quality }) {
   return null;
 }
 
-export function QualityEffects({ quality }: { quality: Quality }) {
+export function QualityEffects({ quality, focus }: { quality: Quality; focus: boolean }) {
   if (quality === "low") return null;
-  return <PictureGrade quality={quality} />;
+  return <PictureGrade quality={quality} focus={focus} />;
 }
 
-function PictureGrade({ quality }: { quality: "high" | "medium" }) {
-  const high = quality === "high";
-  return (
+function PictureGrade({ quality, focus }: { quality: "high" | "medium"; focus: boolean }) {
+  if (quality === "medium") {
+    return (
+      <EffectComposer multisampling={0}>
+        <Bloom luminanceThreshold={0.95} luminanceSmoothing={0.2} mipmapBlur intensity={0.45} />
+        <Vignette eskil={false} offset={0.2} darkness={0.5} />
+      </EffectComposer>
+    );
+  }
+  const ao = <N8AO halfRes aoSamples={8} denoiseSamples={2} aoRadius={0.85} intensity={1.3} quality="performance" />;
+  const bloom = <Bloom luminanceThreshold={0.95} luminanceSmoothing={0.2} mipmapBlur intensity={0.6} />;
+  const vignette = <Vignette eskil={false} offset={0.2} darkness={0.5} />;
+  // Free walking has no subject to hold in focus, so the lens blur is only on in the guided view.
+  return focus ? (
     <EffectComposer multisampling={0}>
-      <N8AO
-        halfRes
-        aoSamples={high ? 8 : 1}
-        denoiseSamples={high ? 2 : 1}
-        aoRadius={high ? 0.85 : 0.01}
-        intensity={high ? 1.15 : 0}
-        quality="performance"
-      />
-      <Bloom luminanceThreshold={0.55} mipmapBlur intensity={high ? 0.16 : 0.09} />
-      <Vignette eskil={false} offset={0.18} darkness={0.42} />
+      {ao}
+      <FocusBlur />
+      {bloom}
+      {vignette}
+    </EffectComposer>
+  ) : (
+    <EffectComposer multisampling={0}>
+      {ao}
+      {bloom}
+      {vignette}
     </EffectComposer>
   );
+}
+
+/**
+ * A gentle lens blur that keeps the follow camera's subject sharp and softens what is far behind it or right
+ * in front of the lens, like a photograph taken in a dim church.
+ */
+function FocusBlur() {
+  const camera = useThree((state) => state.camera);
+  const effect = useMemo(() => new FocusBlurEffect(), []);
+  const forward = useMemo(() => new Vector3(), []);
+  const offset = useMemo(() => new Vector3(), []);
+  useLayoutEffect(() => () => effect.dispose(), [effect]);
+  useFrame(() => {
+    camera.getWorldDirection(forward);
+    effect.focus(Math.max(0.5, offset.copy(cameraFocus).sub(camera.position).dot(forward)));
+  });
+  return <primitive object={effect} />;
 }
 
 export function FpsProbe({ onFps }: { onFps: (fps: number) => void }) {
