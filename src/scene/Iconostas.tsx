@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 import { BoxGeometry, CylinderGeometry, DataTexture, PlaneGeometry, SRGBColorSpace, type BufferGeometry, type Group, type Texture } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useTexture } from "@react-three/drei";
@@ -15,28 +15,33 @@ import { world } from "./world";
 
 const domeZ = -1.15;
 
-function iconUrl(file: string): string {
-  return `${import.meta.env.BASE_URL}icons/${file}.jpg`;
+/** Phones load the half-size copies in `icons/small` (`npm run small-art`). */
+export function iconUrl(file: string, small = false): string {
+  return `${import.meta.env.BASE_URL}icons/${small ? "small/" : ""}${file}.jpg`;
 }
 
-const iconFiles = {
-  christ: iconUrl("christ"),
-  theotokos: iconUrl("theotokos"),
-  forerunner: iconUrl("forerunner"),
-  nicholas: iconUrl("nicholas"),
-  annunciation: iconUrl("annunciation"),
-  supper: iconUrl("supper"),
-  trinity: iconUrl("trinity"),
-  nativity: iconUrl("nativity"),
-  transfiguration: iconUrl("transfiguration"),
-  michael: iconUrl("michael"),
-  gabriel: iconUrl("gabriel"),
-  pantocrator: iconUrl("pantocrator-dome"),
-  platytera: iconUrl("platytera"),
-  deesis: iconUrl("deesis"),
-};
+function iconSet(small: boolean) {
+  return {
+    christ: iconUrl("christ", small),
+    theotokos: iconUrl("theotokos", small),
+    forerunner: iconUrl("forerunner", small),
+    nicholas: iconUrl("nicholas", small),
+    annunciation: iconUrl("annunciation", small),
+    supper: iconUrl("supper", small),
+    trinity: iconUrl("trinity", small),
+    nativity: iconUrl("nativity", small),
+    transfiguration: iconUrl("transfiguration", small),
+    michael: iconUrl("michael", small),
+    gabriel: iconUrl("gabriel", small),
+    pantocrator: iconUrl("pantocrator-dome", small),
+    platytera: iconUrl("platytera", small),
+    deesis: iconUrl("deesis", small),
+  };
+}
 
-type IconMaps = Record<keyof typeof iconFiles, Texture>;
+const iconFiles = { full: iconSet(false), small: iconSet(true) };
+
+type IconMaps = Record<keyof typeof iconFiles.full, Texture>;
 
 let blankMaps: IconMaps | null = null;
 
@@ -47,21 +52,40 @@ function blankIconMaps(): IconMaps {
   blank.colorSpace = SRGBColorSpace;
   blank.needsUpdate = true;
   const maps = {} as IconMaps;
-  for (const key of Object.keys(iconFiles) as (keyof typeof iconFiles)[]) maps[key] = blank;
+  for (const key of Object.keys(iconFiles.full) as (keyof IconMaps)[]) maps[key] = blank;
   blankMaps = maps;
   return blankMaps;
 }
 
-export function SacredArt({ doors, quality, showArt = true }: { doors: DoorState; quality: Quality; showArt?: boolean }) {
-  const loaded = useTexture(iconFiles) as IconMaps;
-  const maps = showArt ? loaded : blankIconMaps();
+type ArtProps = { doors: DoorState; quality: Quality };
+type LoadProps = ArtProps & { smallArt: boolean };
+
+/**
+ * The iconostas, dome and apse with their icons. Until the images arrive (2 MB, slow on a phone) the same
+ * panels stand blank, so the church can be drawn and used right away.
+ */
+export function SacredArt({ doors, quality, showArt = true, smallArt = false }: ArtProps & { showArt?: boolean; smallArt?: boolean }) {
+  const blank = <ArtPanels doors={doors} quality={quality} maps={blankIconMaps()} />;
+  if (!showArt) return blank;
+  return (
+    <Suspense fallback={blank}>
+      <LoadedArt doors={doors} quality={quality} smallArt={smallArt} />
+    </Suspense>
+  );
+}
+
+function LoadedArt({ doors, quality, smallArt }: LoadProps) {
+  const loaded = useTexture(smallArt ? iconFiles.small : iconFiles.full) as IconMaps;
   useLayoutEffect(() => {
     for (const texture of Object.values(loaded)) {
       texture.colorSpace = SRGBColorSpace;
       texture.anisotropy = 4;
     }
   }, [loaded]);
+  return <ArtPanels doors={doors} quality={quality} maps={loaded} />;
+}
 
+function ArtPanels({ doors, quality, maps }: ArtProps & { maps: IconMaps }) {
   return (
     <group>
       <Iconostas doors={doors} maps={maps} quality={quality} />

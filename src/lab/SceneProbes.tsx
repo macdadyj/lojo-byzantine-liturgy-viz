@@ -71,11 +71,12 @@ export function StatsProbe() {
 /** Frame count at which loading last finished. Mounted inside Suspense so it only runs once assets exist. */
 export const readiness = { loadedAtFrame: -1, settled: false };
 
-export function ReadySignal() {
+export function ReadySignal({ waitFor = null }: { waitFor?: { loaded: boolean } | null }) {
   const { active, progress } = useProgress();
   const idle = !active && (progress === 100 || progress === 0);
   useFrame(() => {
-    if (!idle) {
+    // A lazily loaded chunk does not re-render this probe when it lands, so it is checked every frame.
+    if (!idle || (waitFor !== null && !waitFor.loaded)) {
       readiness.loadedAtFrame = -1;
       readiness.settled = false;
       return;

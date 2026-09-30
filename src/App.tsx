@@ -4,19 +4,28 @@ import type { LookMode } from "./scene/LiturgyScene";
 import { Pager } from "./components/Pager";
 import { SpaceNote } from "./components/SpaceNote";
 import { StepDetail } from "./components/StepDetail";
+import { StepBar } from "./components/StepBar";
 import { StepList } from "./components/StepList";
+import { mark } from "./diagnostics";
 import { nextIndex, prevIndex } from "./liturgy/navigate";
 import { spaceById, spaceList, type SpaceId } from "./liturgy/spaces";
 import { steps } from "./liturgy/steps";
 import { useLiturgyKeyboard } from "./useLiturgyKeyboard";
+import { phoneQuery, useMediaQuery } from "./useMediaQuery";
 
 export function App() {
   const [index, setIndex] = useState(0);
   const [look, setLook] = useState<LookMode>("follow");
   const [pinnedSpace, setPinnedSpace] = useState<SpaceId | null>(null);
   const step = steps[index] ?? steps[0];
+  const phone = useMediaQuery(phoneQuery);
 
   useLiturgyKeyboard(setIndex);
+
+  useEffect(() => {
+    mark("shell");
+    window.__bootMounted?.();
+  }, []);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -33,60 +42,72 @@ export function App() {
   const featuredSpace = pinnedSpace ?? step.spaces[0];
   if (!featuredSpace) return null;
 
+  const goPrev = () => setIndex((current) => prevIndex(current, steps.length));
+  const goNext = () => setIndex((current) => nextIndex(current, steps.length));
+  const brand = (
+    <div className="info-brand">
+      <p className="eyebrow">Ruthenian Byzantine Catholic Church</p>
+      <h1>Divine Liturgy</h1>
+      <details className="about">
+        <summary>About this walkthrough</summary>
+        <p>
+          This follows the Divine Liturgy of St. John Chrysostom, the Liturgy on most Sundays in
+          the Ruthenian Church in the United States. On some days of the Great Fast, and on a few
+          other days, the Liturgy of St. Basil the Great is used. The path through the church is
+          the same; the anaphora is longer.
+        </p>
+        <p>
+          Where a deacon is named and no deacon is serving, the priest says those parts. Many
+          parishes pray in English. Some also use Church Slavonic.
+        </p>
+        <p>
+          The sentences here are short paraphrases and a few ancient responses, so a learner can
+          recognize the service. They are not the official liturgical text. For prayer, follow
+          the parish and the liturgical books.
+        </p>
+        <p>
+          The church is a teaching model of a large nave. The people and their vestments are simple shapes built in code for this lesson; the icons are credited in ATTRIBUTION.md. As you face
+          the iconostas, the Theotokos is at the left
+          of the Royal Doors and Christ is at the right. The Royal Doors show the Ustyug
+          Annunciation, the Mystical Supper is above them, and the patron on the north is St.
+          Nicholas.
+        </p>
+      </details>
+    </div>
+  );
+  const detail = (
+    <StepDetail
+      step={step}
+      index={index}
+      count={steps.length}
+      selectedSpace={featuredSpace}
+      onSelectSpace={setPinnedSpace}
+    />
+  );
+
+  // One tree for both layouts, so turning a phone (or resizing) never remounts the 3D church.
   return (
-    <div className="page">
-      <header className="info-bar">
-        <div className="info-brand">
-          <p className="eyebrow">Ruthenian Byzantine Catholic Church</p>
-          <h1>Divine Liturgy</h1>
-          <details className="about">
-            <summary>About this walkthrough</summary>
-            <p>
-              This follows the Divine Liturgy of St. John Chrysostom, the Liturgy on most Sundays in
-              the Ruthenian Church in the United States. On some days of the Great Fast, and on a few
-              other days, the Liturgy of St. Basil the Great is used. The path through the church is
-              the same; the anaphora is longer.
-            </p>
-            <p>
-              Where a deacon is named and no deacon is serving, the priest says those parts. Many
-              parishes pray in English. Some also use Church Slavonic.
-            </p>
-            <p>
-              The sentences here are short paraphrases and a few ancient responses, so a learner can
-              recognize the service. They are not the official liturgical text. For prayer, follow
-              the parish and the liturgical books.
-            </p>
-            <p>
-              The church is a teaching model of a large nave. The people and their vestments are simple shapes built in code for this lesson; the icons are credited in ATTRIBUTION.md. As you face
-              the iconostas, the Theotokos is at the left
-              of the Royal Doors and Christ is at the right. The Royal Doors show the Ustyug
-              Annunciation, the Mystical Supper is above them, and the patron on the north is St.
-              Nicholas.
-            </p>
-          </details>
-        </div>
-        <Pager
-          index={index}
-          count={steps.length}
-          hint={look === "free" ? "Home and End change the step" : "Arrow keys, Home, End"}
-          onPrev={() => setIndex((current) => prevIndex(current, steps.length))}
-          onNext={() => setIndex((current) => nextIndex(current, steps.length))}
-        />
-        <StepDetail
-          step={step}
-          index={index}
-          count={steps.length}
-          selectedSpace={featuredSpace}
-          onSelectSpace={setPinnedSpace}
-        />
-      </header>
+    <div className={phone ? "page is-phone" : "page"}>
+      {phone ? null : (
+        <header className="info-bar">
+          {brand}
+          <Pager
+            index={index}
+            count={steps.length}
+            hint={look === "free" ? "Home and End change the step" : "Arrow keys, Home, End"}
+            onPrev={goPrev}
+            onNext={goNext}
+          />
+          {detail}
+        </header>
+      )}
 
       <p className="sr-only" aria-live="polite">
         Step {index + 1} of {steps.length}: {step.title}
       </p>
 
       <div className="layout">
-        <StepList index={index} onSelect={setIndex} />
+        {phone ? null : <StepList index={index} onSelect={setIndex} />}
         <div className="stage">
           <div className="stage-body">
             <section className="map-panel" aria-labelledby="map-heading">
@@ -99,7 +120,9 @@ export function App() {
                 selectedSpace={featuredSpace}
                 onSelectSpace={setPinnedSpace}
                 onLookMode={setLook}
+                compact={phone}
               />
+              {phone ? detail : null}
               <ul className="legend" aria-label="Places in the church">
                 {spaceList.map((space) => {
                   const active = step.spaces.includes(space.id);
@@ -133,12 +156,20 @@ export function App() {
         </div>
       </div>
 
+      {phone ? (
+        <>
+          <StepList index={index} onSelect={setIndex} />
+          <header className="info-bar">{brand}</header>
+        </>
+      ) : null}
+
       <footer className="colophon">
         <p>
           Teaching paraphrase for the Ruthenian Byzantine Catholic Divine Liturgy of St. John
           Chrysostom. Worship follows the parish and the official liturgical books.
         </p>
       </footer>
+      {phone ? <StepBar index={index} count={steps.length} title={step.title} onPrev={goPrev} onNext={goNext} /> : null}
     </div>
   );
 }

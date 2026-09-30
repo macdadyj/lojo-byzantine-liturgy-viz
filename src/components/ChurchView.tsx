@@ -1,12 +1,25 @@
-import { useEffect, useRef, useState } from "react";
-import { useProgress } from "@react-three/drei";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { deviceTraits, probeGpu } from "../device";
+import { describeError, diagnostics, mark, noteError, report } from "../diagnostics";
 import type { SpaceId } from "../liturgy/spaces";
 import type { LiturgyStep } from "../liturgy/types";
-import { iconCards, type IconCard } from "../scene/iconCards";
-import { LiturgyScene, type LookMode } from "../scene/LiturgyScene";
-import { nextQuality, type Quality } from "../scene/quality";
-import { requestWalk, walkStick } from "../scene/walkGoal";
-import { tourStops } from "../scene/Frescoes";
+import { iconCards, tourStops, type IconCard } from "../scene/iconCards";
+import type { LookMode } from "../scene/LiturgyScene";
+import { chooseTier, isLower, nextQuality, type Quality, type TierChoice } from "../scene/quality";
+import type { SceneProgress } from "../scene/SceneStage";
+import { requestWalk } from "../scene/walkGoal";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { Joystick } from "./Joystick";
+import { SceneFallback } from "./SceneFallback";
+
+function loadSceneStage() {
+  return import("../scene/SceneStage").then((module) => {
+    mark("sceneChunk");
+    return module;
+  });
+}
+
+const SceneStage = lazy(loadSceneStage);
 
 type ChurchViewProps = {
   step: LiturgyStep;
@@ -14,6 +27,8 @@ type ChurchViewProps = {
   selectedSpace: SpaceId;
   onSelectSpace: (id: SpaceId) => void;
   onLookMode?: (mode: LookMode) => void;
+  /** Phone layout: fewer, larger controls, with picture settings behind one button. */
+  compact?: boolean;
 };
 
 const cast = [
@@ -26,39 +41,94 @@ const cast = [
 
 const qualities: Quality[] = ["high", "medium", "low"];
 
-export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, onLookMode }: ChurchViewProps) {
+/** Frame-rate samples during loading measure texture uploads and shader compiles, not the scene. */
+const settleMs = 2500;
+
+type Stage =
+  | { kind: "waiting" }
+  | { kind: "loading" }
+  | { kind: "running" }
+  | { kind: "failed"; title: string; detail: string; retry: boolean };
+
+export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, onLookMode, compact = false }: ChurchViewProps) {
   const [mode, setMode] = useState<LookMode>("follow");
-  const [showLabels, setShowLabels] = useState(true);
+  // Place labels crowd each other in a narrow view; phones turn them on from View.
+  const [showLabels, setShowLabels] = useState(!compact);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [tier, setTier] = useState<TierChoice | null>(null);
   const [quality, setQuality] = useState<Quality>("medium");
+  const [ceiling, setCeiling] = useState<Quality>("high");
   const [pinned, setPinned] = useState(false);
   const [headBob, setHeadBob] = useState(false);
   const [icon, setIcon] = useState<IconCard | null>(null);
   const [tour, setTour] = useState(0);
-  const [coarse, setCoarse] = useState(false);
-  const [narrow, setNarrow] = useState(false);
+  const [touch, setTouch] = useState(false);
+  const [handheld, setHandheld] = useState(false);
+  const [stage, setStage] = useState<Stage>({ kind: "waiting" });
+  const [attempt, setAttempt] = useState(0);
+  const [progress, setProgress] = useState<SceneProgress>({ loaded: 0, total: 0, active: false });
+  const [framed, setFramed] = useState(false);
+  const [lost, setLost] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const samples = useRef<number[]>([]);
+  const settledAt = useRef<number | null>(null);
+  // A failed chunk download stays failed inside React.lazy, so each retry gets a fresh loader.
+  const Stage = useMemo(() => (attempt === 0 ? SceneStage : lazy(loadSceneStage)), [attempt]);
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const pointer = window.matchMedia("(pointer: coarse)");
-    const width = window.matchMedia("(max-width: 720px)");
     const sync = () => {
       setReducedMotion(motion.matches);
-      setCoarse(pointer.matches);
-      setNarrow(width.matches);
+      setTouch(pointer.matches);
     };
     sync();
-    if (motion.matches || pointer.matches || width.matches) setHeadBob(false);
     motion.addEventListener("change", sync);
     pointer.addEventListener("change", sync);
-    width.addEventListener("change", sync);
     return () => {
       motion.removeEventListener("change", sync);
       pointer.removeEventListener("change", sync);
-      width.removeEventListener("change", sync);
     };
   }, []);
+
+  // Probe the GPU and pick a tier only after the text has painted, then fetch the 3D chunk.
+  useEffect(() => {
+    let cancelled = false;
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        const gpu = probeGpu();
+        const traits = deviceTraits(gpu);
+        const choice = chooseTier(traits, new URLSearchParams(window.location.search).get("quality"));
+        report({ gpu, tier: choice.quality, tierReason: choice.reason, ceiling: choice.ceiling, quality: choice.quality });
+        setTier(choice);
+        setQuality(choice.quality);
+        setCeiling(choice.ceiling);
+        setHandheld(traits.phone || traits.tablet);
+        if (!gpu.webgl2) {
+          noteError(`WebGL2 unavailable: ${gpu.failure ?? "unknown reason"}`);
+          setStage({
+            kind: "failed",
+            title: "This browser could not start the 3D church, so here are pictures of it instead.",
+            detail: `WebGL2 is not available.\n${gpu.failure ?? ""}\n${navigator.userAgent}`,
+            retry: false,
+          });
+          return;
+        }
+        mark("sceneRequested");
+        setStage({ kind: "loading" });
+      }),
+    );
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
+    report({ quality });
+  }, [quality]);
 
   useEffect(() => {
     setIcon(null);
@@ -67,6 +137,26 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
   useEffect(() => {
     onLookMode?.(mode);
   }, [mode, onLookMode]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const root = document.documentElement;
+    root.dataset.expanded = "1";
+    const onFullscreen = () => {
+      if (!document.fullscreenElement) setExpanded(false);
+    };
+    document.addEventListener("fullscreenchange", onFullscreen);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      delete root.dataset.expanded;
+      document.removeEventListener("fullscreenchange", onFullscreen);
+      window.removeEventListener("keydown", onKey);
+      if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
+    };
+  }, [expanded]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -87,14 +177,23 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
     window.__liturgy = bridge;
   }, []);
 
+  const loading = progress.active || progress.loaded < progress.total;
+  useEffect(() => {
+    if (framed && !loading && settledAt.current === null) settledAt.current = performance.now();
+  }, [framed, loading]);
+
   function onFps(fps: number) {
     window.__liturgyFps = fps;
-    if (pinned) return;
+    if (pinned || settledAt.current === null || performance.now() - settledAt.current < settleMs) return;
     samples.current.push(fps);
     if (samples.current.length < 4) return;
     const average = samples.current.reduce((sum, value) => sum + value, 0) / samples.current.length;
     samples.current = [];
-    setQuality((current) => nextQuality(current, average));
+    const next = nextQuality(quality, average, ceiling);
+    if (next === quality) return;
+    // Once Auto steps down it does not climb back: each switch recompiles every shader.
+    if (isLower(next, quality)) setCeiling(next);
+    setQuality(next);
   }
 
   function chooseMode(next: LookMode) {
@@ -111,83 +210,208 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
     setTour((current) => current + 1);
   }
 
-  return (
-    <div className="church-view">
-      <LiturgyScene
-        step={step}
-        mode={mode}
-        activeSpaces={activeSpaces}
-        selectedSpace={selectedSpace}
-        onSelectSpace={onSelectSpace}
-        showLabels={showLabels}
-        reducedMotion={reducedMotion}
-        quality={quality}
-        headBob={headBob}
-        onInspect={setIcon}
-        onFps={onFps}
-      />
-      <LoadGate />
-      <div className="view-bar">
-        <button type="button" aria-pressed={mode === "follow"} onClick={() => chooseMode("follow")}>
-          Follow liturgy
-        </button>
-        <button type="button" aria-pressed={mode === "free"} onClick={() => chooseMode("free")}>
-          Free look
-        </button>
-        <button type="button" aria-pressed={showLabels} onClick={() => setShowLabels((current) => !current)}>
-          Labels
-        </button>
-        {mode === "free" ? (
-          <button type="button" onClick={startTour}>
-            Icon tour
-          </button>
-        ) : null}
-      </div>
-      <div className="quality-bar" role="group" aria-label="Picture quality">
-        {qualities.map((level) => (
-          <button
-            key={level}
-            type="button"
-            aria-pressed={quality === level}
-            onClick={() => {
-              setPinned(true);
-              setQuality(level);
-            }}
-          >
-            {labelFor(level)}
-          </button>
-        ))}
+  function toggleExpanded() {
+    const next = !expanded;
+    setExpanded(next);
+    if (next) void document.documentElement.requestFullscreen?.().catch(() => undefined);
+  }
+
+  const retry = useCallback(() => {
+    setQuality("low");
+    setCeiling("low");
+    setPinned(true);
+    setLost(false);
+    setFramed(false);
+    setProgress({ loaded: 0, total: 0, active: false });
+    settledAt.current = null;
+    setAttempt((current) => current + 1);
+    setStage({ kind: "loading" });
+  }, []);
+
+  const showPictures = useCallback((title: string, detail: string) => {
+    setStage({ kind: "failed", title, detail, retry: true });
+  }, []);
+
+  // A lost context that does not come back within a few seconds is treated as a failure.
+  useEffect(() => {
+    if (!lost) return;
+    const timer = window.setTimeout(
+      () =>
+        showPictures(
+          "The 3D church stopped because the phone reclaimed its graphics memory. Here are pictures instead.",
+          `WebGL context lost ${diagnostics.contextLost} time(s) at quality ${quality}.\n${navigator.userAgent}`,
+        ),
+      4000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [lost, quality, showPictures]);
+
+  const walkHint = touch
+    ? "Drag the picture to look. Move with the thumb stick."
+    : "Drag to look. Walk with WASD. Arrow keys walk here; Home and End change the step. Press E on an icon.";
+  const running = stage.kind === "loading" || stage.kind === "running";
+  const classes = ["church-view", mode === "free" ? "is-free" : "", expanded ? "is-expanded" : "", compact ? "is-compact" : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  const qualityButtons = (
+    <div className="quality-bar" role="group" aria-label="Picture quality">
+      {qualities.map((level) => (
         <button
+          key={level}
           type="button"
-          aria-pressed={!pinned}
-          onClick={() => setPinned(false)}
+          aria-pressed={quality === level}
+          onClick={() => {
+            setPinned(true);
+            setQuality(level);
+          }}
         >
-          Auto
+          {labelFor(level)}
         </button>
-        {mode === "free" ? (
-          <button type="button" aria-pressed={headBob} onClick={() => setHeadBob((current) => !current)}>
-            Head bob
-          </button>
-        ) : null}
-      </div>
+      ))}
+      <button
+        type="button"
+        aria-pressed={!pinned}
+        onClick={() => {
+          setPinned(false);
+          if (tier) setCeiling(tier.ceiling);
+        }}
+      >
+        Auto
+      </button>
       {mode === "free" ? (
-        <p className="walk-hint">
-          {coarse || narrow
-            ? "Drag to look. Move with the joystick. Home and End change the step."
-            : "Drag to look. Walk with WASD. Arrow keys walk here; Home and End change the step. Press E on an icon."}
-        </p>
+        <button type="button" aria-pressed={headBob} onClick={() => setHeadBob((current) => !current)}>
+          Head bob
+        </button>
       ) : null}
-      {icon ? <IconPanel card={icon} onClose={() => setIcon(null)} /> : null}
-      {mode === "free" && (coarse || narrow) ? <Joystick /> : null}
-      <ul className="cast-key" aria-label="Who is in the church">
-        {cast.map((person) => (
-          <li key={person.label}>
-            <span className="cast-swatch" style={{ background: person.color }} />
-            {person.label}
-          </li>
-        ))}
-      </ul>
     </div>
+  );
+
+  return (
+    <div className={classes}>
+      {running && tier ? (
+        <ErrorBoundary
+          resetKey={attempt}
+          fallback={(error, detail) => (
+            <FailureReport
+              error={error}
+              detail={detail}
+              onReport={(message) => showPictures("The 3D church hit an error, so here are pictures of it instead.", message)}
+            />
+          )}
+        >
+          <Suspense fallback={null}>
+            <Stage
+              key={attempt}
+              step={step}
+              mode={mode}
+              activeSpaces={activeSpaces}
+              selectedSpace={selectedSpace}
+              onSelectSpace={onSelectSpace}
+              showLabels={showLabels}
+              reducedMotion={reducedMotion}
+              quality={quality}
+              headBob={headBob}
+              handheld={handheld}
+              onInspect={setIcon}
+              onFps={onFps}
+              onFirstFrame={() => {
+                setFramed(true);
+                setStage({ kind: "running" });
+              }}
+              onProgress={setProgress}
+              onContextLost={setLost}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
+      {stage.kind === "failed" ? (
+        <SceneFallback step={step} title={stage.title} detail={stage.detail} onRetry={stage.retry ? retry : undefined} />
+      ) : (
+        <LoadGate framed={framed} progress={progress} requested={stage.kind !== "waiting"} />
+      )}
+      {lost && stage.kind !== "failed" ? (
+        <div className="scene-notice" role="alert">
+          <p>The 3D view was interrupted. Trying to get it back…</p>
+        </div>
+      ) : null}
+      {stage.kind !== "failed" ? (
+        <>
+          <div className="view-bar">
+            <button type="button" aria-pressed={mode === "follow"} onClick={() => chooseMode("follow")}>
+              Follow liturgy
+            </button>
+            <button type="button" aria-pressed={mode === "free"} onClick={() => chooseMode("free")}>
+              Free look
+            </button>
+            {compact ? null : (
+              <button type="button" aria-pressed={showLabels} onClick={() => setShowLabels((current) => !current)}>
+                Labels
+              </button>
+            )}
+            {mode === "free" ? (
+              <button type="button" onClick={startTour}>
+                Icon tour
+              </button>
+            ) : null}
+          </div>
+          <div className="corner-bar">
+            <button type="button" aria-pressed={expanded} onClick={toggleExpanded} aria-label={expanded ? "Leave full screen" : "Full screen"}>
+              {expanded ? "Close" : "Expand"}
+            </button>
+            {compact ? (
+              <button type="button" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((open) => !open)}>
+                View
+              </button>
+            ) : null}
+          </div>
+          {compact ? (
+            settingsOpen ? (
+              <div className="view-sheet" role="dialog" aria-label="Picture settings">
+                <p className="view-sheet-title">Picture quality</p>
+                {qualityButtons}
+                <div className="quality-bar">
+                  <button type="button" aria-pressed={showLabels} onClick={() => setShowLabels((current) => !current)}>
+                    Labels
+                  </button>
+                </div>
+                <CastKey />
+              </div>
+            ) : null
+          ) : (
+            qualityButtons
+          )}
+          {mode === "free" ? <p className="walk-hint">{walkHint}</p> : null}
+          {icon ? <IconPanel card={icon} onClose={() => setIcon(null)} /> : null}
+          {mode === "free" && touch ? <Joystick /> : null}
+          {compact ? null : <CastKey />}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+/** Records the error once, then shows the pictures in place of the scene. */
+function FailureReport({ error, detail, onReport }: { error: unknown; detail: string; onReport: (message: string) => void }) {
+  const sent = useRef(false);
+  useEffect(() => {
+    if (sent.current) return;
+    sent.current = true;
+    onReport(`${detail || describeError(error)}\n${navigator.userAgent}`);
+  }, [detail, error, onReport]);
+  return null;
+}
+
+function CastKey() {
+  return (
+    <ul className="cast-key" aria-label="Who is in the church">
+      {cast.map((person) => (
+        <li key={person.label}>
+          <span className="cast-swatch" style={{ background: person.color }} />
+          {person.label}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -220,51 +444,31 @@ function IconPanel({ card, onClose }: { card: IconCard; onClose: () => void }) {
   );
 }
 
-function Joystick() {
-  const origin = useRef<{ x: number; y: number } | null>(null);
-  return (
-    <div
-      className="joystick"
-      onPointerDown={(event) => {
-        origin.current = { x: event.clientX, y: event.clientY };
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }}
-      onPointerMove={(event) => {
-        const start = origin.current;
-        if (!start) return;
-        walkStick.x = Math.min(1, Math.max(-1, (event.clientX - start.x) / 48));
-        walkStick.y = Math.min(1, Math.max(-1, (start.y - event.clientY) / 48));
-      }}
-      onPointerUp={() => {
-        origin.current = null;
-        walkStick.x = 0;
-        walkStick.y = 0;
-      }}
-    >
-      <span>Move</span>
-    </div>
-  );
-}
-
-function LoadGate() {
-  const { progress } = useProgress();
-  const [hold, setHold] = useState(true);
-  useEffect(() => {
-    if (progress < 100) {
-      setHold(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setHold(false), 350);
-    return () => window.clearTimeout(timer);
-  }, [progress]);
-  if (!hold) return null;
-  const width = Math.max(6, Math.min(100, progress));
+/**
+ * Covers the view until the first frame is on screen, with what is happening in words: fetching the 3D code,
+ * then preparing the church. After that, icon loading is a small pill so the church can be used meanwhile.
+ */
+function LoadGate({ framed, progress, requested }: { framed: boolean; progress: SceneProgress; requested: boolean }) {
+  const textures = progress.total > 0 ? progress.loaded / progress.total : 0;
+  const busy = progress.active || progress.loaded < progress.total;
+  if (framed) {
+    if (!busy) return null;
+    return (
+      <div className="load-pill" role="status">
+        Loading icons {progress.loaded} of {progress.total}
+      </div>
+    );
+  }
+  const phase = !requested ? "Opening the church" : progress.total === 0 ? "Downloading the 3D church" : "Preparing the church";
+  // Code and first frame are the first half of the bar; icons fill the rest.
+  const width = !requested ? 8 : progress.total === 0 ? 30 : 45 + textures * 50;
   return (
     <div className="load-gate" role="status">
-      <p>Opening the church</p>
+      <p>{phase}</p>
       <div className="load-track" aria-hidden="true">
-        <span style={{ width: `${width}%` }} />
+        <span style={{ width: `${Math.round(width)}%` }} />
       </div>
+      <p className="load-note">The steps and their words already work.</p>
     </div>
   );
 }

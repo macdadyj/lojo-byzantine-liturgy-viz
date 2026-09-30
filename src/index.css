@@ -51,6 +51,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: "Public Sans", "Segoe UI", sans-serif;
@@ -104,6 +107,7 @@ button {
   border: 1px solid var(--line);
   border-radius: 999px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 button:focus-visible,
@@ -377,7 +381,16 @@ button:disabled {
   margin-top: 0;
   overflow: hidden;
   border-radius: 12px;
-  background: #c5cfcb;
+  background: #2a2119;
+  /* The page still scrolls past the church with a finger; only Free look takes over the drag. */
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.church-view.is-free {
   touch-action: none;
 }
 
@@ -515,87 +528,41 @@ button:disabled {
 
 .joystick {
   position: absolute;
-  left: 0.8rem;
+  left: calc(0.9rem + env(safe-area-inset-left));
   bottom: 4.5rem;
   z-index: 7;
   display: grid;
   place-items: center;
-  width: 6.5rem;
-  height: 6.5rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  border: 2px solid rgba(251, 248, 243, 0.8);
   border-radius: 50%;
-  background: rgba(251, 248, 243, 0.72);
+  background: rgba(28, 25, 21, 0.35);
   touch-action: none;
   font-size: 0.8rem;
+}
+
+.joystick-knob {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  background: rgba(251, 248, 243, 0.92);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.joystick-label {
+  position: absolute;
+  bottom: -1.5rem;
+  color: #fffaf6;
+  font-size: 0.75rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
 }
 
 .see-caption {
   margin: 0.35rem 0 0.55rem;
   max-width: 70ch;
-}
-
-@media (max-width: 720px) {
-  .page {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    padding: 0 0 1.5rem;
-  }
-
-  .layout {
-    order: -1;
-    padding: 0;
-  }
-
-  .info-bar {
-    order: 1;
-    margin: 0.45rem;
-  }
-
-  .church-view {
-    height: 100svh;
-    min-height: 100svh;
-    border-radius: 0;
-  }
-
-  .quality-bar {
-    top: 0.35rem;
-    left: 0.35rem;
-    right: auto;
-    max-width: 11.5rem;
-  }
-
-  .view-bar {
-    top: 2.55rem;
-    left: 0.35rem;
-    right: auto;
-    width: auto;
-    max-width: 13rem;
-    flex-wrap: wrap;
-  }
-
-  .walk-hint {
-    top: 6.6rem;
-    bottom: auto;
-    left: 0.4rem;
-    right: 0.4rem;
-    max-width: 16rem;
-    text-align: left;
-  }
-
-  .joystick {
-    left: 0.45rem;
-    bottom: 0.7rem;
-    width: 5.4rem;
-    height: 5.4rem;
-  }
-
-  .cast-key {
-    left: auto;
-    right: 0.4rem;
-    bottom: 0.55rem;
-    width: auto;
-    max-width: 8.2rem;
-  }
 }
 
 .cast-key {
@@ -958,55 +925,502 @@ button:disabled {
   }
 }
 
-@media (max-width: 720px) {
-  .church-view {
-    height: calc(100svh - 1.2rem);
-    min-height: calc(100svh - 1.2rem);
-  }
-
-  .quality-bar {
-    top: 0.35rem;
-    left: 0.35rem;
-    right: auto;
-    max-width: 11.5rem;
-  }
-
-  .view-bar {
-    top: 4.7rem;
-    left: 0.35rem;
-    right: auto;
-    width: auto;
-    max-width: 13rem;
-  }
-
-  .walk-hint {
-    top: 10.6rem;
-    bottom: auto;
-    left: 0.4rem;
-    right: auto;
-    max-width: 12.5rem;
-    transform: none;
-  }
-
-  .joystick {
-    left: 0.45rem;
-    right: auto;
-    bottom: 0.7rem;
-    width: 5.4rem;
-    height: 5.4rem;
-  }
-
-  .cast-key {
-    left: auto;
-    right: 0.4rem;
-    bottom: 0.55rem;
-    width: auto;
-    max-width: 8.2rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
+}
+
+/* Load, notices, and the pictures shown when WebGL cannot run. */
+
+.load-note {
+  max-width: 18rem;
+  color: rgba(255, 250, 246, 0.75);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.load-pill,
+.scene-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 0.7rem;
+  z-index: 8;
+  transform: translateX(-50%);
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(28, 25, 21, 0.72);
+  color: #fffaf6;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.scene-notice {
+  top: 45%;
+  bottom: auto;
+  white-space: normal;
+  text-align: center;
+  border-radius: 12px;
+}
+
+.scene-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.9rem;
+  background: var(--surface);
+  color: var(--ink);
+  touch-action: pan-x pan-y;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.fallback-head {
+  margin-bottom: 0.8rem;
+}
+
+.fallback-title {
+  font-weight: 600;
+}
+
+.fallback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.fallback-actions button {
+  min-height: 44px;
+  padding: 0 1rem;
+}
+
+.fallback-detail {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--bg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.4 ui-monospace, Menlo, monospace;
+}
+
+.fallback-still {
+  margin: 0 0 0.7rem;
+}
+
+.fallback-still img {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.fallback-still figcaption {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.fallback-see {
+  max-width: 62ch;
+  margin-bottom: 0.9rem;
+}
+
+.fallback-gallery {
+  display: flex;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0 0 0.6rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  list-style: none;
+}
+
+.fallback-gallery li {
+  flex: 0 0 min(15rem, 72%);
+  scroll-snap-align: start;
+}
+
+.fallback-gallery img {
+  display: block;
+  width: 100%;
+  height: 14rem;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--line);
+}
+
+.fallback-icon-title {
+  margin-top: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.fallback-icon-text {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* Expand and the phone's picture settings. */
+
+.corner-bar {
+  position: absolute;
+  right: 0.65rem;
+  bottom: 0.65rem;
+  z-index: 6;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.corner-bar button {
+  padding: 0.35rem 0.75rem;
+  background: rgba(251, 248, 243, 0.92);
+  font-size: 0.82rem;
+}
+
+.corner-bar button[aria-pressed="true"],
+.corner-bar button[aria-expanded="true"] {
+  background: var(--accent);
+  color: #fffaf6;
+  border-color: var(--accent);
+}
+
+.view-sheet {
+  position: absolute;
+  top: calc(3.6rem + env(safe-area-inset-top));
+  right: 0.5rem;
+  left: 0.5rem;
+  z-index: 9;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: rgba(251, 248, 243, 0.96);
+  color: #1c1915;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.view-sheet-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.view-sheet .quality-bar,
+.view-sheet .cast-key {
+  position: static;
+  max-width: none;
+  padding: 0;
+  background: transparent;
+}
+
+.church-view.is-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  border-radius: 0;
+}
+
+html[data-expanded] body {
+  overflow: hidden;
+}
+
+.church-view.is-expanded .view-bar,
+.church-view.is-expanded .quality-bar {
+  top: calc(0.65rem + env(safe-area-inset-top));
+}
+
+/* Phone layout: church first and shorter than the screen, words right under it, Back and Next at the bottom. */
+
+.page.is-phone {
+  --bar-h: calc(4.4rem + env(safe-area-inset-bottom));
+  width: 100%;
+  padding: 0 env(safe-area-inset-right) calc(var(--bar-h) + 1rem) env(safe-area-inset-left);
+}
+
+.is-phone .layout {
+  display: block;
+}
+
+.is-phone .map-panel {
+  padding: 0 0 0.9rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.is-phone .map-panel > :not(.church-view) {
+  margin-left: 0.6rem;
+  margin-right: 0.6rem;
+}
+
+.is-phone .detail {
+  margin-top: 0.7rem;
+}
+
+.is-phone .step-nav {
+  margin: 1rem 0.6rem 0;
+}
+
+.is-phone .step-link {
+  min-height: 44px;
+  align-items: center;
+}
+
+.is-phone .legend-button {
+  min-height: 40px;
+}
+
+.is-phone .info-bar {
+  margin: 1rem 0.6rem 0;
+}
+
+.is-phone .colophon {
+  margin-left: 0.6rem;
+  margin-right: 0.6rem;
+}
+
+.church-view.is-compact {
+  height: 62vh;
+  height: 62svh;
+  min-height: 300px;
+  border-radius: 0;
+}
+
+.church-view.is-compact.is-expanded {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.is-compact .view-bar {
+  top: calc(0.5rem + env(safe-area-inset-top));
+  left: calc(0.5rem + env(safe-area-inset-left));
+  right: auto;
+  flex-wrap: wrap;
+  max-width: calc(100% - 10.5rem);
+}
+
+.is-compact .corner-bar {
+  top: calc(0.5rem + env(safe-area-inset-top));
+  right: calc(0.5rem + env(safe-area-inset-right));
+  bottom: auto;
+}
+
+.is-compact .view-bar button,
+.is-compact .corner-bar button,
+.is-compact .quality-bar button {
+  min-height: 44px;
+  padding: 0 0.9rem;
+  font-size: 0.88rem;
+}
+
+.is-compact .walk-hint {
+  top: calc(3.7rem + env(safe-area-inset-top));
+  bottom: auto;
+  left: calc(0.5rem + env(safe-area-inset-left));
+  right: auto;
+  max-width: 13rem;
+  transform: none;
+  text-align: left;
+}
+
+.is-compact.is-free .walk-hint {
+  top: calc(6.9rem + env(safe-area-inset-top));
+}
+
+.is-compact .icon-panel {
+  top: calc(3.7rem + env(safe-area-inset-top));
+  right: 0.5rem;
+  left: 0.5rem;
+  bottom: auto;
+  width: auto;
+}
+
+.is-compact .icon-close {
+  min-height: 40px;
+  padding: 0 0.8rem;
+}
+
+.is-compact .joystick {
+  bottom: calc(1.9rem + env(safe-area-inset-bottom));
+}
+
+.is-compact.is-expanded .joystick,
+.is-compact.is-expanded .load-pill {
+  bottom: calc(var(--bar-h) + 1.4rem);
+}
+
+.step-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--bar-h);
+  padding: 0.55rem calc(0.6rem + env(safe-area-inset-right)) calc(0.55rem + env(safe-area-inset-bottom))
+    calc(0.6rem + env(safe-area-inset-left));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.step-bar button {
+  min-width: 5.6rem;
+  min-height: 52px;
+  padding: 0 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.step-bar-next {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fffaf6;
+}
+
+.step-bar-status {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.step-bar-count {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-bar-title {
+  overflow: hidden;
+  font-size: 0.92rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A phone turned sideways: the church fills the height above the bar. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .church-view.is-compact {
+    height: calc(100vh - var(--bar-h));
+    height: calc(100svh - var(--bar-h));
+    min-height: 220px;
+  }
+
+  .is-compact .joystick {
+    width: 7rem;
+    height: 7rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .corner-bar button,
+  .view-sheet {
+    background: rgba(28, 25, 21, 0.9);
+    color: #f4efe6;
+  }
+
+  .corner-bar button[aria-pressed="true"],
+  .corner-bar button[aria-expanded="true"] {
+    background: var(--accent);
+    color: #1c1915;
+  }
+
+  .step-bar-next {
+    color: #1c1915;
+  }
+}
+
+/* ?debug=1 and the crash screen. */
+
+.debug-panel {
+  position: fixed;
+  top: calc(0.4rem + env(safe-area-inset-top));
+  left: calc(0.4rem + env(safe-area-inset-left));
+  right: calc(0.4rem + env(safe-area-inset-right));
+  z-index: 900;
+  max-height: 46vh;
+  overflow: auto;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(10, 10, 10, 0.86);
+  color: #d8f5c8;
+  font: 11px/1.35 ui-monospace, Menlo, monospace;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.debug-panel.is-closed {
+  right: auto;
+}
+
+.debug-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.debug-head button {
+  min-height: 32px;
+  padding: 0 0.7rem;
+  border-color: #5b7a4f;
+  font-size: 11px;
+}
+
+.debug-errors {
+  color: #ffb4a8;
+}
+
+.debug-panel pre {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+}
+
+.app-crash {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: calc(1rem + env(safe-area-inset-top)) 1rem 2rem;
+}
+
+.app-crash h1 {
+  font-size: 1.6rem;
+}
+
+.app-crash p {
+  margin: 0.6rem 0;
+}
+
+.app-crash button {
+  min-height: 44px;
+  padding: 0 1.2rem;
+}
+
+.app-crash pre {
+  margin-top: 1rem;
+  padding: 0.7rem;
+  border-radius: 8px;
+  background: var(--surface);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.4 ui-monospace, Menlo, monospace;
 }

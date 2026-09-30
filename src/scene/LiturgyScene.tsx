@@ -1,12 +1,12 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
 import type { Group } from "three";
 import type { SpaceId } from "../liturgy/spaces";
 import type { LiturgyStep, RouteId } from "../liturgy/types";
 import { Church } from "./Church";
 import { colors } from "./colors";
-import { FpsProbe, IconPicker, QualityEffects, StageLook } from "./Effects";
+import { FpsProbe, IconPicker, StageLook } from "./Effects";
 import { cameraFocus } from "./cameraFocus";
 import { censingFor, gestureFor } from "./gestures";
 import type { IconCard } from "./iconCards";
@@ -39,7 +39,20 @@ type LiturgySceneProps = {
   onInspect: (card: IconCard) => void;
   onFps: (fps: number) => void;
   reducedMotion: boolean;
+  /** Phones and tablets: a capped canvas, half-size icon images, and no request for the discrete GPU. */
+  handheld?: boolean;
+  /** Extra probes rendered inside the Canvas (diagnostics, context-loss handling). */
+  children?: ReactNode;
 };
+
+/** Resolves once the post-processing chunk has arrived, so the lab can wait for it before a screenshot. */
+export const postChunk = { loaded: false };
+const PostEffects = lazy(() =>
+  import("./PostEffects").then((module) => {
+    postChunk.loaded = true;
+    return module;
+  }),
+);
 
 /** Lead walker writes this each frame so Follow liturgy can stay in front of a procession. */
 let debugCamera: { position: Vec3; target: Vec3 } | null = null;
@@ -70,6 +83,8 @@ export function LiturgyScene({
   onInspect,
   onFps,
   reducedMotion,
+  handheld = false,
+  children,
 }: LiturgySceneProps) {
   const pose = cameraFor(step.id);
   const beat = useHolyBeat(step.id);
@@ -85,12 +100,17 @@ export function LiturgyScene({
   const lab = useLab();
   const { systems } = lab;
   const shadowMaps = systems.shadows && quality !== "low";
+  const post = systems.post && quality !== "low";
   return (
     <Canvas
-      dpr={dprFor(quality)}
+      dpr={dprFor(quality, handheld)}
       shadows={shadowMaps ? "percentage" : false}
       camera={{ fov: 42, position: (lab.camera ?? pose).position, near: 0.15, far: 140 }}
-      gl={{ antialias: quality !== "low", powerPreference: "high-performance", preserveDrawingBuffer: lab.freezeAt !== null }}
+      gl={{
+        antialias: quality !== "low",
+        powerPreference: handheld ? "default" : "high-performance",
+        preserveDrawingBuffer: lab.freezeAt !== null,
+      }}
     >
       <LabClock freezeAt={lab.freezeAt} />
       <StatsProbe />
@@ -112,6 +132,7 @@ export function LiturgyScene({
           selectedSpace={selectedSpace}
           onSelectSpace={onSelectSpace}
           showArt={systems.icons}
+          smallArt={handheld}
         />
         {systems.people ? (
           <Cast
@@ -125,12 +146,17 @@ export function LiturgyScene({
           />
         ) : null}
         {systems.incense && quality !== "low" ? <IncenseHaze count={quality === "high" ? 28 : 16} /> : null}
-        <ReadySignal />
+        <ReadySignal waitFor={post ? postChunk : null} />
       </Suspense>
-      {systems.post ? <QualityEffects quality={quality} focus={mode === "follow"} /> : null}
+      {post ? (
+        <Suspense fallback={null}>
+          <PostEffects quality={quality} focus={mode === "follow"} />
+        </Suspense>
+      ) : null}
       <FpsProbe onFps={onFps} />
       <HolyBeatPump />
       <IconPicker enabled={mode === "free"} onPick={onInspect} />
+      {children}
     </Canvas>
   );
 }
