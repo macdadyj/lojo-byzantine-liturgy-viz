@@ -19,7 +19,7 @@ npm run build
 npm run preview
 ```
 
-For working on the 3D scene there is a test lab (`/lab`, `npm run shots`, `npm run shots:diff`, `npm run perf`, `npm run peek`); see [docs/TEST_LAB.md](docs/TEST_LAB.md). Visual passes and their before-and-after screenshots are in [docs/ITERATION_LOG.md](docs/ITERATION_LOG.md). Asset licenses are summarized in [CREDITS.md](CREDITS.md).
+For working on the 3D scene there is a test lab (`/lab`, `npm run shots`, `npm run shots:diff`, `npm run perf`, `npm run peek`, and `npm run phone` for iPhone loading); see [docs/TEST_LAB.md](docs/TEST_LAB.md). Visual passes and their before-and-after screenshots are in [docs/ITERATION_LOG.md](docs/ITERATION_LOG.md). Asset licenses are summarized in [CREDITS.md](CREDITS.md).
 
 `npm run build` writes a relative-path bundle (`base: "./"`) into `dist/`. Those relative paths work at the Cloud Run root URL: the page loads `./assets/…`, which the browser requests as `/assets/…`.
 
@@ -46,10 +46,14 @@ Service name `lojo-byzantine-liturgy-viz`, region `us-central1`, minimum instanc
 - Choose any step in the list, or use **Previous** and **Next**.
 - During **Follow liturgy**, arrow keys move one step. Home and End jump to the beginning and the end in either mode.
 - **Free look** is a first-person walk. Click the church, then use WASD or the arrow keys and the mouse (pointer lock). On a phone, use the joystick and drag to look. Head bob can be turned off. Press E, or click an icon, for its name and a short note. **Icon tour** walks that view to a few frescoes. **Follow liturgy** is unchanged: the camera moves with the step. Arrow keys change the step only while Follow liturgy is on. Home and End still jump to the first and last step.
-- Picture quality is High, Medium, Low, or Auto. Auto starts at Medium and steps down if the frame rate stays low. High adds ambient occlusion and a light bloom. Low skips post-processing so the church can run on an integrated GPU. The nave is lit as a candlelit interior: lower exposure, veined marble, and small lampadas rather than a bright white room.
+- Picture quality is High, Medium, Low, or Auto. On a desktop Auto starts at Medium and steps down if the frame rate stays low. Phones, tablets, and software renderers start at Low and stay there unless you choose another level (under **View** on a phone). `?quality=high|medium|low` forces a level. High adds ambient occlusion and a light bloom. Low skips post-processing so the church can run on an integrated GPU. The nave is lit as a candlelit interior: lower exposure, veined marble, and small lampadas rather than a bright white room.
 - **Labels** shows or hides the place names in the church. They stay small, fade back, and disappear when they are behind you or too close to cover an icon.
 - Gold light on the floor marks the places for the current step. Click a floor, or its name under the view, to read what that place is.
 - During the Little Entrance the deacon carries the Gospel book out the north deacon door, through the nave, and back through the Royal Doors. During the Great Entrance the deacon leads and the priest follows with the gifts from the table of preparation to the altar. A path on the floor shows the route.
+
+- On a phone the church sits above the step text, and **Back** and **Next** stay at the bottom of the screen. The page scrolls over the church while you follow the liturgy; in Free look the church takes the touches. **Expand** makes the church fill the screen.
+- If the phone cannot run the 3D church (no WebGL2, or the GPU gives up), the page shows a picture of each step with its text and the icons instead, plus **Try again** and the error.
+- Add `?debug=1` to the address to see the GPU, the quality level chosen and why, the frame rate, load times, and any errors, with a Copy button. That text is what to send when the page misbehaves on a device.
 
 A suggested first path is in [DEMO.md](DEMO.md).
 
@@ -57,7 +61,7 @@ A suggested first path is in [DEMO.md](DEMO.md).
 
 Gathering and the proskomedia, the opening blessing, the Litany of Peace, the antiphons, the Little Entrance, the Trisagion, the Epistle, the Gospel, the homily, the litanies before the gifts, the Cherubic Hymn, the Great Entrance, the Symbol of Faith, the anaphora, the epiklesis, the commemoration of the Theotokos and the saints, the Our Father, “Holy Things for the holy,” Holy Communion, the thanksgiving, and the dismissal with antidoron.
 
-Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The priest wears a bell-shaped phelonion, an epitrachelion, a beard, and a kamilavka. The deacon wears a sticharion and an orarion, and swings a censer during the censing. A cantor stands at the kliros with the choir, beside a stand of books. The faithful are eleven CC0 modular characters (men, women, elders, and children) with their own hair and clothes; see [ATTRIBUTION.md](ATTRIBUTION.md). They sit in the pews, kneel at the epiklesis, and cross themselves at the Trisagion, the Creed, and the epiklesis. Processions play the walk clip. Royal doors, deacon doors, and the curtain each open and close with the step. The icon panel closes when the step or the view mode changes. On a phone the church is the first thing on the screen.
+Roles are marked for priest, deacon, people, choir, and reader. Where no deacon is serving, the priest says the deacon’s parts. The priest wears a bell-shaped phelonion, an epitrachelion, a beard, and a kamilavka. The deacon wears a sticharion and an orarion, and swings a censer during the censing. A cantor stands at the kliros with the choir, beside a stand of books. The faithful are eleven CC0 modular characters (men, women, elders, and children) with their own hair and clothes; see [ATTRIBUTION.md](ATTRIBUTION.md). They sit in the pews, kneel at the epiklesis, and cross themselves at the Trisagion, the Creed, and the epiklesis. Processions play the walk clip. Royal doors, deacon doors, and the curtain each open and close with the step. The icon panel closes when the step or the view mode changes.
 
 ## Icons
 
