@@ -644,7 +644,7 @@ function Procession({
     const time =
       typeof pinned === "number"
         ? timeline.duration * Math.min(1, Math.max(0, pinned))
-        : processionClock.advance(Math.min(delta, 0.1));
+        : processionClock.advance(Math.min(delta, 0.25));
     const priest = priestAt(timeline, time);
     march.current.priest = priest.distance;
     processionClock.setMoving(priest.moving && processionClock.snapshot().playing);

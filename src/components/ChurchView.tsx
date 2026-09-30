@@ -10,6 +10,7 @@ import type { SceneProgress } from "../scene/SceneStage";
 import { requestWalk } from "../scene/walkGoal";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Joystick } from "./Joystick";
+import { ProcessionBar } from "./ProcessionBar";
 import { SceneFallback } from "./SceneFallback";
 
 function loadSceneStage() {
@@ -261,7 +262,13 @@ export function ChurchView({
     ? "Drag the picture to look. Move with the thumb stick."
     : "Drag to look. Walk with WASD. Arrow keys walk here; Home and End change the step. Press E on an icon.";
   const running = stage.kind === "loading" || stage.kind === "running";
-  const classes = ["church-view", mode === "free" ? "is-free" : "", expanded ? "is-expanded" : "", compact ? "is-compact" : ""]
+  const classes = [
+    "church-view",
+    mode === "free" ? "is-free" : "",
+    expanded ? "is-expanded" : "",
+    compact ? "is-compact" : "",
+    step.route ? "has-procession" : "",
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -400,6 +407,8 @@ export function ChurchView({
           ) : (
             qualityButtons
           )}
+          {/* The phone puts the player in the step sheet, under the thumb. */}
+          {compact ? null : <ProcessionBar />}
           {mode === "free" ? <p className="walk-hint">{walkHint}</p> : null}
           {mode === "follow" && touch && framed && !touchedView ? (
             <p className="walk-hint look-hint">Drag the church to look around. Next turns it back.</p>

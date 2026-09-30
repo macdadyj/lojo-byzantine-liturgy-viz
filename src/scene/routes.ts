@@ -1,5 +1,5 @@
 import type { RouteId } from "../liturgy/types";
-import { world } from "./world";
+import { tetrapod, world } from "./world";
 
 /** A place on the floor: x (north is −x) and z (east, the altar, is −z). */
 export type FloorPoint = [number, number];
@@ -35,7 +35,7 @@ const doorX = -world.deaconDoorX;
 /** North side aisle: between the north pews (edge at −3.4) and the columns (clear of them from −4.27). */
 const northAisle = -3.85;
 /** The walkway between the tetrapod and the first standing row of the faithful. */
-export const walkwayZ = -0.25;
+export const walkwayZ = -0.35;
 /** Behind the last pew, before the narthex. */
 const backAisle = 15.6;
 /** The priest's last place, before the west side of the altar. */
@@ -249,8 +249,12 @@ export function followShot(timeline: Timeline, priest: number, floorAt: FloorAt)
   const { path, route } = timeline;
   const front = walkerDistance(priest, 0);
   const ahead = front + cameraLead;
-  const [px, pz] = pointAt(path, ahead);
-  const eye: [number, number, number] = [px, floorAt(px, pz) + cameraHeight, pz];
+  const [ax, pz] = pointAt(path, ahead);
+  // In the north aisle it stands a little toward the pews, above the people, so the columns hide less.
+  const px = ax + 0.7 * smooth((northAisle + 0.85 - ax) / 0.5) * smooth((pz + 6) / 1.2);
+  // Beside the tetrapod it rises to look over the festal icon at the procession coming round it.
+  const overIcon = 0.9 * smooth((2.6 - Math.hypot(px - tetrapod[0], pz - tetrapod[2])) / 0.8);
+  const eye: [number, number, number] = [px, floorAt(px, pz) + cameraHeight + overIcon, pz];
   const blend = smooth((ahead - path.length) / cameraLead);
   const position: [number, number, number] = [
     eye[0] + (route.endShot.position[0] - eye[0]) * blend,

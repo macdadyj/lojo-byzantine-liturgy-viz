@@ -2,7 +2,8 @@
 // Drives the phone layout with real touch input and checks that a finger on the 3D church never keeps you from
 // the controls: drag the church, then reach Next, the step sheet, the Steps menu, the Text view and its scroll.
 // Chromium sends touches through the DevTools protocol (they go through touch-action and scrolling like a
-// finger); WebKit, which has no touch-move API, repeats the taps and takes the screenshots.
+// finger); WebKit, which has no touch-move API, repeats the taps and takes the screenshots. On the Great
+// Entrance it also works the procession player: pause, speed, next moment, and a finger drag on the scrub bar.
 // Usage: npm run phone:touch [-- --no-build --only=chromium|webkit]
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -168,6 +169,46 @@ async function runChromium() {
   s = await state(page);
   check("chromium", "a step in the menu jumps there and closes the menu", !s.menuOpen && s.count.startsWith("13 /"), s.count);
 
+  // The Great Entrance player sits in the sheet under the thumb: pause, speed, step, and scrub with a finger.
+  await page.waitForSelector(".procession-bar", { timeout: 30000 });
+  for (const selector of [".procession-play", ".procession-step", ".procession-speed", ".procession-scrub"]) {
+    const where = await reach(page, selector);
+    check("chromium", `player ${selector} on screen, on top, at least 44 px tall`, where.inside && where.onTop && where.h >= 44, `${Math.round(where.w)}×${Math.round(where.h)}`);
+  }
+  const player = () =>
+    page.evaluate(() => ({
+      time: document.querySelector(".procession-time")?.textContent?.split("/")[0]?.trim() ?? "",
+      beat: document.querySelector(".procession-label")?.textContent ?? "",
+      play: document.querySelector(".procession-play")?.getAttribute("aria-label") ?? "",
+      speed: document.querySelector(".procession-speed")?.textContent ?? "",
+      scrub: Number(document.querySelector(".procession-scrub")?.value ?? -1),
+    }));
+  const seconds = (text) => text.split(":").reduce((total, part) => total * 60 + Number(part), 0);
+  let p = await player();
+  await page.waitForTimeout(2500);
+  let later = await player();
+  check("chromium", "the Great Entrance plays on its own", p.play === "Pause" && later.scrub > p.scrub, `${p.scrub} → ${later.scrub}`);
+  await tapSelector(".procession-play");
+  p = await player();
+  await page.waitForTimeout(1500);
+  later = await player();
+  check("chromium", "Pause stops it", p.play === "Play" && later.scrub === p.scrub, `${p.scrub} → ${later.scrub}`);
+  await tapSelector(".procession-speed");
+  p = await player();
+  check("chromium", "the speed button steps to 2×", p.speed === "2×", p.speed);
+  await tapSelector('.procession-step[aria-label="Next moment"]');
+  later = await player();
+  check("chromium", "Next moment jumps to the next beat", later.beat !== p.beat && seconds(later.time) > seconds(p.time), `${p.beat} → ${later.beat}`);
+  const scrub = await reach(page, ".procession-scrub");
+  const scrubBefore = (await player()).scrub;
+  await drag([scrub.x - scrub.w * 0.2, scrub.y], [scrub.x + scrub.w * 0.4, scrub.y], 8);
+  p = await player();
+  s = await state(page);
+  check("chromium", "a finger on the scrub bar moves the procession, not the page", p.scrub > scrubBefore + 10 && s.scrollY === 0, `${scrubBefore} → ${p.scrub}`);
+  await page.screenshot({ path: join(outDir, "chromium-player.png") });
+  await tapSelector(".procession-play");
+  check("chromium", "Play resumes", (await player()).play === "Pause");
+
   // Text view: an ordinary page that scrolls with a finger.
   await tapSelector('.phone-view-switch button:nth-child(2)');
   await page.waitForTimeout(400);
@@ -248,6 +289,21 @@ async function runWebkit() {
   await page.waitForTimeout(800);
   s = await state(page);
   check("webkit", "3D brings the church back", s.canvasShown && s.scrollY === 0);
+  await tapSelector(".phone-menu-button");
+  const entrance = await page.evaluate(() => {
+    const link = [...document.querySelectorAll(".step-menu .step-link")].find((b) => /great entrance/i.test(b.textContent ?? ""));
+    link?.scrollIntoView({ block: "center", behavior: "instant" });
+    const box = link?.getBoundingClientRect();
+    return box ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : null;
+  });
+  if (entrance) await page.touchscreen.tap(entrance.x, entrance.y);
+  await page.waitForSelector(".procession-bar", { timeout: 30000 });
+  await tapSelector(".procession-play");
+  const paused = await page.evaluate(() => document.querySelector(".procession-play")?.getAttribute("aria-label"));
+  await tapSelector(".procession-speed");
+  const speed = await page.evaluate(() => document.querySelector(".procession-speed")?.textContent);
+  check("webkit", "the procession player answers taps (pause, speed)", paused === "Play" && speed === "2×", `${paused} ${speed}`);
+  await shot("player");
   await page.setViewportSize({ width: 844, height: 390 });
   await page.waitForTimeout(1500);
   await shot("landscape");

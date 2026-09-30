@@ -3,6 +3,7 @@ import { ChurchView } from "./components/ChurchView";
 import type { LookMode } from "./scene/LiturgyScene";
 import { Pager } from "./components/Pager";
 import { PhoneBar, type PhoneView } from "./components/PhoneBar";
+import { ProcessionBar } from "./components/ProcessionBar";
 import { StepMenu, type PageSection } from "./components/StepMenu";
 import { SpaceNote } from "./components/SpaceNote";
 import { StepDetail } from "./components/StepDetail";
@@ -172,10 +173,11 @@ export function App() {
                 paused={!churchShown}
               />
               {phoneChurch ? (
-                <section className="step-sheet" aria-label="This step">
+                <section className={step.route ? "step-sheet has-procession" : "step-sheet"} aria-label="This step">
                   <div className="step-sheet-body" id="step-sheet-words" ref={sheetBody} hidden={!sheetOpen}>
                     {detail}
                   </div>
+                  <ProcessionBar compact />
                   <StepBar
                     index={index}
                     count={steps.length}
