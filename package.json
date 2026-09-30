@@ -19,7 +19,8 @@
     "shots:keep": "node scripts/shots-keep.mjs",
     "peek": "node scripts/peek.mjs",
     "stills": "node scripts/stills.mjs",
-    "small-art": "node scripts/small-art.mjs"
+    "small-art": "node scripts/small-art.mjs",
+    "phone:touch": "node scripts/phone-touch.mjs"
   },
   "dependencies": {
     "@fontsource/newsreader": "^5.2.8",
