@@ -46,6 +46,24 @@ describe("3D liturgy staging", () => {
     expect(Math.hypot(kept.x - tetrapod[0], kept.z - tetrapod[2])).toBeGreaterThan(0.6);
   });
 
+  it("stands back from the Proskomedia on an upright phone so the table and both clergy are in the picture", () => {
+    const desk = cameraFor("proskomedia");
+    const phone = cameraFor("proskomedia", true);
+    expect(phone).not.toEqual(desk);
+    expect(cameraFor("gospel", true)).toEqual(cameraFor("gospel"));
+    const [cx, , cz] = phone.position;
+    const look = Math.atan2(phone.target[2] - cz, phone.target[0] - cx);
+    const halfWidth = Math.atan(Math.tan((21 * Math.PI) / 180) * (390 / 740));
+    const { priest, deacon } = stagingFor("proskomedia");
+    for (const [x, , z] of [priest.position, deacon.position, world.prothesis]) {
+      const angle = Math.atan2(z - cz, x - cx) - look;
+      expect(Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)))).toBeLessThan(halfWidth * 0.85);
+    }
+    for (const [x, , z] of [priest.position, deacon.position]) expect(Math.hypot(x - cx, z - cz)).toBeGreaterThan(2.5);
+    expect(cz).toBeLessThan(world.iconZ - 0.5);
+    expect(Math.hypot(cx - world.altar[0], cz - world.altar[2])).toBeGreaterThan(1.5);
+  });
+
   it("frames clergy-action steps toward the people who are acting", () => {
     for (const id of ["gospel", "communion", "homily", "dismissal"] as const) {
       const camera = cameraFor(id);

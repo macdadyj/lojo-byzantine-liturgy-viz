@@ -38,6 +38,7 @@ import { Lighting } from "./Lighting";
 import { IncenseHaze } from "./lighting/IncenseHaze";
 import { useFollowLook } from "./followLook";
 import { useLab } from "../lab/labState";
+import { useMediaQuery } from "../useMediaQuery";
 import { LabClock, ReadySignal, StatsProbe } from "../lab/SceneProbes";
 
 export type LookMode = "follow" | "free";
@@ -71,6 +72,9 @@ const PostEffects = lazy(() =>
   }),
 );
 
+/** A tall, narrow picture: a phone held upright. */
+const portraitQuery = "(max-aspect-ratio: 4/5)";
+
 let debugCamera: { position: Vec3; target: Vec3 } | null = null;
 
 /** The procession writes its camera shot each frame so Follow liturgy can walk ahead of it. */
@@ -78,6 +82,7 @@ const processionShot = {
   active: false,
   position: [0, 0, 0] as Vec3,
   target: [0, 0, 0] as Vec3,
+  take: 0,
 };
 /** A scrub or a new step moves the shot further than this at once: cut instead of sweeping across the church. */
 const shotCutMeters = 6;
@@ -103,7 +108,8 @@ export function LiturgyScene({
   paused = false,
   children,
 }: LiturgySceneProps) {
-  const pose = cameraFor(step.id);
+  const portrait = useMediaQuery(portraitQuery);
+  const pose = cameraFor(step.id, portrait);
   const beat = useHolyBeat(step.id);
   const clergyReceiving = beat === "clergy";
   useEffect(() => {
@@ -205,6 +211,7 @@ function FollowCamera({
   const look = useMemo(() => new Vector3(), []);
   const poseKey = `${quality}:${pose.position.join(",")}:${pose.target.join(",")}`;
   const shown = useRef<CameraPose | null>(null);
+  const shownTake = useRef(0);
   const glide = useRef<{ from: Vector3; fromLook: Vector3; t: number } | null>(null);
   const veil = useDipVeil(gl.domElement);
   const offset = useFollowLook(gl.domElement, enabled);
@@ -296,7 +303,9 @@ function FollowCamera({
     } else if (processionShot.active) {
       goalPos.fromArray(processionShot.position);
       goalTarget.fromArray(processionShot.target);
-      const blend = reducedMotion || camera.position.distanceTo(goalPos) > shotCutMeters ? 1 : 1 - Math.exp(-delta * 4);
+      const cut = processionShot.take !== shownTake.current || camera.position.distanceTo(goalPos) > shotCutMeters;
+      shownTake.current = processionShot.take;
+      const blend = reducedMotion || cut ? 1 : 1 - Math.exp(-delta * 4);
       camera.position.lerp(goalPos, blend);
       look.lerp(goalTarget, blend);
       camera.lookAt(look);
@@ -653,6 +662,7 @@ function Procession({
     processionShot.active = true;
     processionShot.position = shot.position;
     processionShot.target = shot.target;
+    processionShot.take = shot.take;
   }, -2);
 
   const gospel = route === "little-entrance";
