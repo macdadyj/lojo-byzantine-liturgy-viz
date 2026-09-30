@@ -119,22 +119,69 @@ describe("the entrances", () => {
       }
     });
 
+    it(`${route.id}: names each moment on the move when the first candle gets there`, () => {
+      const holds = new Set(route.stops.filter((stop) => stop.hold).map((stop) => stop.beat));
+      const moving = timeline.beats.filter((beat) => !holds.has(beat.label) && beat.distance < timeline.finish - 0.01);
+      expect(moving.length).toBeGreaterThanOrEqual(3);
+      for (const beat of moving) {
+        const front = walkerDistance(priestAt(timeline, beat.time).distance, 0);
+        expect(front).toBeGreaterThanOrEqual(beat.distance - 0.01);
+        const early = walkerDistance(priestAt(timeline, beat.time - 0.5).distance, 0);
+        const heldBack = priestAt(timeline, beat.time - 0.05).moving === false;
+        expect(early < beat.distance || heldBack).toBe(true);
+      }
+      const door = timeline.beats.find((beat) => beat.label.startsWith("Out through the north deacon door"));
+      const [dx, dz] = pointAt(timeline.path, walkerDistance(priestAt(timeline, door?.time ?? 0).distance, 0));
+      expect(Math.hypot(dx + world.deaconDoorX, dz - -9.9)).toBeLessThan(0.05);
+      const key = timeline.beats.find((beat) => holds.has(beat.label) && Math.abs(beat.time - timeline.keyTime) < 1e-6);
+      expect(key).toBeDefined();
+    });
+
+    it(`${route.id}: at the ambon the camera sees the priest and deacon past the candles, even on an upright phone`, () => {
+      const priest = priestAt(timeline, timeline.keyTime + 1).distance;
+      const { position, target } = followShot(timeline, priest, routeFloorAt);
+      const eye: FloorPoint = [position[0], position[2]];
+      const look = Math.atan2(target[2] - eye[1], target[0] - eye[0]);
+      const bearing = ([x, z]: FloorPoint) => Math.atan2(z - eye[1], x - eye[0]);
+      const off = (angle: number) => Math.abs(Math.atan2(Math.sin(angle - look), Math.cos(angle - look)));
+      // 42° vertical field of view in a 390 × 740 picture.
+      const halfWidth = Math.atan(Math.tan((21 * Math.PI) / 180) * (390 / 740));
+      const clergy = [2.1, trainSpan].map((back) => pointAt(timeline.path, walkerDistance(priest, back)));
+      const candles = [0, 1.05].map((back) => pointAt(timeline.path, walkerDistance(priest, back)));
+      for (const person of clergy) {
+        expect(off(bearing(person))).toBeLessThan(halfWidth * 0.8);
+        const range = Math.hypot(person[0] - eye[0], person[1] - eye[1]);
+        for (const candle of candles) {
+          const apart = Math.abs(Math.sin(bearing(candle) - bearing(person))) * Math.hypot(candle[0] - eye[0], candle[1] - eye[1]);
+          const nearer = Math.hypot(candle[0] - eye[0], candle[1] - eye[1]) < range;
+          expect(!nearer || apart > 0.6).toBe(true);
+        }
+      }
+      expect(position[2]).toBeGreaterThan(world.iconZ + 0.5);
+    });
+
     it(`${route.id}: the follow camera passes the iconostas only through a door and stays in the church`, () => {
-      let previous = followShot(timeline, 0, routeFloorAt).position;
+      let previous = followShot(timeline, 0, routeFloorAt);
+      let cuts = 0;
       for (let priest = 0; priest <= timeline.finish; priest += 0.05) {
-        const { position } = followShot(timeline, priest, routeFloorAt);
+        const shot = followShot(timeline, priest, routeFloorAt);
+        const { position } = shot;
         expect(Math.abs(position[0])).toBeLessThan(world.halfWidth - 0.5);
         expect(position[2]).toBeGreaterThan(world.sanctuaryEast + 0.5);
         expect(position[2]).toBeLessThan(world.naveWest);
-        if ((previous[2] - world.iconZ) * (position[2] - world.iconZ) < 0) {
-          const x = (previous[0] + position[0]) / 2;
+        if (shot.take !== previous.take) cuts += 1;
+        else if ((previous.position[2] - world.iconZ) * (position[2] - world.iconZ) < 0) {
+          const x = (previous.position[0] + position[0]) / 2;
           expect(throughNorthDoor(x) || throughRoyalDoors(x)).toBe(true);
         }
         for (const side of [-1, 1]) {
           for (const cz of columnZ) expect(Math.hypot(position[0] - side * world.columnX, position[2] - cz)).toBeGreaterThan(0.6);
         }
-        previous = position;
+        previous = shot;
       }
+      // One cut, once the priest is back through the Royal Doors, to the shot of the altar.
+      expect(cuts).toBe(1);
+      expect(previous.position).toEqual(route.endShot.position);
     });
   }
 
