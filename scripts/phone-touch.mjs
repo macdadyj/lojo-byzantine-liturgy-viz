@@ -171,6 +171,13 @@ async function runChromium() {
 
   // The Great Entrance player sits in the sheet under the thumb: pause, speed, step, and scrub with a finger.
   await page.waitForSelector(".procession-bar", { timeout: 30000 });
+  s = await state(page);
+  const sheetTop = await page.evaluate(() => document.querySelector(".step-sheet")?.getBoundingClientRect().top ?? 0);
+  check("chromium", "a procession starts with the words folded so the walk is in view", !s.sheetOpen && sheetTop > viewport.height * 0.6, `sheet top ${Math.round(sheetTop)}`);
+  await tapSelector(".step-bar-status.is-toggle");
+  s = await state(page);
+  check("chromium", "the words still open over a procession", s.sheetOpen);
+  await tapSelector(".step-bar-status.is-toggle");
   for (const selector of [".procession-play", ".procession-step", ".procession-speed", ".procession-scrub"]) {
     const where = await reach(page, selector);
     check("chromium", `player ${selector} on screen, on top, at least 44 px tall`, where.inside && where.onTop && where.h >= 44, `${Math.round(where.w)}×${Math.round(where.h)}`);

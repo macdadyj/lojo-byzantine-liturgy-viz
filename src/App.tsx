@@ -23,12 +23,19 @@ export function App() {
   const step = steps[index] ?? steps[0];
   const phone = useMediaQuery(phoneQuery);
   const [view, setView] = useState<PhoneView>("church");
-  const [sheetOpen, setSheetOpen] = useState(true);
+  const [restSheetOpen, setRestSheetOpen] = useState(true);
+  // Each procession starts with the words folded away so the walk is in view; the player stays on screen.
+  const [processionSheet, setProcessionSheet] = useState<{ index: number; open: boolean } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [section, setSection] = useState<PageSection | null>(null);
   const sheetBody = useRef<HTMLDivElement>(null);
   const shownView = useRef(view);
   const churchShown = !phone || view === "church";
+  const sheetOpen = step.route ? processionSheet?.index === index && processionSheet.open : restSheetOpen;
+  const toggleSheet = () => {
+    if (step.route) setProcessionSheet({ index, open: !sheetOpen });
+    else setRestSheetOpen(!sheetOpen);
+  };
 
   useLiturgyKeyboard(setIndex);
 
@@ -184,7 +191,7 @@ export function App() {
                     title={step.title}
                     onPrev={goPrev}
                     onNext={goNext}
-                    sheet={{ open: sheetOpen, controls: "step-sheet-words", onToggle: () => setSheetOpen((open) => !open) }}
+                    sheet={{ open: sheetOpen, controls: "step-sheet-words", onToggle: toggleSheet }}
                   />
                 </section>
               ) : null}
