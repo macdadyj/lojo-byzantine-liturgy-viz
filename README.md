@@ -51,7 +51,7 @@ Service name `lojo-byzantine-liturgy-viz`, region `us-central1`, minimum instanc
 - Gold light on the floor marks the places for the current step. Click a floor, or its name under the view, to read what that place is.
 - During the Little Entrance the deacon carries the Gospel book out the north deacon door, through the nave, and back through the Royal Doors. During the Great Entrance the deacon leads and the priest follows with the gifts from the table of preparation to the altar. A path on the floor shows the route.
 
-- On a phone the church sits above the step text, and **Back** and **Next** stay at the bottom of the screen. The page scrolls over the church while you follow the liturgy; in Free look the church takes the touches. **Expand** makes the church fill the screen.
+- On a phone the church fills the screen and the step's words sit in a sheet over its bottom edge, with **Back** and **Next** under your thumb. Tap the step title to close the words to one row, or open them again. Drag the church to look around; **Next** turns the view back to the step. The top bar has **Steps** (every step, plus the page's sections) and **3D / Text**: Text is a plain scrolling page of the step, the places, and the outline.
 - If the phone cannot run the 3D church (no WebGL2, or the GPU gives up), the page shows a picture of each step with its text and the icons instead, plus **Try again** and the error.
 - Add `?debug=1` to the address to see the GPU, the quality level chosen and why, the frame rate, load times, and any errors, with a Copy button. That text is what to send when the page misbehaves on a device.
 

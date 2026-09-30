@@ -17,6 +17,7 @@ npx playwright install chromium webkit   # once; WebKit is only for the phone ch
 | `npm run peek` | One-off captures from any camera position, for close inspection |
 | `npm run perf` | Production build, then load time and FPS against budgets |
 | `npm run phone` | The real page as an iPhone over Fast 3G: load milestones, bytes, fps, screenshots |
+| `npm run phone:touch` | Real touches on the phone layout: drag the church, then reach Next, the sheet, the menu, Text |
 | `npm run phone:faults` | No WebGL, blocked chunks, errors, lost context: each must show words, not a blank page |
 | `npm run stills` / `npm run small-art` | Regenerate the fallback pictures and the phones' half-size art |
 | `npm run check` | Type check, unit tests, production build (the gate before a commit) |
@@ -163,6 +164,13 @@ npm run phone -- --dist=.tmp/base-dist --gzip=0 --label=baseline   # an older bu
 `npm run phone:faults` breaks the page on purpose in WebKit at 390×844: no WebGL2, the 3D chunk blocked,
 the main script blocked, a thrown runtime error, a lost WebGL context, and `?debug=1`. Each case must end
 in readable words on screen and exits 1 if one does not.
+
+`npm run phone:touch` drives the phone layout with touches and exits 1 if a check fails: in Chromium it
+sends DevTools touch events (they go through `touch-action` and scrolling like a finger), drags the church
+and then taps Next, drags onto the sheet, swipes the sheet, the Steps menu and the Text view, and checks
+that the body never locks scrolling, that each control is on screen, on top, and at least 44 px, and that
+landscape keeps Next and Steps reachable. WebKit, which has no touch-move API, repeats the taps and takes
+the screenshots in `qa/phone/<stamp>-touch/`.
 
 ### What the emulation cannot prove
 

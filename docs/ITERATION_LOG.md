@@ -276,8 +276,53 @@ are pixel-identical to main, and `npm run perf` gives main's draw calls and tria
 Splitting the icons into their own Suspense boundary had first cost 115 desktop shadow casters; the
 pass that flags shadows now runs again when the icons and frescoes arrive.
 
-Pictures in `docs/iterations/mobile/`: `before-load-10s.jpg` and `before-step-01.jpg` (main),
-`after-load-1.5s.jpg`, `after-step-01.jpg`, `after-step-06.jpg`, `after-step-13.jpg`,
-`after-step-19.jpg`, `after-free-look.jpg`, `after-text-panel.jpg`, the fault cases
-(`fault-no-webgl.jpg`, `fault-chunk-blocked.jpg`, `fault-runtime-error.jpg`, `fault-context-lost.jpg`)
-and `debug.jpg`.
+The phone layout described here was replaced in Pass 10; `before-load-10s.jpg` and `before-step-01.jpg`
+in `docs/iterations/mobile/` are main, the rest show the Pass 10 layout.
+
+## Pass 10: the church with the words over it
+
+Reported from the phone: the page opened into the 3D church, a finger on it would not scroll, and the
+Next button and the navigation could not be reached. The Pass 9 layout (church at 62% of the height,
+words under it) still made the page scroll past the picture to read and navigate.
+
+- The 3D view is the screen under a top bar: the church fills it, and the step's words sit in a sheet
+  over its bottom edge (`after-step-01.jpg`). Back, Next, and the step title are the sheet's bottom row,
+  under the thumb; tapping the title closes the words to that one row (`after-sheet-closed.jpg`). The
+  words scroll inside the sheet.
+- The top bar is outside the picture, so it never turns the view: **Steps** opens every step by part of
+  the Liturgy plus links to the 3D church, the step's words, the places, and About
+  (`after-steps-menu.jpg`); **3D / Text** switches to an ordinary scrolling page of words, places and
+  outline with Back and Next fixed at the bottom (`after-text-view.jpg`, `after-text-scrolled.jpg`). In
+  Text the church stays loaded but stops drawing.
+- The picture is the one drag area (`touch-action: none` only there). In Follow liturgy a finger now
+  looks around from the camera, and Next turns the view back to the step (`after-drag-to-look.jpg`); a
+  hint says so until the first touch. Mouse drags are unchanged. Free look walks as before, with the
+  joystick above the bar (`after-free-look.jpg`).
+- Nothing locks the body: the 3D view is exactly one screen tall; the sheet and the menu scroll
+  themselves with `overscroll-behavior: contain`. Expand is gone on phones, since the 3D view is already
+  full screen; desktops keep it.
+- Every control is at least 44 px (Back and Next 52 px), and the bar, the sheet and the menu pad for the
+  notch, the home indicator and the sides in landscape (`after-landscape.jpg`).
+- Found on the way: on narrow screens `.stage-body` is a flex column that aligned its children to the
+  start, so once the church panel held only positioned children it shrank to 0 px wide. The canvas hid
+  it; the no-WebGL fallback showed a blank area until the column was stretched.
+
+`npm run phone:touch` checks this with touches (33 checks, all pass): in Chromium through DevTools touch
+events, which go through `touch-action` and scrolling as a finger does, it drags the church and then
+taps Next, drags from the church onto the sheet and taps Next, swipes the sheet, the menu and the Text
+view, and checks that the body never locks, that every control is on screen and on top, and that
+landscape keeps Next and Steps reachable; WebKit repeats the taps and takes the screenshots.
+
+| iPhone profile, Fast 3G | main | Pass 9 | Pass 10 |
+| --- | --- | --- | --- |
+| first content | 10.1 s | 1.8 s | 1.8 s |
+| tap on Next answered | 27.9 s | 3.0 s | 2.1 to 5.2 s |
+| first 3D frame | 13.0 s | 5.0 s | 5.1 s |
+| scene ready | 27.3 s | 10.1 s | 10.0 s |
+| JS sent | 1509 KB | 371 KB | 373 KB |
+| fps (WebKit, host GPU) | 16.4 | 20.3 | 15.0 |
+
+The tap is answered in 14 ms once dispatched; when it lands depends on when the 3D chunk is being parsed,
+which varied between runs. The frame rate is lower because the church now covers the whole screen (585×1179
+drawing pixels against 585×784). Desktop is unchanged: `npm run perf` gives the same 446 / 195 / 314 draw
+calls, and the desktop page keeps its header pager, side list and Expand.
