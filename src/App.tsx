@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChurchView } from "./components/ChurchView";
 import type { LookMode } from "./scene/LiturgyScene";
 import { Pager } from "./components/Pager";
+import { PhoneBar, type PhoneView } from "./components/PhoneBar";
+import { StepMenu, type PageSection } from "./components/StepMenu";
 import { SpaceNote } from "./components/SpaceNote";
 import { StepDetail } from "./components/StepDetail";
 import { StepBar } from "./components/StepBar";
@@ -19,8 +21,47 @@ export function App() {
   const [pinnedSpace, setPinnedSpace] = useState<SpaceId | null>(null);
   const step = steps[index] ?? steps[0];
   const phone = useMediaQuery(phoneQuery);
+  const [view, setView] = useState<PhoneView>("church");
+  const [sheetOpen, setSheetOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [section, setSection] = useState<PageSection | null>(null);
+  const sheetBody = useRef<HTMLDivElement>(null);
+  const shownView = useRef(view);
+  const churchShown = !phone || view === "church";
 
   useLiturgyKeyboard(setIndex);
+
+  // Switching views starts at the top (the 3D view is exactly one screen tall); a section chosen in the
+  // menu scrolls the Text view to it.
+  useEffect(() => {
+    if (!phone) return;
+    if (section) {
+      const target = document.getElementById(sectionIds[section]);
+      if (section === "about") target?.querySelector("details")?.setAttribute("open", "");
+      target?.scrollIntoView({ block: "start" });
+      shownView.current = view;
+      setSection(null);
+      return;
+    }
+    if (shownView.current === view) return;
+    shownView.current = view;
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [phone, view, section]);
+
+  useEffect(() => {
+    if (sheetBody.current) sheetBody.current.scrollTop = 0;
+  }, [index]);
+
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const goToSection = useCallback((next: PageSection) => {
+    setMenuOpen(false);
+    if (next === "church") {
+      setView("church");
+      return;
+    }
+    setView("text");
+    setSection(next);
+  }, []);
 
   useEffect(() => {
     mark("shell");
@@ -85,10 +126,17 @@ export function App() {
     />
   );
 
-  // One tree for both layouts, so turning a phone (or resizing) never remounts the 3D church.
+  const phoneChurch = phone && view === "church";
+  const pageClass = ["page", phone ? "is-phone" : "", phone ? `is-${view}` : "", phoneChurch && sheetOpen ? "sheet-open" : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  // One tree for every layout, so turning a phone, resizing, or switching 3D and Text never remounts the church.
   return (
-    <div className={phone ? "page is-phone" : "page"}>
-      {phone ? null : (
+    <div className={pageClass}>
+      {phone ? (
+        <PhoneBar view={view} onView={setView} menuOpen={menuOpen} onMenu={() => setMenuOpen((open) => !open)} />
+      ) : (
         <header className="info-bar">
           {brand}
           <Pager
@@ -121,55 +169,109 @@ export function App() {
                 onSelectSpace={setPinnedSpace}
                 onLookMode={setLook}
                 compact={phone}
+                paused={!churchShown}
               />
-              {phone ? detail : null}
-              <ul className="legend" aria-label="Places in the church">
-                {spaceList.map((space) => {
-                  const active = step.spaces.includes(space.id);
-                  const selected = space.id === featuredSpace;
-                  return (
-                    <li key={space.id}>
-                      <button
-                        type="button"
-                        className={[
-                          "legend-button",
-                          active ? "is-active" : "",
-                          selected ? "is-selected" : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        aria-pressed={selected}
-                        onClick={() => setPinnedSpace(space.id)}
-                      >
-                        {space.label}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              <SpaceNote space={spaceById(featuredSpace)} currentIndex={index} onJump={setIndex} />
-              <p className="map-footnote">
-                Public-domain historical icons. Sources, dates, and licenses are in ATTRIBUTION.md.
-              </p>
+              {phoneChurch ? (
+                <section className="step-sheet" aria-label="This step">
+                  <div className="step-sheet-body" id="step-sheet-words" ref={sheetBody} hidden={!sheetOpen}>
+                    {detail}
+                  </div>
+                  <StepBar
+                    index={index}
+                    count={steps.length}
+                    title={step.title}
+                    onPrev={goPrev}
+                    onNext={goNext}
+                    sheet={{ open: sheetOpen, controls: "step-sheet-words", onToggle: () => setSheetOpen((open) => !open) }}
+                  />
+                </section>
+              ) : null}
+              {phoneChurch ? null : (
+                <>
+                  {phone ? (
+                    <div id="page-words" className="page-section">
+                      {detail}
+                    </div>
+                  ) : null}
+                  <PlacesPanel
+                    featuredSpace={featuredSpace}
+                    activeSpaces={step.spaces}
+                    index={index}
+                    onSelectSpace={setPinnedSpace}
+                    onJump={setIndex}
+                  />
+                </>
+              )}
             </section>
           </div>
         </div>
       </div>
 
-      {phone ? (
+      {phone && view === "text" ? (
         <>
           <StepList index={index} onSelect={setIndex} />
-          <header className="info-bar">{brand}</header>
+          <header className="info-bar page-section" id="page-about">
+            {brand}
+          </header>
         </>
       ) : null}
 
-      <footer className="colophon">
-        <p>
-          Teaching paraphrase for the Ruthenian Byzantine Catholic Divine Liturgy of St. John
-          Chrysostom. Worship follows the parish and the official liturgical books.
-        </p>
-      </footer>
-      {phone ? <StepBar index={index} count={steps.length} title={step.title} onPrev={goPrev} onNext={goNext} /> : null}
+      {phoneChurch ? null : (
+        <footer className="colophon">
+          <p>
+            Teaching paraphrase for the Ruthenian Byzantine Catholic Divine Liturgy of St. John
+            Chrysostom. Worship follows the parish and the official liturgical books.
+          </p>
+        </footer>
+      )}
+      {phone && view === "text" ? (
+        <StepBar index={index} count={steps.length} title={step.title} onPrev={goPrev} onNext={goNext} />
+      ) : null}
+      {phone && menuOpen ? (
+        <StepMenu index={index} view={view} onSelect={setIndex} onSection={goToSection} onClose={closeMenu} />
+      ) : null}
+    </div>
+  );
+}
+
+const sectionIds: Record<PageSection, string> = {
+  church: "map-heading",
+  words: "page-words",
+  places: "page-places",
+  about: "page-about",
+};
+
+type PlacesPanelProps = {
+  featuredSpace: SpaceId;
+  activeSpaces: readonly SpaceId[];
+  index: number;
+  onSelectSpace: (id: SpaceId) => void;
+  onJump: (index: number) => void;
+};
+
+function PlacesPanel({ featuredSpace, activeSpaces, index, onSelectSpace, onJump }: PlacesPanelProps) {
+  return (
+    <div id="page-places" className="page-section">
+      <ul className="legend" aria-label="Places in the church">
+        {spaceList.map((space) => {
+          const active = activeSpaces.includes(space.id);
+          const selected = space.id === featuredSpace;
+          return (
+            <li key={space.id}>
+              <button
+                type="button"
+                className={["legend-button", active ? "is-active" : "", selected ? "is-selected" : ""].filter(Boolean).join(" ")}
+                aria-pressed={selected}
+                onClick={() => onSelectSpace(space.id)}
+              >
+                {space.label}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <SpaceNote space={spaceById(featuredSpace)} currentIndex={index} onJump={onJump} />
+      <p className="map-footnote">Public-domain historical icons. Sources, dates, and licenses are in ATTRIBUTION.md.</p>
     </div>
   );
 }

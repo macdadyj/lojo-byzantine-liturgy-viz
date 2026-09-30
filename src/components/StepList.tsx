@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { steps } from "../liturgy/steps";
 import { phaseLabel, type PhaseId } from "../liturgy/types";
 
@@ -11,12 +11,13 @@ type StepListProps = {
 
 export function StepList({ index, onSelect }: StepListProps) {
   const activeId = steps[index]?.id;
+  const nav = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!activeId) return;
-    const button = document.getElementById(`step-link-${activeId}`);
-    const list = button?.closest(".step-nav");
-    if (!(button instanceof HTMLElement) || !(list instanceof HTMLElement)) return;
+    const list = nav.current;
+    const button = list?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (!button || !list) return;
     const offset = button.getBoundingClientRect().top - list.getBoundingClientRect().top;
     if (offset < 0) {
       list.scrollTop += offset;
@@ -26,7 +27,7 @@ export function StepList({ index, onSelect }: StepListProps) {
   }, [activeId]);
 
   return (
-    <nav className="step-nav" aria-label="Liturgy steps">
+    <nav className="step-nav" aria-label="Liturgy steps" ref={nav}>
       {phaseOrder.map((phase) => (
         <section key={phase} className="phase">
           <h2 className="phase-label">{phaseLabel(phase)}</h2>
@@ -36,7 +37,6 @@ export function StepList({ index, onSelect }: StepListProps) {
                 <li key={step.id}>
                   <button
                     type="button"
-                    id={`step-link-${step.id}`}
                     className={stepIndex === index ? "step-link is-current" : "step-link"}
                     aria-current={stepIndex === index ? "step" : undefined}
                     onClick={() => onSelect(stepIndex)}

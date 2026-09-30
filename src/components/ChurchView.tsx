@@ -29,6 +29,8 @@ type ChurchViewProps = {
   onLookMode?: (mode: LookMode) => void;
   /** Phone layout: fewer, larger controls, with picture settings behind one button. */
   compact?: boolean;
+  /** Hidden behind the phone's Text view: stop drawing but keep the church loaded. */
+  paused?: boolean;
 };
 
 const cast = [
@@ -50,7 +52,15 @@ type Stage =
   | { kind: "running" }
   | { kind: "failed"; title: string; detail: string; retry: boolean };
 
-export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, onLookMode, compact = false }: ChurchViewProps) {
+export function ChurchView({
+  step,
+  activeSpaces,
+  selectedSpace,
+  onSelectSpace,
+  onLookMode,
+  compact = false,
+  paused = false,
+}: ChurchViewProps) {
   const [mode, setMode] = useState<LookMode>("follow");
   // Place labels crowd each other in a narrow view; phones turn them on from View.
   const [showLabels, setShowLabels] = useState(!compact);
@@ -71,6 +81,7 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
   const [lost, setLost] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [touchedView, setTouchedView] = useState(false);
   const samples = useRef<number[]>([]);
   const settledAt = useRef<number | null>(null);
   // A failed chunk download stays failed inside React.lazy, so each retry gets a fresh loader.
@@ -288,7 +299,12 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
   );
 
   return (
-    <div className={classes}>
+    <div
+      className={classes}
+      onPointerDown={(event) => {
+        if (event.pointerType !== "mouse" && event.target instanceof HTMLCanvasElement) setTouchedView(true);
+      }}
+    >
       {running && tier ? (
         <ErrorBoundary
           resetKey={attempt}
@@ -313,6 +329,7 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
               quality={quality}
               headBob={headBob}
               handheld={handheld}
+              paused={paused}
               onInspect={setIcon}
               onFps={onFps}
               onFirstFrame={() => {
@@ -356,14 +373,16 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
             ) : null}
           </div>
           <div className="corner-bar">
-            <button type="button" aria-pressed={expanded} onClick={toggleExpanded} aria-label={expanded ? "Leave full screen" : "Full screen"}>
-              {expanded ? "Close" : "Expand"}
-            </button>
+            {/* The phone's 3D view already fills the screen. */}
             {compact ? (
               <button type="button" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((open) => !open)}>
                 View
               </button>
-            ) : null}
+            ) : (
+              <button type="button" aria-pressed={expanded} onClick={toggleExpanded} aria-label={expanded ? "Leave full screen" : "Full screen"}>
+                {expanded ? "Close" : "Expand"}
+              </button>
+            )}
           </div>
           {compact ? (
             settingsOpen ? (
@@ -382,6 +401,9 @@ export function ChurchView({ step, activeSpaces, selectedSpace, onSelectSpace, o
             qualityButtons
           )}
           {mode === "free" ? <p className="walk-hint">{walkHint}</p> : null}
+          {mode === "follow" && touch && framed && !touchedView ? (
+            <p className="walk-hint look-hint">Drag the church to look around. Next turns it back.</p>
+          ) : null}
           {icon ? <IconPanel card={icon} onClose={() => setIcon(null)} /> : null}
           {mode === "free" && touch ? <Joystick /> : null}
           {compact ? null : <CastKey />}

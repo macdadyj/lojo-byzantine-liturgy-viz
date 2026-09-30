@@ -5,7 +5,7 @@ import { clampLookPitchAt, minEyeHeight, resolveWalk, standingEye, type DoorGaps
 import { requestWalk, walkGoal, walkStick } from "./walkGoal";
 
 /** Radians of turn per CSS pixel a finger drags: a full phone width turns the view about 100 degrees. */
-const touchLook = 0.0045;
+export const touchLook = 0.0045;
 
 type WalkerProps = {
   enabled: boolean;

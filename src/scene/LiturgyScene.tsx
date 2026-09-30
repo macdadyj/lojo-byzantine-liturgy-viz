@@ -22,6 +22,7 @@ import { Walker } from "./Walker";
 import { greatEntrancePath, littleEntrancePath, world } from "./world";
 import { Lighting } from "./Lighting";
 import { IncenseHaze } from "./lighting/IncenseHaze";
+import { useFollowLook } from "./followLook";
 import { useLab } from "../lab/labState";
 import { LabClock, ReadySignal, StatsProbe } from "../lab/SceneProbes";
 
@@ -41,6 +42,8 @@ type LiturgySceneProps = {
   reducedMotion: boolean;
   /** Phones and tablets: a capped canvas, half-size icon images, and no request for the discrete GPU. */
   handheld?: boolean;
+  /** Stops drawing while the church is hidden (the phone's Text view), without unmounting it. */
+  paused?: boolean;
   /** Extra probes rendered inside the Canvas (diagnostics, context-loss handling). */
   children?: ReactNode;
 };
@@ -84,6 +87,7 @@ export function LiturgyScene({
   onFps,
   reducedMotion,
   handheld = false,
+  paused = false,
   children,
 }: LiturgySceneProps) {
   const pose = cameraFor(step.id);
@@ -103,6 +107,7 @@ export function LiturgyScene({
   const post = systems.post && quality !== "low";
   return (
     <Canvas
+      frameloop={paused ? "never" : "always"}
       dpr={dprFor(quality, handheld)}
       shadows={shadowMaps ? "percentage" : false}
       camera={{ fov: 42, position: (lab.camera ?? pose).position, near: 0.15, far: 140 }}
@@ -188,6 +193,7 @@ function FollowCamera({
   const shown = useRef<CameraPose | null>(null);
   const glide = useRef<{ from: Vector3; fromLook: Vector3; t: number } | null>(null);
   const veil = useDipVeil(gl.domElement);
+  const offset = useFollowLook(gl.domElement, enabled);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -236,6 +242,7 @@ function FollowCamera({
 
   // Only a new pose starts a move; mode and reduced motion are read at that moment.
   useLayoutEffect(() => {
+    offset.release();
     if (debugCamera || processionFocus.active) return;
     const previous = shown.current;
     shown.current = { position: [...pose.position], target: [...pose.target] };
@@ -285,6 +292,7 @@ function FollowCamera({
         look.lerpVectors(moving.fromLook, goalTarget, eased);
         camera.lookAt(look);
         cameraFocus.copy(look);
+        offset.apply(camera, delta, reducedMotion);
         if (moving.t >= 1) glide.current = null;
         return;
       }
@@ -295,6 +303,7 @@ function FollowCamera({
     look.lerp(goalTarget, blend);
     camera.lookAt(look);
     cameraFocus.copy(look);
+    offset.apply(camera, delta, reducedMotion);
   });
 
   return null;
